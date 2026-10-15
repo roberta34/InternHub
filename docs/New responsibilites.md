@@ -53,13 +53,13 @@ The goal is to keep the four areas similar in **workload, complexity, and techni
 ### Database
 - persist the Student entity/profile data required by the project;
 - read Offer data through the shared Offer contract;
-- ensure Student data can be used by the Application slice.
+- ensure Student data can be used by the InternshipCandidacy slice.
 
 ### AI-related work
 - integrate the CV feedback endpoint into the student flow;
 - send the CV text together with the selected offer context;
 - display structured AI feedback;
-- ensure the AI feedback remains independent from submitting an application;
+- ensure the AI feedback remains independent from submitting an internship candidacy;
 - ensure raw CV text is not stored or logged by this flow.
 
 ### Testing
@@ -73,74 +73,74 @@ The goal is to keep the four areas similar in **workload, complexity, and techni
 Person 1 mainly integrates with:
 
 - **Person 3**, because Browse/View Offer depends on published Offer data;
-- **Person 2**, because Application flows need Student information;
+- **Person 2**, because InternshipCandidacy flows need Student information;
 - the shared AI CV Feedback contract.
 
 ## Secondary responsibility
 
 **API contracts and shared DTO consistency**
 
-Person 1 helps the team keep common request/response models consistent between the Student, Offer, Application, and AI slices.
+Person 1 helps the team keep common request/response models consistent between the Student, Offer, InternshipCandidacy, and AI slices.
 
 ---
 
-# 3. Person 2 - Application Lifecycle
+# 3. Person 2 - Internship Candidacy Lifecycle
 
 ## Main area
 
 - **PB-05 - Apply to an Offer**
-- **PB-06 - Withdraw Application**
-- **PB-08 - View My Applications**
+- **PB-06 - Withdraw Internship Candidacy**
+- **PB-08 - View My Internship Candidacies**
 
 ## Main responsibilities
 
 ### Frontend
 - implement the Apply action from an internship offer;
-- create the My Applications view;
+- create the My Internship Candidacies view;
 - show:
   - company name;
   - offer title;
-  - current application status;
+  - current internship candidacy status;
 - implement the Withdraw action when the current status allows it.
 
 ### Backend / API
-- implement Submit Application;
-- implement View My Applications;
-- implement Withdraw Application;
+- implement Submit Internship Candidacy;
+- implement View My Internship Candidacies;
+- implement Withdraw Internship Candidacy;
 - return expected business outcomes using `Result<T>`;
-- enforce all application-related business rules in the backend.
+- enforce all internship candidacy-related business rules in the backend.
 
 ### Database
-- persist and retrieve Application entities;
+- persist and retrieve InternshipCandidacy entities;
 - work with StudentId and OfferId relationships;
-- preserve the valid application statuses:
+- preserve the valid internship candidacy statuses:
   - Submitted;
   - Shortlisted;
   - Accepted;
   - Rejected;
   - Waitlisted;
   - Withdrawn;
-- help enforce application-related integrity constraints.
+- help enforce internship candidacy-related integrity constraints.
 
 ### Business rules
-- reject applications after the offer deadline;
-- reject new applications to manually closed offers;
-- reject duplicate active applications for the same student and offer;
-- enforce the maximum number of active applications;
+- reject internship candidacies after the offer deadline;
+- reject new internship candidacies to manually closed offers;
+- reject duplicate active internship candidacies for the same student and offer;
+- enforce the maximum number of active internship candidacies;
 - allow withdrawal only from the permitted states;
-- trigger recruiter notification when a Shortlisted application is withdrawn.
+- trigger recruiter notification when a Shortlisted internship candidacy is withdrawn.
 
 ### AI-related work
 - implement/work with the deterministic **Fake AI provider** used by automated tests;
-- support predictable fake responses for both student CV feedback and recruiter-assisted application review;
+- support predictable fake responses for both student CV feedback and recruiter-assisted internship candidacy review;
 - provide deterministic `matchedSkills`, `missingSkills`, and `suggestions` for the student flow;
 - provide deterministic `matchedSkills`, `missingOrUnclearSkills`, `evidence`, and `summary` for the recruiter flow;
 - ensure automated AI tests do not depend on a live Ollama instance.
 
 ### Testing
-- unit tests for all application business rules;
+- unit tests for all internship candidacy business rules;
 - tests for success and failure scenarios;
-- integration tests for Application persistence;
+- integration tests for InternshipCandidacy persistence;
 - tests for deadline-dependent behavior;
 - tests for allowed and disallowed withdrawal cases;
 - deterministic tests for the Fake AI provider.
@@ -151,7 +151,7 @@ Person 2 mainly integrates with:
 
 - **Person 1**, for Student data;
 - **Person 3**, for Offer data, deadline, `IsClosed`, and requirements;
-- **Person 4**, because recruiter decisions operate on the same Application entity.
+- **Person 4**, because recruiter decisions operate on the same InternshipCandidacy entity.
 
 ## Secondary responsibility
 
@@ -179,7 +179,7 @@ Person 2 helps maintain schema changes, relationships, constraints, and consiste
 - implement Publish Internship Offer;
 - implement Close Internship Offer;
 - expose Offer information required by the other slices;
-- ensure the Offer contract remains usable by Student, Application, Recruiter Decision, and AI flows.
+- ensure the Offer contract remains usable by Student, InternshipCandidacy, Recruiter Decision, and AI flows.
 
 ### Database
 - persist the Offer entity;
@@ -196,12 +196,12 @@ Person 2 helps maintain schema changes, relationships, constraints, and consiste
 
 ### Business rules
 - require the fields defined by the backlog when publishing an offer;
-- ensure manually closed offers no longer accept new applications;
-- ensure existing applications remain valid and can continue through the recruitment process.
+- ensure manually closed offers no longer accept new internship candidacies;
+- ensure existing internship candidacies remain valid and can continue through the recruitment process.
 
 ### AI-related work
 - implement/work with the local **Ollama provider**;
-- support both student CV feedback and recruiter-assisted application review;
+- support both student CV feedback and recruiter-assisted internship candidacy review;
 - send CV text and Offer requirements to the local model;
 - use separate prompt/output contracts where the two use cases require different results;
 - use `HttpClient`;
@@ -238,20 +238,20 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 
 ---
 
-# 5. Person 4 - Application Evaluation + Slot Management
+# 5. Person 4 - Internship Candidacy Evaluation + Slot Management
 
 ## Main area
 
-- **PB-07 - Decide Application**
-- **PB-11 - AI-Assisted Application Review**
+- **PB-07 - Decide Internship Candidacy**
+- **PB-11 - AI-Assisted Internship Candidacy Review**
 - limited-slot handling
 - optimistic concurrency requirements
 
 ## Main responsibilities
 
 ### Frontend
-- create the recruiter-side application evaluation view;
-- allow the recruiter to request AI analysis for a selected application;
+- create the recruiter-side internship candidacy evaluation view;
+- allow the recruiter to request AI analysis for a selected internship candidacy;
 - display recruiter-facing AI results:
   - `matchedSkills[]`;
   - `missingOrUnclearSkills[]`;
@@ -259,14 +259,14 @@ Person 3 helps keep the project reproducible and ensures the local environment s
   - `summary`;
 - keep the original candidate information available to the recruiter;
 - expose Accept and Reject actions separately from the AI analysis;
-- display the resulting application status.
+- display the resulting internship candidacy status.
 
 ### Backend / API
-- implement Decide Application;
+- implement Decide Internship Candidacy;
 - expose the recruiter decision API;
-- expose the recruiter-facing AI analysis flow for a selected application;
+- expose the recruiter-facing AI analysis flow for a selected internship candidacy;
 - send the candidate CV and associated Offer requirements to the shared AI provider;
-- return structured AI analysis without changing the Application status;
+- return structured AI analysis without changing the InternshipCandidacy status;
 - implement the transition to:
   - Accepted;
   - Rejected;
@@ -274,8 +274,8 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 - ensure the final decision always requires an explicit recruiter action.
 
 ### Database
-- update Application status safely;
-- read the Application and associated Offer data required for recruiter evaluation;
+- update InternshipCandidacy status safely;
+- read the InternshipCandidacy and associated Offer data required for recruiter evaluation;
 - read and update Offer slot-related state;
 - use the Offer `Version` property for optimistic concurrency;
 - preserve data consistency during simultaneous decisions;
@@ -283,17 +283,17 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 
 ### Business rules / concurrency
 - AI assistance is optional for the recruiter;
-- the recruiter can evaluate and decide an application without using AI;
+- the recruiter can evaluate and decide an internship candidacy without using AI;
 - AI analysis may support the recruiter with information, but it cannot make the final decision;
 - AI analysis cannot automatically shortlist, accept, reject, or waitlist a candidate;
-- AI analysis cannot directly change an Application status;
+- AI analysis cannot directly change an InternshipCandidacy status;
 - prevent accepted candidates from exceeding the configured maximum slots;
 - if no slot remains, an explicit recruiter Accept action results in `Waitlisted`;
 - handle two recruiters trying to accept different candidates for the final slot at the same time;
 - ensure one candidate becomes `Accepted` and the other `Waitlisted`.
 
 ### AI / ML-related work
-- integrate AI-assisted analysis into the recruiter application evaluation flow;
+- integrate AI-assisted analysis into the recruiter internship candidacy evaluation flow;
 - compare the candidate CV with the requirements of the selected internship offer;
 - present the AI result as supporting information for the recruiter;
 - keep recruiter decision logic independent from AI output;
@@ -309,9 +309,9 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 
 ### Testing
 - unit tests for recruiter decision rules;
-- integration tests for Application status updates;
+- integration tests for InternshipCandidacy status updates;
 - tests for recruiter-facing AI analysis;
-- tests proving that AI analysis alone never changes an Application status;
+- tests proving that AI analysis alone never changes an InternshipCandidacy status;
 - tests proving that the recruiter can still decide when AI is unavailable;
 - tests for no-slot / Waitlisted behavior;
 - simultaneous-request concurrency tests;
@@ -321,10 +321,10 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 
 Person 4 mainly integrates with:
 
-- **Person 2**, because both work with the Application lifecycle and candidate application data;
+- **Person 2**, because both work with the Internship Candidacy lifecycle and candidate internship candidacy data;
 - **Person 3**, because concurrency depends on Offer slots and `Version`, and recruiter AI analysis uses the shared Ollama provider;
 - **Person 1**, through the shared AI analysis conventions used by both student and recruiter flows;
-- the shared status, Offer, Application, and AI contracts.
+- the shared status, Offer, InternshipCandidacy, and AI contracts.
 
 ## Secondary responsibility
 
@@ -333,11 +333,11 @@ Person 4 mainly integrates with:
 Person 4 helps ensure:
 
 - student/recruiter role separation;
-- only the authorized recruiter can evaluate applications for an offer;
+- only the authorized recruiter can evaluate internship candidacies for an offer;
 - AI analysis remains advisory and cannot execute recruitment decisions;
 - privacy-sensitive data does not appear in logs or errors;
 - shared testing conventions are respected;
-- important AI integration, application evaluation, and concurrency scenarios are covered.
+- important AI integration, internship candidacy evaluation, and concurrency scenarios are covered.
 
 ---
 
@@ -346,7 +346,7 @@ Person 4 helps ensure:
 | Person | Main functional area | AI-related responsibility | Secondary responsibility |
 |---|---|---|---|
 | **Person 1** | Student Profile + Browse/View Offers | Student CV feedback frontend/API integration | API contracts / DTO consistency |
-| **Person 2** | Application lifecycle | Deterministic Fake AI provider for both AI flows | Database migrations / data integrity |
+| **Person 2** | Internship Candidacy lifecycle | Deterministic Fake AI provider for both AI flows | Database migrations / data integrity |
 | **Person 3** | Offer lifecycle | Shared Ollama provider for student and recruiter AI flows | Docker / CI / local environment |
 | **Person 4** | Recruiter decisions + concurrency + AI-assisted review | Recruiter AI integration + AI/ML model evaluation | Testing / security / quality |
 
@@ -374,7 +374,7 @@ The four members should agree on shared contracts before implementing dependent 
 Mainly used by:
 
 - Person 1 - Student Profile;
-- Person 2 - Application lifecycle.
+- Person 2 - Internship Candidacy lifecycle.
 
 ## Shared Offer contract
 
@@ -397,12 +397,12 @@ Required Offer information includes:
 - IsClosed
 - Version
 
-## Shared Application contract
+## Shared InternshipCandidacy contract
 
 Used by:
 
-- Person 2 - student-side lifecycle;
-- Person 4 - recruiter evaluation and recruiter AI-assisted review.
+- Person 2 - student-side internship candidacy lifecycle;
+- Person 4 - recruiter internship candidacy evaluation and recruiter AI-assisted review.
 
 Allowed statuses:
 
@@ -446,7 +446,7 @@ Example:
          +--------------- Person 3 ------------------+
                     Publish / Close Offer
 
-PB-10 Student AI CV Feedback and PB-11 Recruiter AI-Assisted Application Review both use the same Offer requirements contract.
+PB-10 Student AI CV Feedback and PB-11 Recruiter AI-Assisted Internship Candidacy Review both use the same Offer requirements contract.
 ```
 
 ---
@@ -471,7 +471,7 @@ Each person must ensure that her slice includes:
 - privacy protection for CV data;
 - student/recruiter role separation;
 - AI remains advisory where used;
-- recruiter-facing AI analysis never changes Application status by itself;
+- recruiter-facing AI analysis never changes InternshipCandidacy status by itself;
 - final recruiter decisions always require an explicit human action;
 - documented endpoints and request/response formats;
 - successful build;
@@ -486,7 +486,7 @@ The team should not invent behavior where the current requirements are still unc
 The following points require clarification:
 
 - how recruiters are represented and authenticated;
-- which application statuses count as active;
+- which internship candidacy statuses count as active;
 - how the waiting list is ordered;
 - whether an Accepted candidate may withdraw and free a slot;
 - whether a closed offer can be reopened;
