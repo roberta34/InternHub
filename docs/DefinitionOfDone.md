@@ -16,6 +16,7 @@ A user story is **Done** when all applicable criteria below are met.
 - [ ] Business rules live in the domain/application layer, independent of AI and infrastructure.
 - [ ] External dependencies are accessed through interfaces, injected via DI.
 - [ ] Configuration-dependent behavior is controlled from `appsettings.json`.
+- [ ] AI-assisted application evaluation is separated from recruiter decision logic.
 
 ## 3. Testing
 
@@ -24,6 +25,8 @@ A user story is **Done** when all applicable criteria below are met.
 - [ ] Tests cover both success and failure scenarios.
 - [ ] Time-dependent rules (deadline) use `TimeProvider` for deterministic tests.
 - [ ] Concurrent operations (last slot) are tested under simultaneous requests.
+- [ ] AI-assisted recruiter evaluation is tested independently from recruiter decision logic.
+- [ ] The recruiter can still evaluate and decide applications when the AI service is unavailable.
 - [ ] All automated tests pass.
 
 ## 4. Data Integrity and Business Rules
@@ -37,29 +40,117 @@ A user story is **Done** when all applicable criteria below are met.
 - [ ] If no slots remain, `Accept` automatically results in `Waitlisted`; on a withdrawal, the first in the queue is promoted.
 - [ ] Two simultaneous `Accept` decisions on the last slot are resolved with `Version` (one `Accepted`, the other `Waitlisted`).
 - [ ] Rules are enforced in the backend, not only in the UI; database constraints and optimistic concurrency are configured.
-- [ ] `DecideApplication` remains a human-only decision and does not depend on the AI module.
+- [ ] The recruiter may optionally use AI-assisted CV analysis when evaluating an application.
+- [ ] `DecideApplication` remains a human-controlled operation.
+- [ ] AI analysis may support the recruiter with relevant information, but it must never automatically change the application status.
+- [ ] Only an explicit recruiter action can result in `Accepted`, `Rejected`, or another recruiter-controlled status transition.
 
-## 5. AI Module: CV Feedback
+## 5. AI Module: CV Feedback and Recruiter-Assisted Application Evaluation
 
-- [ ] The handler depends on the `ICvFeedbackProvider` interface (its own slice), with **Ollama** and **Fake** implementations, selected via `Ai:Provider` in `appsettings.json`.
-- [ ] `POST /api/offers/{id}/cv-feedback` returns JSON with `matchedSkills[]`, `missingSkills[]`, and `suggestions[]`.
-- [ ] The response is validated with `System.Text.Json`, with a single retry if invalid.
+The AI module supports two separate use cases:
+
+1. student-facing CV feedback;
+2. recruiter-facing application evaluation assistance.
+
+The AI remains advisory in both cases.
+
+### 5.1 Shared AI Infrastructure
+
+- [ ] AI functionality is accessed through an abstraction/interface with **Ollama** and **Fake** implementations.
+- [ ] The active AI provider is selected through `Ai:Provider` in `appsettings.json`.
+- [ ] The Ollama integration uses `HttpClient`.
+- [ ] AI responses are validated with `System.Text.Json`.
+- [ ] Invalid structured responses are handled safely, with a maximum of one retry when applicable.
+- [ ] Prompts are stored in versioned files in the repository.
+- [ ] AI service failure returns a clear failure `Result` without crashing the application.
+- [ ] Standard InternHub functionality remains operational when Ollama or the selected model is unavailable.
+- [ ] The Fake implementation is deterministic and automated tests never depend on a live Ollama instance.
+
+### 5.2 Student AI CV Feedback
+
+- [ ] `POST /api/offers/{id}/cv-feedback` returns structured feedback for the student.
+- [ ] The response contains:
+
+```json
+{
+  "matchedSkills": [],
+  "missingSkills": [],
+  "suggestions": []
+}
+```
+
 - [ ] Each `missingSkill` has a corresponding actionable recommendation in `suggestions`.
-- [ ] The Ollama call uses `HttpClient` with a low temperature, and the prompt lives in a versioned file in the repo.
-- [ ] Non-AI fallback: if Ollama or the model is unavailable, or the response stays invalid, the endpoint returns a clear failure `Result` without crashing, and the rest of the application keeps working.
-- [ ] The Fake implementation is deterministic (e.g., keyword matching); tests never depend on Ollama.
-- [ ] The AI result is advisory feedback for the student only; it never ranks or rejects candidates.
-- [ ] CV text is not stored in the database and is not logged, including in error messages.
-- [ ] An `Evaluate` tool runs on 10–15 CV–offer pairs with manually labelled skills (synthetic data, marked as such) and prints the valid-JSON rate and the overlap with the labels.
-- [ ] The evaluation is run on at least 2 models, repeated several times, and compared against a trivial baseline; results and chosen thresholds are documented in the README.
+- [ ] The student can use the AI analysis to understand how well their CV matches a selected internship offer.
+- [ ] Student-facing AI feedback does not affect the application status.
+- [ ] Student-facing AI feedback is independent from submitting an application.
+
+### 5.3 Recruiter AI-Assisted Application Evaluation
+
+- [ ] A recruiter can request AI analysis for a selected application.
+- [ ] The AI compares the candidate's CV with the requirements of the internship offer associated with that application.
+- [ ] Recruiter-facing AI analysis is optional and is requested on demand.
+- [ ] The recruiter-facing result contains structured information such as:
+
+```json
+{
+  "matchedSkills": [],
+  "missingOrUnclearSkills": [],
+  "evidence": [],
+  "summary": ""
+}
+```
+
+- [ ] `matchedSkills` identifies offer requirements that are supported by information found in the candidate's CV.
+- [ ] `missingOrUnclearSkills` identifies requirements that are missing or cannot be clearly demonstrated from the CV.
+- [ ] `evidence` provides relevant CV information supporting the AI analysis when applicable.
+- [ ] `summary` provides a concise overview of how the candidate's CV relates to the internship requirements.
+- [ ] The AI result is presented to the recruiter as supporting information only.
+- [ ] The recruiter can inspect the original candidate information and is not required to follow the AI analysis.
+- [ ] AI analysis does not automatically shortlist a candidate.
+- [ ] AI analysis does not automatically accept a candidate.
+- [ ] AI analysis does not automatically reject a candidate.
+- [ ] AI analysis does not automatically assign `Waitlisted`.
+- [ ] AI analysis never changes the application status.
+- [ ] The final recruitment decision always requires an explicit recruiter action.
+- [ ] Recruiter decisions remain possible without using AI.
+
+### 5.4 AI Evaluation and Quality
+
+- [ ] An `Evaluate` tool runs on 10-15 CV-offer pairs with manually labelled skills.
+- [ ] Evaluation data is synthetic and clearly marked as synthetic.
+- [ ] The evaluation measures the valid-JSON rate.
+- [ ] The evaluation measures overlap between expected skills and AI-extracted skills.
+- [ ] The evaluation is run on at least 2 models.
+- [ ] Each model is evaluated several times.
+- [ ] Results are compared against a trivial baseline.
+- [ ] Model evaluation covers outputs relevant to both student feedback and recruiter-assisted review where applicable.
+- [ ] Evaluation results, model choice, and chosen thresholds are documented in the README.
+
+### 5.5 AI Privacy
+
+- [ ] CV text sent to the AI service is not stored in the application database.
+- [ ] Raw CV text is not written to application logs.
+- [ ] Raw CV text does not appear in error messages.
+- [ ] AI-related failures do not expose sensitive candidate information.
 
 ## 6. Security and Privacy
 
 - [ ] Sensitive data does not appear in logs, API responses, or error messages.
-- [ ] API inputs are validated; student/recruiter role separation is respected (a student sees only their own applications, only the offer's recruiter makes decisions).
+- [ ] API inputs are validated.
+- [ ] Student and recruiter role separation is respected.
+- [ ] A student sees only their own applications.
+- [ ] Only the authorized recruiter for an internship offer can evaluate its applications.
+- [ ] Only the authorized recruiter can request recruiter-facing AI analysis for applications belonging to their offer.
+- [ ] Only the recruiter can perform the final recruitment decision.
+- [ ] AI output cannot directly invoke or trigger application-status transitions.
 
 ## 7. Documentation and Delivery
 
-- [ ] Endpoints and request/response formats are documented; setup and configuration (including Ollama and models) are in the README.
-- [ ] The application builds, and changes are merged into the agreed branch after code review.
-
+- [ ] Endpoints and request/response formats are documented.
+- [ ] Student-facing AI CV feedback is documented.
+- [ ] Recruiter-facing AI-assisted application evaluation is documented.
+- [ ] The documentation clearly states that AI provides advisory analysis and does not make recruitment decisions.
+- [ ] Setup and configuration, including Ollama and models, are documented in the README.
+- [ ] AI failure and fallback behavior are documented.
+- [ ] The application builds successfully.
+- [ ] Changes are merged into the agreed branch after code review.
