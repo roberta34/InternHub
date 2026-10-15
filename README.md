@@ -1,821 +1,844 @@
-# InternHub - Sprint 1 Plan
+# InternHub
 
-## 1. Sprint Goal
+InternHub is a platform for managing internship offers and student internship candidacies. Students can discover internship opportunities, apply to offers, track and withdraw internship candidacies when permitted, and request AI-assisted feedback about how well their CV matches an internship offer. Recruiters can publish and close offers, evaluate internship candidacies, and optionally use AI-assisted CV analysis to support that evaluation.
 
-Build the initial **domain foundation** of InternHub and expose two core resources through:
+The AI component is advisory only. It provides CV feedback to students and can also help recruiters evaluate internship candidacies by comparing a candidate's CV with the selected offer requirements. It highlights matched skills, missing or unclear skills, supporting evidence, and a concise summary. The AI does not make the final recruitment decision, automatically accept or reject candidates, or replace recruiter judgment.
 
-- Domain entities and relationships
 
-- In-memory repositories
 
-- Dependency Injection
+## 1. Repository Information
 
-- CRUD vertical slices
+- **Repository name:** `InternHub`
+- **Development model:** Scrum
+- **Sprint duration:** 1 week
+- **Team size:** 4 people - Roberta, Carina, Daria, Ariana
+- **Architecture approach:** vertical slices
 
-- Correct HTTP status codes
+### Recommended GitHub workflow
 
-- Unit / integration-level verification where applicable
+1. Keep `main` stable.
+2. Create a branch for each feature or technical task.
+3. Open a Pull Request before merging.
+4. Run automated tests before merge.
+5. Require at least one team review for non-trivial changes.
+6. Merge only when the applicable Definition of Done criteria are satisfied.
 
-- Postman requests and minimal README instructions
+Example branch names:
 
-The two CRUD resources for this sprint are:
+```text
+feature/student-profile
+feature/publish-offer
+feature/apply-offer
+feature/cv-feedback
+feature/recruiter-ai-review
+feature/decide-internship-candidacy
+fix/internship-candidacy-deadline-validation
+```
 
-- **Student**
 
-- **Offer**
 
-The **InternshipCandidacy** entity is introduced in the Domain layer to model the relationship between Student and Offer.
+## 2. Project Goals
+
+InternHub aims to:
+
+- provide students with access to active internship offers;
+- allow students to create and manage internship internship candidacies;
+- allow recruiters to publish and close internship offers;
+- allow recruiters to accept or reject candidates;
+- allow recruiters to request AI-assisted analysis of candidate CVs against offer requirements;
+- enforce internship candidacy limits, deadlines, slot limits, and other business rules;
+- safely handle concurrent decisions for the final available internship slot;
+- provide local AI-assisted CV feedback for students;
+- provide local AI-assisted internship candidacy review for recruiters;
+- keep final recruitment decisions under recruiter control;
+- keep CV content private and outside the application database and logs.
+
+
+
+## 3. Main Actors
+
+### Student
+
+A student can:
+
+- create a student profile;
+- browse active internship offers;
+- view offer details;
+- apply to an internship offer;
+- view submitted internship candidacies;
+- withdraw an internship candidacy when the current state allows it;
+- request AI-assisted CV feedback for a selected offer.
+
+### Recruiter
+
+A recruiter can:
+
+- publish internship offers;
+- define requirements, deadline, and maximum available slots;
+- evaluate internship candidacies;
+- request AI-assisted analysis for a selected internship candidacy;
+- review matched skills, missing or unclear skills, supporting evidence, and an AI-generated summary;
+- accept or reject candidates based on their own evaluation;
+- manually close an internship offer.
+
+### Local AI Service
+
+InternHub uses a local Ollama-based AI service for CV analysis. The same AI capability supports two user-facing scenarios:
+
+1. student CV feedback before or during the internship candidacy process;
+2. recruiter-assisted internship candidacy review.
+
+Input:
+
+```text
+CV text
++
+Selected offer requirements
+```
+
+Student-facing output:
+
+```json
+{
+  "matchedSkills": [],
+  "missingSkills": [],
+  "suggestions": []
+}
+```
+
+Recruiter-facing output:
+
+```json
+{
+  "matchedSkills": [],
+  "missingOrUnclearSkills": [],
+  "evidence": [],
+  "summary": ""
+}
+```
+
+For recruiters, the AI analysis is requested on demand for a selected internship candidacy. It helps the recruiter identify how the CV relates to the offer requirements, but it does not change the internship candidacy status automatically.
+
+The final decision always belongs to the recruiter. Only an explicit recruiter action can accept or reject a candidate.
+
+
+
+## 4. Product Backlog
+
+The current Product Backlog is organized around functional slices.
+
+| ID | Backlog Item | Main Actor |
+|---|---|---|
+| PB-01 | Create Student Profile | Student |
+| PB-02 | Publish Internship Offer | Recruiter |
+| PB-03 | Browse Active Offers | Student |
+| PB-04 | View Offer Details | Student |
+| PB-05 | Apply to an Offer | Student |
+| PB-06 | Withdraw Internship Candidacy | Student |
+| PB-07 | Decide Internship Candidacy | Recruiter |
+| PB-08 | View My Internship Candidacies | Student |
+| PB-09 | Close Internship Offer | Recruiter |
+| PB-10 | AI CV Feedback | Student |
+| PB-11 | AI-Assisted Internship Candidacy Review | Recruiter |
+
+The backlog is expected to evolve when requirements are clarified or feedback is received.
+
+
+
+## 5. Team Organization
+
+The project is developed by **4 team members**. The team uses vertical slices, so nobody is assigned permanently only to frontend, backend, database, AI, or testing.
+
+Each team member is responsible for implementing complete features end-to-end, including the applicable parts of:
+
+- frontend;
+- backend / application logic;
+- REST APIs;
+- persistence;
+- business rules;
+- validation;
+- AI-related work;
+- unit tests;
+- integration tests;
+- integration with other slices;
+- documentation.
+
+### Person 1 - Student Profile + Offer Discovery
+
+**Main backlog items**
+
+- PB-01 - Create Student Profile
+- PB-03 - Browse Active Offers
+- PB-04 - View Offer Details
+
+**Main responsibilities**
+
+- Student Profile UI and backend flow;
+- browse active offers;
+- view offer details;
+- Student persistence;
+- student-side integration of CV feedback;
+- display `matchedSkills`, `missingSkills`, and `suggestions`;
+- ensure CV feedback is independent from internship candidacy submission;
+- tests for Student and Offer discovery flows.
+
+**AI responsibility**
+
+Student-facing CV Feedback integration.
+
+**Coordination responsibility**
+
+Shared API contracts and DTO consistency.
+
+
+
+### Person 2 - Internship Candidacy Lifecycle
+
+**Main backlog items**
+
+- PB-05 - Apply to an Offer
+- PB-06 - Withdraw Internship Candidacy
+- PB-08 - View My Internship Candidacies
+
+**Main responsibilities**
+
+- Submit Internship Candidacy;
+- View My Internship Candidacies;
+- Withdraw Internship Candidacy;
+- InternshipCandidacy persistence;
+- deadline validation;
+- duplicate internship candidacy prevention;
+- maximum active-internship-candidacy limit;
+- closed-offer validation;
+- allowed withdrawal states;
+- recruiter notification for a withdrawn `Shortlisted` internship candidacy;
+- success/failure handling using `Result<T>`;
+- unit and integration tests for internship candidacy rules.
+
+**AI responsibility**
+
+Deterministic Fake `ICvFeedbackProvider` used by automated tests for both student-facing CV feedback and recruiter-facing internship candidacy review.
+
+**Coordination responsibility**
+
+Database migrations and data-integrity conventions.
+
+
+### Person 3 - Internship Offer Management
+
+**Main backlog items**
+
+- PB-02 - Publish Internship Offer
+- PB-09 - Close Internship Offer
+
+**Main responsibilities**
+
+- recruiter UI for publishing offers;
+- recruiter UI/action for closing offers;
+- Offer API;
+- Offer persistence;
+- shared Offer contract;
+- `IsClosed` handling;
+- `Version` configuration for optimistic concurrency;
+- integration with Student, InternshipCandidacy, recruiter-decision, and AI flows.
+
+The shared Offer data includes:
+
+```text
+Id
+Title
+CompanyName
+Requirements
+Deadline
+MaximumAvailableSlots
+IsClosed
+Version
+```
+
+**AI responsibility**
+
+Local Ollama provider integration:
+
+- send CV text and Offer requirements to the local model;
+- support both student-facing feedback and recruiter-facing internship candidacy analysis;
+- validate the structured AI output required by each use case;
+- handle invalid responses;
+- return a clear failure when the AI service is unavailable;
+- ensure the rest of InternHub remains operational when AI fails.
+
+**Coordination responsibility**
+
+Docker / CI / reproducible local development environment.
+
+
+
+### Person 4 - Internship Candidacy Evaluation + Slot Management
+
+**Main backlog items**
+
+- PB-07 - Decide Internship Candidacy
+- PB-11 - AI-Assisted Internship Candidacy Review
+
+**Main responsibilities**
+
+- recruiter internship-candidacy-evaluation UI;
+- on-demand AI analysis action for a selected internship candidacy;
+- display recruiter-facing AI results: matched skills, missing or unclear skills, evidence, and summary;
+- keep AI analysis separate from the final recruiter decision;
+- Accept / Reject actions;
+- `Accepted`, `Rejected`, and `Waitlisted` outcomes;
+- available-slot enforcement;
+- optimistic concurrency;
+- simultaneous decisions for the final available slot;
+- InternshipCandidacy status updates;
+- concurrency and integration testing.
+
+The system must guarantee that the configured slot limit is never exceeded.
+
+When two decisions compete for the final available slot:
+
+```text
+Request A ----\
+               >---- Offer Version / optimistic concurrency
+Request B ----/                   |
+                                    +--> one Accepted
+                                    +--> one Waitlisted
+```
+
+**AI / ML responsibility**
+
+Recruiter-facing AI review and AI model evaluation:
+
+- integrate AI analysis into the recruiter internship-candidacy-review flow;
+- prepare synthetic CV-offer test pairs;
+- manually label expected skills;
+- compare multiple models;
+- measure structured-output validity;
+- compare AI output with manual labels;
+- verify that AI results remain advisory;
+- document evaluation results.
+
+**Coordination responsibility**
+
+Testing strategy, security, and quality conventions.
+
+
+
+## 6. Collaboration Model
+
+The team follows the rule:
+
+> **Contract first, implementation independently, integration afterwards.**
+
+When two slices depend on the same entity or API:
+
+1. agree on the shared contract;
+2. define request/response DTOs;
+3. use seeded data, Fake providers, or in-memory implementations where necessary;
+4. implement the slices independently;
+5. replace temporary implementations with the real dependency;
+6. run integration tests before merge.
+
+### Shared contract dependencies
+
+```mermaid
+flowchart TD
+    OFFER["Shared Offer Contract"]
+
+    P1["Person 1<br/>Browse / View / CV UI"]
+    P2["Person 2<br/>Apply / Withdraw"]
+    P3["Person 3<br/>Publish / Close"]
+    P4["Person 4<br/>Decide / Slots / AI Review"]
+    AI["PB-10 / PB-11<br/>AI CV Analysis"]
+
+    OFFER --> P1
+    OFFER --> P2
+    OFFER --> P4
+    OFFER --> AI
+    AI --> P1
+    AI --> P4
+    P3 --> OFFER
+```
+
+### Shared entities
+
+```mermaid
+flowchart LR
+    Student --> InternshipCandidacy
+    Offer --> InternshipCandidacy
+    Offer --> CVAnalysis["AI CV Analysis"]
+    InternshipCandidacy --> CVAnalysis
+    CVAnalysis --> StudentFeedback["Student Feedback"]
+    CVAnalysis --> RecruiterReview["Recruiter Review"]
+    InternshipCandidacy --> Decision["Recruiter Decision"]
+    Offer --> Decision
+    RecruiterReview --> Decision
+```
 
 ---
 
-## 2. Scope of Sprint 1
+## 7. Main Use Cases
 
-This sprint is focused on the assignment requirements:
+### Student use cases
 
-### Domain Model
+```mermaid
+flowchart TD
+    S["Student"]
+    SP["Create Profile"]
+    BO["Browse Active Offers"]
+    VO["View Offer Details"]
+    CV["Request CV Feedback"]
+    AP["Apply to Offer"]
+    MA["View My Internship Candidacies"]
+    WA["Withdraw Internship Candidacy"]
 
-The Domain layer must:
-
-- use `Guid Id` identity;
-
-- keep value objects immutable (`record`);
-
-- model at least:
-
-- one one-to-many relationship;
-
-- one many-to-many relationship through a join entity;
-
-- keep entities valid through constructors / methods;
-
-- use `private set`;
-
-- avoid public mutable collections;
-
-- not depend on ASP.NET;
-
-- live under `Domain/<Aggregate>/`.
-
-For InternHub:
-
-```text
-Student 1 ---- * InternshipCandidacy * ---- 1 Offer
+    S --> SP
+    S --> BO
+    BO --> VO
+    VO --> CV
+    VO --> AP
+    S --> MA
+    MA --> WA
 ```
 
-Therefore:
+### Recruiter use cases
 
-- one Student can have many InternshipCandidacies;
+```mermaid
+flowchart TD
+    R["Recruiter"]
+    PO["Publish Offer"]
+    CO["Close Offer"]
+    EA["Evaluate Internship Candidacy"]
+    AI["Request AI Analysis"]
+    AR["Review AI Findings"]
+    AC["Accept"]
+    RJ["Reject"]
+    WL["Waitlist if no slot remains"]
 
-- one Offer can have many InternshipCandidacies;
+    R --> PO
+    R --> CO
+    R --> EA
+    EA -->|"Optional"| AI
+    AI --> AR
+    EA --> AC
+    EA --> RJ
+    AR --> AC
+    AR --> RJ
+    AC --> WL
+```
 
-- Student and Offer form a many-to-many relationship through InternshipCandidacy.
+
+
+## 8. Internship Candidacy Flow
+
+A simplified student internship candidacy flow is:
+
+```mermaid
+flowchart TD
+    A["Student selects offer"] --> B{"Offer active?"}
+    B -- No --> X["Failure Result"]
+    B -- Yes --> C{"Deadline passed?"}
+    C -- Yes --> X
+    C -- No --> D{"Duplicate active internship candidacy?"}
+    D -- Yes --> X
+    D -- No --> E{"Active internship candidacy limit reached?"}
+    E -- Yes --> X
+    E -- No --> F["Create InternshipCandidacy"]
+    F --> G["Status = Submitted"]
+```
+
+All business rules are enforced in the backend, not only in the frontend.
+
+
+
+## 9. Recruiter AI Review, Decision and Concurrency Flow
+
+```mermaid
+flowchart TD
+    A["Recruiter selects internship candidacy"] --> B{"Use AI assistance?"}
+    B -->|Yes| C["Analyze CV against offer requirements"]
+    C --> D["Show matched skills, missing or unclear skills, evidence, and summary"]
+    D --> E{"Recruiter decision"}
+    B -->|No| E
+    E -->|Reject| F["Status = Rejected"]
+    E -->|Accept| G{"Slot available?"}
+    G -->|No| H["Status = Waitlisted"]
+    G -->|Yes| I["Try optimistic-concurrency update"]
+    I -->|Success| J["Status = Accepted"]
+    I -->|Version conflict / slot consumed| H
+```
+
+AI assistance is optional and never changes an internship candidacy status by itself. The recruiter remains responsible for the final decision.
+
+The Offer `Version` property protects the final available slot from concurrent acceptance.
 
 ---
 
-### In-Memory Repositories
+## 10. Proposed Delivery Plan
 
-The sprint uses two repository resources:
+The team works in **1-week Scrum sprints**.
 
-- `Student`
+The exact number of calendar weeks depends on the course deadline. The following sequence describes the planned work until the product is complete; if the available calendar changes, milestones can be split or combined without changing the backlog ownership.
 
-- `Offer`
+### Sprint 1 - Foundation and Shared Contracts
 
-For each resource:
+**Goal:** create a working project foundation and establish the contracts needed for independent development.
 
-- define the repository interface near the Domain type;
+**Person 1**
 
-- implement the repository in `Infrastructure/`;
+- Student Profile foundation;
+- Student DTO/API contract;
+- basic Student persistence.
 
-- use:
+**Person 2**
 
-```csharp
-ConcurrentDictionary<Guid, T>
-```
+- InternshipCandidacy entity and persistence foundation;
+- define status representation;
+- prepare validation/test structure.
 
-- register the repository in DI as `Singleton`;
+**Person 3**
 
-- reject duplicate IDs;
+- Offer entity and shared Offer contract;
+- PB-02 Publish Internship Offer foundation;
+- persistence for Offer;
+- initial local-development setup.
 
-- return missing resources consistently;
+**Person 4**
 
-- make `GetAll()` return a snapshot.
+- Recruiter decision contract;
+- recruiter AI-review contract;
+- slot-management design;
+- testing/concurrency test strategy.
 
-No EF Core and no file persistence are required in this sprint.
+**Shared**
 
----
+- initialize repository structure;
+- configure database and migrations;
+- agree on API conventions;
+- agree on `Result<T>` conventions;
+- establish Pull Request workflow;
+- establish Definition of Done checks.
 
-### Vertical Slices
-
-CRUD operations are exposed as independent vertical slices.
-
-Example structure:
-
-```text
-Features/
-├── Students/
-│   ├── CreateStudent/
-│   ├── GetStudentById/
-│   ├── GetStudents/
-│   ├── UpdateStudent/
-│   └── DeleteStudent/
-│
-└── Offers/
-    ├── CreateOffer/
-    ├── GetOfferById/
-    ├── GetOffers/
-    ├── UpdateOffer/
-    └── DeleteOffer/
-```
-
-Each slice should contain its own:
-
-- request model;
-
-- response model;
-
-- route / endpoint;
-
-- `Map()` method.
-
-Endpoints depend on repository **interfaces**, never directly on the in-memory implementation.
-
-Business rules belong in Domain/Application code, not in endpoints.
-
-Use `TypedResults` and the required status codes:
-
-- `201 Created` + `Location`
-
-- `200 OK`
-
-- `204 No Content`
-
-- `400 Bad Request`
-
-- `404 Not Found`
+**Sprint outcome:** the project builds, core entities/contracts exist, and each member can continue work without waiting for another member's complete implementation.
 
 ---
 
-## 3. Team Distribution
+### Sprint 2 - Offer Discovery and Internship Candidacy Submission
 
-### Person 1 - Student Domain + Create / GetById
+**Goal:** complete the first end-to-end student journey from discovering an offer to applying.
 
-### Main responsibilities
+**Person 1**
 
-#### Domain
+- PB-03 Browse Active Offers;
+- PB-04 View Offer Details.
 
-Create the initial Student aggregate:
+**Person 2**
 
-```text
-Domain/
-└── Students/
-    ├── Student.cs
-    └── IStudentRepository.cs
-```
+- PB-05 Apply to an Offer;
+- deadline validation;
+- duplicate-internship-candidacy validation;
+- active-internship-candidacy limit validation.
 
-Responsibilities:
+**Person 3**
 
-- define `Guid Id`;
+- complete PB-02;
+- expose Offer information required by Student and InternshipCandidacy slices.
 
-- keep state valid through constructor / methods;
+**Person 4**
 
-- use `private set`;
+- recruiter-side evaluation view/API skeleton;
+- AI-assisted internship-candidacy-review contract;
+- integration contract for InternshipCandidacy decisions.
 
-- avoid public mutable collections;
-
-- define the Student repository interface next to the Domain type.
-
-> The current project requirements do not fully define all Student Profile fields.
-
-> The team should agree on the minimum Student fields before implementation instead of inventing unsupported profile attributes.
-
-#### Repository
-
-Implement:
+**Sprint outcome:**
 
 ```text
-Infrastructure/
-└── Repositories/
-    └── InMemoryStudentRepository.cs
+Student -> Browse -> View Offer -> Apply
 ```
 
-with:
-
-```csharp
-ConcurrentDictionary<Guid, Student>
-```
-
-Required operations:
-
-- `Add`
-
-- `GetById`
-
-- `GetAll`
-
-- `Update`
-
-- `Delete`
-
-#### Vertical slices
-
-Implement:
-
-```text
-Features/
-└── Students/
-    ├── CreateStudent/
-    └── GetStudentById/
-```
-
-Expected behavior:
-
-```text
-Create Student         -> 201 Created + Location
-Get existing Student   -> 200 OK
-Get missing Student    -> 404 Not Found
-Duplicate Student Id   -> rejected consistently
-```
-
-### Testing / verification
-
-Person 1 verifies:
-
-- valid Student creation;
-
-- invalid Student state is rejected;
-
-- duplicate IDs are rejected;
-
-- existing Student can be retrieved;
-
-- missing Student returns 404.
-
-### Secondary responsibility
-
-**API contract / DTO consistency**
-
-Person 1 checks that Student request / response contracts are consistent across Person 1 and Person 2 slices.
+works end-to-end with backend validation and automated tests.
 
 ---
 
-## 4. Person 2 - Student Remaining CRUD + InternshipCandidacy Relationship
+### Sprint 3 - Internship Candidacy and Offer Lifecycle
 
-### Main responsibilities
+**Goal:** complete the normal internship candidacy-management lifecycle.
 
-#### Vertical slices
+**Person 1**
 
-Implement:
+- refine student offer views;
+- prepare student-side CV Feedback interaction using the Fake provider.
 
-```text
-Features/
-└── Students/
-    ├── GetStudents/
-    ├── UpdateStudent/
-    └── DeleteStudent/
-```
+**Person 2**
 
-Expected behavior:
+- PB-06 Withdraw Internship Candidacy;
+- PB-08 View My Internship Candidacies;
+- withdrawal validation;
+- Shortlisted withdrawal notification.
 
-```text
-Get all Students       -> 200 OK
-Update existing        -> 204 No Content
-Update missing         -> 404 Not Found
-Delete existing        -> 204 No Content
-Delete missing         -> 404 Not Found
-```
+**Person 3**
 
-#### Domain relationship
+- PB-09 Close Internship Offer;
+- ensure new internship candidacies are rejected after closure;
+- ensure existing internship candidacies remain valid.
 
-Introduce the `InternshipCandidacy` entity:
+**Person 4**
 
-```text
-Domain/
-└── InternshipCandidacies/
-    └── InternshipCandidacy.cs
-```
+- basic PB-07 Accept / Reject / Waitlist logic;
+- InternshipCandidacy status update tests.
 
-InternshipCandidacy connects Student and Offer.
+**Sprint outcome:** students can manage internship candidacies, recruiters can close offers, and recruiter decisions work in non-concurrent scenarios.
 
-Core data already supported by the InternHub requirements:
 
-- `Id`
+### Sprint 4 - Slot Management, Concurrency and Reliability
 
-- `StudentId`
+**Goal:** complete the most important consistency and concurrency scenarios.
 
-- `OfferId`
+**Person 1**
 
-- `InternshipCandidacyDate`
+- student-side failure handling;
+- integration tests between Offer discovery and other slices.
 
-- `Status`
+**Person 2**
 
-Allowed statuses:
+- data-integrity validation;
+- deadline and withdrawal edge cases;
+- migration/constraint verification.
 
-- `Submitted`
+**Person 3**
 
-- `Shortlisted`
+- configure Offer `Version` for optimistic concurrency;
+- verify persistence behavior;
+- start real Ollama-provider integration.
 
-- `Accepted`
+**Person 4**
 
-- `Rejected`
+- complete concurrent PB-07 behavior;
+- simultaneous final-slot tests;
+- verify that exactly one candidate becomes `Accepted` and the other becomes `Waitlisted`.
 
-- `Waitlisted`
+**Sprint outcome:** the slot limit remains correct even under simultaneous requests.
 
-- `Withdrawn`
 
-For Sprint 1, this entity is used mainly to establish the Domain relationship.
 
-The complete Apply / Withdraw / Decide business flows are **not implemented yet** in this sprint.
+### Sprint 5 - AI CV Feedback and Recruiter Internship Candidacy Review
 
-### Repository behavior checks
+**Goal:** complete PB-10 and PB-11 end-to-end.
 
-Person 2 also verifies Student repository behavior for:
+**Person 1**
 
-- `GetAll()` snapshot semantics;
+- student CV Feedback UI;
+- student-side API integration;
+- display `matchedSkills`, `missingSkills`, and `suggestions`.
 
-- update behavior;
+**Person 2**
 
-- delete behavior;
+- deterministic Fake provider for both AI use cases;
+- repeatable automated AI integration tests.
 
-- consistent handling of missing resources.
+**Person 3**
 
-### Testing / verification
+- shared Ollama provider;
+- structured output validation for student and recruiter responses;
+- AI-service failure handling;
+- privacy checks around CV payloads.
 
-Person 2 verifies:
+**Person 4**
 
-- GetAll returns the current snapshot;
+- recruiter AI-assisted internship-candidacy-review UI;
+- on-demand AI analysis action for a selected internship candidacy;
+- display `matchedSkills`, `missingOrUnclearSkills`, `evidence`, and `summary`;
+- AI/model evaluation;
+- synthetic evaluation dataset;
+- model comparison;
+- evaluation metrics and documentation.
 
-- update works for existing Students;
+**Shared**
 
-- missing update returns 404;
+- ensure AI is independent from Apply;
+- ensure AI never changes an internship candidacy status automatically;
+- ensure final recruitment decisions remain human-controlled;
+- ensure CV text is not persisted or logged;
+- verify Romanian and English CV/offer analysis.
 
-- delete works for existing Students;
-
-- missing delete returns 404;
-
-- Student ↔ InternshipCandidacy relationship is represented without exposing mutable collections.
-
-### Secondary responsibility
-
-**Domain integrity / relationships**
-
-Person 2 checks that the Student-InternshipCandidacy-Offer relationship remains consistent with the InternHub domain model.
-
----
-
-## 5. Person 3 - Offer Domain + Create / GetById
-
-### Main responsibilities
-
-#### Domain
-
-Create the Offer aggregate:
+**Sprint outcome:**
 
 ```text
-Domain/
-└── Offers/
-    ├── Offer.cs
-    └── IOfferRepository.cs
+Student -> Offer -> CV Feedback -> Structured AI Result
+
+Recruiter -> InternshipCandidacy -> AI Analysis -> Review Findings -> Human Decision
 ```
 
-Offer data required by the InternHub requirements includes:
+Both flows work with deterministic tests and the local Ollama implementation.
 
-- `Id`
 
-- `Title`
+### Sprint 6 - Integration, Hardening and Final Delivery
 
-- `CompanyName`
+**Goal:** make the complete system ready for final review/demo.
 
-- `Requirements`
+**All team members**
 
-- `Deadline`
+- resolve remaining integration issues;
+- run full unit/integration test suite;
+- execute concurrency tests;
+- verify privacy and role separation;
+- validate all Product Backlog acceptance criteria;
+- fix regressions;
+- update endpoint documentation;
+- update setup instructions;
+- update diagrams;
+- complete README;
+- prepare final demonstration.
 
-- `MaximumAvailableSlots`
+**Sprint outcome:** all implemented stories satisfy the applicable Definition of Done criteria and the complete application is demonstrable from a clean setup.
 
-- `IsClosed`
 
-- `Version`
 
-Responsibilities:
+## 12. Definition of Done
 
-- keep Offer state valid;
+A user story is considered **Done** only when all applicable criteria are satisfied.
 
-- use `private set`;
+### Functionality
 
-- expose behavior through methods instead of public setters;
+- all acceptance criteria are implemented and verified;
+- relevant business rules are enforced;
+- input validation and error handling are implemented;
+- expected outcomes use success/failure `Result<T>`;
+- existing functionality is not broken.
 
-- define the Offer repository interface next to the Domain type;
+### Code and architecture
 
-- keep Domain independent from ASP.NET.
+- code follows the agreed vertical-slice structure;
+- business rules are not implemented only in the UI;
+- external dependencies are accessed through abstractions where applicable;
+- shared contracts remain consistent.
 
-#### Repository
+### Testing
 
-Implement:
+- relevant unit tests exist;
+- persistence interactions have integration tests where applicable;
+- both success and failure scenarios are tested;
+- time-dependent logic is deterministic;
+- concurrency behavior is tested where applicable;
+- all automated tests pass.
 
-```text
-Infrastructure/
-└── Repositories/
-    └── InMemoryOfferRepository.cs
-```
+### AI and privacy
 
-with:
-
-```csharp
-ConcurrentDictionary<Guid, Offer>
-```
-
-Required operations:
-
-- `Add`
-
-- `GetById`
-
-- `GetAll`
-
-- `Update`
-
-- `Delete`
-
-#### Vertical slices
-
-Implement:
-
-```text
-Features/
-└── Offers/
-    ├── CreateOffer/
-    └── GetOfferById/
-```
-
-Expected behavior:
-
-```text
-Create Offer         -> 201 Created + Location
-Get existing Offer   -> 200 OK
-Get missing Offer    -> 404 Not Found
-Duplicate Offer Id   -> rejected consistently
-```
-
-### Testing / verification
-
-Person 3 verifies:
-
-- Offer cannot be created in an invalid state;
-
-- required Offer data is validated;
-
-- duplicate IDs are rejected;
-
-- existing Offer can be retrieved;
-
-- missing Offer returns 404.
-
-### Secondary responsibility
-
-**Infrastructure / Dependency Injection**
-
-Person 3 ensures both repositories are registered correctly as `Singleton` services and that endpoints depend only on repository interfaces.
-
----
-
-## 6. Person 4 - Offer Remaining CRUD + Recruiter Evaluation Preparation + Integration / Delivery
-
-### Main responsibilities
-
-#### Vertical slices
-
-Implement:
-
-```text
-Features/
-└── Offers/
-    ├── GetOffers/
-    ├── UpdateOffer/
-    └── DeleteOffer/
-```
-
-Expected behavior:
-
-```text
-Get all Offers       -> 200 OK
-Update existing      -> 204 No Content
-Update missing       -> 404 Not Found
-Delete existing      -> 204 No Content
-Delete missing       -> 404 Not Found
-```
-
-#### Offer / InternshipCandidacy relationship
-
-Verify the Offer side of the relationship:
-
-```text
-Offer 1 ---- * InternshipCandidacy
-```
-
-and make sure the Domain model supports:
-
-```text
-Student * ---- * Offer
-          through
-        InternshipCandidacy
-```
-
-without exposing mutable collections publicly.
-
-#### Recruiter evaluation preparation
-
-Prepare the shared contract and decision boundary required for the future recruiter InternshipCandidacy evaluation flow.
-
-The intended future flow is:
-
-```text
-Recruiter selects InternshipCandidacy
-        |
-        v
-Optional AI analysis
-        |
-        v
-CV + Offer Requirements
-        |
-        v
-matchedSkills
-missingOrUnclearSkills
-evidence
-summary
-        |
-        v
-Recruiter reviews the information
-        |
-        v
-Recruiter decides manually
-        |
-   Accept / Reject
-```
-
-Sprint 1 responsibilities are limited to preparing the architecture and contracts for this flow.
-
-Person 4 must ensure that:
-
-- recruiter AI assistance is optional;
-- the AI will compare a candidate CV with the requirements of the selected Offer;
-- AI output is advisory information only;
-- AI must not automatically shortlist a candidate;
-- AI must not automatically accept a candidate;
-- AI must not automatically reject a candidate;
-- AI must not automatically assign `Waitlisted`;
-- AI must not change `InternshipCandidacy.Status`;
-- the future `DecideInternshipCandidacy` operation remains separate from AI analysis;
-- Accept and Reject always require an explicit recruiter action;
-- recruiter decisions remain possible even if AI is unavailable.
-
-No live Ollama call or AI model execution is required in Sprint 1.
-
-#### Integration
-
-Person 4 performs the first full-team integration check:
-
-- Student CRUD slices work together;
-- Offer CRUD slices work together;
-- both repositories resolve through DI;
-- repository implementations are not referenced directly by endpoints;
-- the application starts successfully;
-- endpoint routes do not conflict;
-- expected status codes are returned;
-- the shared InternshipCandidacy and Offer contracts do not couple recruiter decisions to AI.
-
-#### Recruiter AI Architecture Readiness
-
-- [ ] Future recruiter AI analysis is documented as optional and advisory.
-- [ ] AI analysis is separate from the future `DecideInternshipCandidacy` operation.
-- [ ] AI output cannot change `InternshipCandidacy.Status`.
-- [ ] Accept / Reject remain explicit recruiter actions.
-- [ ] Recruiter decision logic can operate without AI.
-- [ ] No live Ollama or AI model dependency is introduced in Sprint 1.
-
-#### Delivery support
-
-Prepare / coordinate:
-
-- Postman collection structure;
-- required requests for each implemented slice;
-- minimal README run instructions;
-- a short README note describing the future recruiter AI-assisted evaluation rule and the human-controlled final decision.
-
-### Testing / verification
-
-Person 4 verifies:
-
-- Offer GetAll snapshot behavior;
-- update / delete behavior;
-- missing resources return 404;
-- DI integration works;
-- all endpoints map correctly;
-- application starts and all CRUD flows can be exercised;
-- no Sprint 1 code allows AI to mutate InternshipCandidacy status;
-- the recruiter decision boundary is documented as human-controlled.
-
-### Secondary responsibility
-
-**Integration / delivery quality**
-
-Person 4 coordinates the final Sprint 1 integration and delivery checks and keeps the future recruiter AI-assisted evaluation contract consistent with the human-controlled decision rule.
-
----
-
-## 7. Workload Balance
-
-The sprint is balanced by complexity rather than by number of files.
-
-| Person | Main Domain Work | CRUD Slices | Extra Responsibility |
-
-|---|---|---:|---|
-
-| Person 1 | Student aggregate + repository | 2 | API / DTO consistency |
-
-| Person 2 | InternshipCandidacy relationship | 3 | Domain integrity |
-
-| Person 3 | Offer aggregate + repository | 2 | Infrastructure / DI |
-
-| Person 4 | Offer relationship verification + recruiter evaluation contract preparation | 3 | Integration / delivery |
-
-The team should still estimate the work during Sprint Planning.
-
-If one task turns out to be significantly larger than expected, it should be split before implementation begins.
-
----
-
-## 8. Integration Strategy
-
-The team should define the shared Domain contracts before coding.
-
-### Shared Student contract
-
-Used by:
-
-- Person 1
-
-- Person 2
-
-### Shared Offer contract
-
-Used by:
-
-- Person 3
-
-- Person 4
-
-### Shared InternshipCandidacy contract
-
-Connects:
-
-- Student
-
-- Offer
-
-The preferred workflow is:
-
-```text
-Agree Domain Contracts
-        |
-        v
-Implement independently
-        |
-        v
-Merge Student slices
-        |
-        v
-Merge Offer slices
-        |
-        v
-Integrate InternshipCandidacy relationship
-        |
-        v
-Run full CRUD verification
-```
-
-Each person should work in a separate feature branch to reduce merge conflicts.
-
----
-
-## 9. Sprint 1 Definition of Done
-
-A Sprint 1 slice is Done only when all applicable criteria below are met.
-
-### Domain
-
-- [ ] Entity uses `Guid Id`.
-
-- [ ] State is validated in constructors / methods.
-
-- [ ] No public setters for mutable state.
-
-- [ ] No public mutable collections.
-
-- [ ] Value objects are immutable.
-
-- [ ] Domain has no ASP.NET dependency.
-
-- [ ] One-to-many relationship is represented.
-
-- [ ] Many-to-many relationship is represented through `InternshipCandidacy`.
-
-### Repository
-
-- [ ] Repository interface is defined near the Domain type.
-
-- [ ] In-memory implementation lives under `Infrastructure`.
-
-- [ ] `ConcurrentDictionary<Guid, T>` is used.
-
-- [ ] Repository is registered as `Singleton`.
-
-- [ ] Duplicate IDs are rejected.
-
-- [ ] Missing resources are handled consistently.
-
-- [ ] `GetAll()` returns a snapshot.
-
-### Vertical Slice
-
-- [ ] Slice has its own folder.
-
-- [ ] Slice contains request / response / route mapping.
-
-- [ ] Endpoint depends on repository interface.
-
-- [ ] No Domain business rules live inside the endpoint.
-
-- [ ] Correct `TypedResults` are used.
-
-- [ ] Correct status code is returned.
-
-### Testing / Verification
-
-- [ ] Happy path is verified.
-
-- [ ] Missing-resource case is verified.
-
-- [ ] At least one edge case is verified.
-
-- [ ] Existing behavior is not broken.
-
-- [ ] Application builds and starts successfully.
-
-### Integration
-
-- [ ] Student CRUD works end-to-end.
-
-- [ ] Offer CRUD works end-to-end.
-
-- [ ] Student-InternshipCandidacy-Offer relationship is represented correctly.
-
-- [ ] DI resolves both repositories.
-
-- [ ] No endpoint depends on concrete in-memory repository classes.
+- AI feedback remains advisory for both students and recruiters;
+- recruiter-facing AI analysis compares the candidate CV with the selected offer requirements;
+- recruiter-facing output exposes matched skills, missing or unclear skills, evidence, and a concise summary;
+- AI never accepts, rejects, waitlists, or otherwise changes an internship candidacy status automatically;
+- final recruitment decisions require an explicit recruiter action;
+- automated tests do not depend on live Ollama;
+- raw CV text is not stored in the application database;
+- raw CV text is not written to logs or error messages;
+- AI-service failure does not break standard application functionality.
 
 ### Delivery
 
-- [ ] Git repository is ready.
+- endpoints and request/response formats are documented;
+- the application builds successfully;
+- changes are reviewed before merge.
 
-- [ ] Postman collection contains at least 3 requests per slice:
 
-- happy path;
 
-- 404 or 400;
+## 13. Open Requirements
 
-- one additional edge case.
+The team must **not hard-code assumptions** for requirements that are still unclear.
 
-- [ ] README contains at least:
+The following points require clarification:
 
-- how to run the API;
+- how recruiters are represented and authenticated;
+- which internship candidacy statuses count as active;
+- how the waiting list is ordered;
+- whether an `Accepted` candidate may withdraw and free a slot;
+- whether a closed offer can be reopened;
+- the exact expected behavior when local Ollama is unavailable.
 
-- how to import the Postman collection;
+These decisions will be updated in the requirements, backlog, tests, and README once clarified.
 
-- any required setup command / note.
 
----
+## 14. Suggested Repository Structure
 
-## 10. Out of Scope for Sprint 1
+```text
+InternHub/
+│
+├── README.md
+├── src/
+│   ├── Student/
+│   ├── Offers/
+│   ├── InternshipCandidacies/
+│   ├── Decisions/
+│   ├── CvFeedback/
+│   └── RecruiterAiReview/
+│
+├── tests/
+│   ├── Unit/
+│   ├── Integration/
+│   └── Concurrency/
+│
+├── docs/
+│   ├── engineering-requirements/
+│   ├── product-backlog/
+│   ├── definition-of-done/
+│   ├── team-responsibilities/
+│   └── diagrams/
+│
+└── docker/
+```
 
-The following InternHub features should **not** be forced into this sprint unless the assignment changes:
+The exact source-tree structure may be adjusted to the final application architecture. The important rule is to keep feature ownership and vertical slices clear.
 
-- real database / EF Core;
 
-- full Apply business flow;
 
-- Withdraw InternshipCandidacy;
+## 15. Project Completion Criteria
 
-- recruiter Accept / Reject;
+The project is ready for final delivery when:
 
-- slot concurrency behavior;
+- all agreed MVP Product Backlog Items are implemented;
+- acceptance criteria are satisfied;
+- critical business rules are covered by tests;
+- optimistic concurrency prevents slot overbooking;
+- student AI feedback works locally;
+- recruiter AI-assisted internship candidacy review works locally;
+- AI does not make or automatically execute recruitment decisions;
+- final recruitment decisions remain under recruiter control;
+- no raw CV content is persisted or logged;
+- the complete automated test suite passes;
+- the project builds from a clean environment;
+- documentation is up to date;
+- the repository remains private and the required reviewer/collaborator has access.
 
-- Close Offer workflow;
 
-- AI / Ollama integration;
 
-- AI / ML evaluation;
+## 16. Current Planning Summary
 
-- frontend application.
+```text
+Requirements
+    |
+    v
+Product Backlog
+    |
+    v
+1-week Sprint Planning
+    |
+    v
+Vertical Slices
+    |
+    +--> Frontend
+    +--> Backend / API
+    +--> Persistence
+    +--> Business Rules
+    +--> AI integration where applicable
+    +--> Unit / Integration Tests
+    |
+    v
+Definition of Done
+    |
+    v
+Integrated Increment
+```
 
-These remain part of the overall InternHub project, but Sprint 1 is specifically focused on **Domain + in-memory repositories + CRUD vertical slices**.
+The core team rule is:
 
-This means the general team plan where all members eventually work with frontend, backend, database, AI/ML, and testing still applies across the project, but not every technology needs to appear in every single sprint.
+> **Each person owns a complete functional area, one defined AI/ML responsibility, and one coordination responsibility, while all four members develop end-to-end vertical slices and integrate through shared contracts.**
