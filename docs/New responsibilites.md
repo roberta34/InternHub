@@ -1,4 +1,4 @@
-# InternHub — Balanced Team Work Distribution
+# InternHub - Balanced Team Work Distribution
 
 ## 1. General Working Model
 
@@ -23,13 +23,13 @@ The goal is to keep the four areas similar in **workload, complexity, and techni
 
 ---
 
-# 2. Person 1 — Student Profile + Offer Discovery
+# 2. Person 1 - Student Profile + Offer Discovery
 
 ## Main area
 
-- **PB-01 — Create Student Profile**
-- **PB-03 — Browse Active Offers**
-- **PB-04 — View Offer Details**
+- **PB-01 - Create Student Profile**
+- **PB-03 - Browse Active Offers**
+- **PB-04 - View Offer Details**
 
 ## Main responsibilities
 
@@ -84,13 +84,13 @@ Person 1 helps the team keep common request/response models consistent between t
 
 ---
 
-# 3. Person 2 — Application Lifecycle
+# 3. Person 2 - Application Lifecycle
 
 ## Main area
 
-- **PB-05 — Apply to an Offer**
-- **PB-06 — Withdraw Application**
-- **PB-08 — View My Applications**
+- **PB-05 - Apply to an Offer**
+- **PB-06 - Withdraw Application**
+- **PB-08 - View My Applications**
 
 ## Main responsibilities
 
@@ -131,9 +131,11 @@ Person 1 helps the team keep common request/response models consistent between t
 - trigger recruiter notification when a Shortlisted application is withdrawn.
 
 ### AI-related work
-- implement/work with the deterministic **Fake `ICvFeedbackProvider`**;
-- ensure automated AI tests do not depend on a live Ollama instance;
-- provide predictable fake responses for AI integration tests.
+- implement/work with the deterministic **Fake AI provider** used by automated tests;
+- support predictable fake responses for both student CV feedback and recruiter-assisted application review;
+- provide deterministic `matchedSkills`, `missingSkills`, and `suggestions` for the student flow;
+- provide deterministic `matchedSkills`, `missingOrUnclearSkills`, `evidence`, and `summary` for the recruiter flow;
+- ensure automated AI tests do not depend on a live Ollama instance.
 
 ### Testing
 - unit tests for all application business rules;
@@ -159,12 +161,12 @@ Person 2 helps maintain schema changes, relationships, constraints, and consiste
 
 ---
 
-# 4. Person 3 — Internship Offer Management
+# 4. Person 3 - Internship Offer Management
 
 ## Main area
 
-- **PB-02 — Publish Internship Offer**
-- **PB-09 — Close Internship Offer**
+- **PB-02 - Publish Internship Offer**
+- **PB-09 - Close Internship Offer**
 
 ## Main responsibilities
 
@@ -199,14 +201,17 @@ Person 2 helps maintain schema changes, relationships, constraints, and consiste
 
 ### AI-related work
 - implement/work with the local **Ollama provider**;
+- support both student CV feedback and recruiter-assisted application review;
 - send CV text and Offer requirements to the local model;
+- use separate prompt/output contracts where the two use cases require different results;
 - use `HttpClient`;
-- use the versioned prompt stored in the repository;
+- use versioned prompts stored in the repository;
 - use low-temperature generation;
 - validate the returned structured JSON;
 - perform one retry when the returned structure is invalid;
 - return a clear failure result when Ollama/model execution fails;
-- ensure the rest of the application continues working when AI is unavailable.
+- ensure the rest of the application continues working when AI is unavailable;
+- ensure the AI provider never performs or triggers a recruitment decision.
 
 ### Testing
 - unit tests for Offer lifecycle rules;
@@ -233,11 +238,12 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 
 ---
 
-# 5. Person 4 — Application Evaluation + Slot Management
+# 5. Person 4 - Application Evaluation + Slot Management
 
 ## Main area
 
-- **PB-07 — Decide Application**
+- **PB-07 - Decide Application**
+- **PB-11 - AI-Assisted Application Review**
 - limited-slot handling
 - optimistic concurrency requirements
 
@@ -245,33 +251,53 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 
 ### Frontend
 - create the recruiter-side application evaluation view;
-- expose Accept and Reject actions;
+- allow the recruiter to request AI analysis for a selected application;
+- display recruiter-facing AI results:
+  - `matchedSkills[]`;
+  - `missingOrUnclearSkills[]`;
+  - `evidence[]`;
+  - `summary`;
+- keep the original candidate information available to the recruiter;
+- expose Accept and Reject actions separately from the AI analysis;
 - display the resulting application status.
 
 ### Backend / API
 - implement Decide Application;
 - expose the recruiter decision API;
+- expose the recruiter-facing AI analysis flow for a selected application;
+- send the candidate CV and associated Offer requirements to the shared AI provider;
+- return structured AI analysis without changing the Application status;
 - implement the transition to:
   - Accepted;
   - Rejected;
   - Waitlisted;
-- ensure the decision remains human-controlled and does not depend on AI.
+- ensure the final decision always requires an explicit recruiter action.
 
 ### Database
 - update Application status safely;
+- read the Application and associated Offer data required for recruiter evaluation;
 - read and update Offer slot-related state;
 - use the Offer `Version` property for optimistic concurrency;
-- preserve data consistency during simultaneous decisions.
+- preserve data consistency during simultaneous decisions;
+- do not persist raw CV text only for the purpose of AI analysis.
 
 ### Business rules / concurrency
+- AI assistance is optional for the recruiter;
+- the recruiter can evaluate and decide an application without using AI;
+- AI analysis may support the recruiter with information, but it cannot make the final decision;
+- AI analysis cannot automatically shortlist, accept, reject, or waitlist a candidate;
+- AI analysis cannot directly change an Application status;
 - prevent accepted candidates from exceeding the configured maximum slots;
-- if no slot remains, Accept results in `Waitlisted`;
+- if no slot remains, an explicit recruiter Accept action results in `Waitlisted`;
 - handle two recruiters trying to accept different candidates for the final slot at the same time;
 - ensure one candidate becomes `Accepted` and the other `Waitlisted`.
 
 ### AI / ML-related work
-- implement the AI evaluation work required by the Definition of Done;
-- prepare **10–15 synthetic CV–offer pairs**;
+- integrate AI-assisted analysis into the recruiter application evaluation flow;
+- compare the candidate CV with the requirements of the selected internship offer;
+- present the AI result as supporting information for the recruiter;
+- keep recruiter decision logic independent from AI output;
+- prepare **10-15 synthetic CV-offer pairs**;
 - manually label expected skills;
 - evaluate at least **2 models**;
 - repeat evaluation several times;
@@ -284,17 +310,21 @@ Person 3 helps keep the project reproducible and ensures the local environment s
 ### Testing
 - unit tests for recruiter decision rules;
 - integration tests for Application status updates;
+- tests for recruiter-facing AI analysis;
+- tests proving that AI analysis alone never changes an Application status;
+- tests proving that the recruiter can still decide when AI is unavailable;
 - tests for no-slot / Waitlisted behavior;
 - simultaneous-request concurrency tests;
-- tests proving that AI does not influence Accept/Reject decisions.
+- tests proving that Accept/Reject actions remain explicitly human-controlled.
 
 ## Integration with the team
 
 Person 4 mainly integrates with:
 
-- **Person 2**, because both work with the Application lifecycle;
-- **Person 3**, because concurrency depends on Offer slots and `Version`;
-- the shared status and domain contracts.
+- **Person 2**, because both work with the Application lifecycle and candidate application data;
+- **Person 3**, because concurrency depends on Offer slots and `Version`, and recruiter AI analysis uses the shared Ollama provider;
+- **Person 1**, through the shared AI analysis conventions used by both student and recruiter flows;
+- the shared status, Offer, Application, and AI contracts.
 
 ## Secondary responsibility
 
@@ -303,9 +333,11 @@ Person 4 mainly integrates with:
 Person 4 helps ensure:
 
 - student/recruiter role separation;
+- only the authorized recruiter can evaluate applications for an offer;
+- AI analysis remains advisory and cannot execute recruitment decisions;
 - privacy-sensitive data does not appear in logs or errors;
 - shared testing conventions are respected;
-- important integration and concurrency scenarios are covered.
+- important AI integration, application evaluation, and concurrency scenarios are covered.
 
 ---
 
@@ -313,10 +345,10 @@ Person 4 helps ensure:
 
 | Person | Main functional area | AI-related responsibility | Secondary responsibility |
 |---|---|---|---|
-| **Person 1** | Student Profile + Browse/View Offers | CV feedback frontend/API integration | API contracts / DTO consistency |
-| **Person 2** | Application lifecycle | Deterministic Fake AI provider | Database migrations / data integrity |
-| **Person 3** | Offer lifecycle | Ollama provider integration | Docker / CI / local environment |
-| **Person 4** | Recruiter decisions + concurrency | AI/ML model evaluation | Testing / security / quality |
+| **Person 1** | Student Profile + Browse/View Offers | Student CV feedback frontend/API integration | API contracts / DTO consistency |
+| **Person 2** | Application lifecycle | Deterministic Fake AI provider for both AI flows | Database migrations / data integrity |
+| **Person 3** | Offer lifecycle | Shared Ollama provider for student and recruiter AI flows | Docker / CI / local environment |
+| **Person 4** | Recruiter decisions + concurrency + AI-assisted review | Recruiter AI integration + AI/ML model evaluation | Testing / security / quality |
 
 All four members therefore work with:
 
@@ -341,18 +373,18 @@ The four members should agree on shared contracts before implementing dependent 
 
 Mainly used by:
 
-- Person 1 — Student Profile;
-- Person 2 — Application lifecycle.
+- Person 1 - Student Profile;
+- Person 2 - Application lifecycle.
 
 ## Shared Offer contract
 
 Used by:
 
-- Person 1 — Browse/View Offers and CV Feedback;
-- Person 2 — Apply and withdrawal-related rules;
-- Person 3 — Publish/Close Offer;
-- Person 4 — slot/concurrency logic;
-- AI CV Feedback — Offer requirements.
+- Person 1 - Browse/View Offers and student CV Feedback;
+- Person 2 - Apply and withdrawal-related rules;
+- Person 3 - Publish/Close Offer;
+- Person 4 - slot/concurrency logic and recruiter AI-assisted review;
+- shared AI analysis - Offer requirements.
 
 Required Offer information includes:
 
@@ -369,8 +401,8 @@ Required Offer information includes:
 
 Used by:
 
-- Person 2 — student-side lifecycle;
-- Person 4 — recruiter evaluation.
+- Person 2 - student-side lifecycle;
+- Person 4 - recruiter evaluation and recruiter AI-assisted review.
 
 Allowed statuses:
 
@@ -414,7 +446,7 @@ Example:
          +--------------- Person 3 ------------------+
                     Publish / Close Offer
 
-PB-10 AI CV Feedback also uses the same Offer requirements contract.
+PB-10 Student AI CV Feedback and PB-11 Recruiter AI-Assisted Application Review both use the same Offer requirements contract.
 ```
 
 ---
@@ -438,6 +470,9 @@ Each person must ensure that her slice includes:
 - concurrency tests where required;
 - privacy protection for CV data;
 - student/recruiter role separation;
+- AI remains advisory where used;
+- recruiter-facing AI analysis never changes Application status by itself;
+- final recruiter decisions always require an explicit human action;
 - documented endpoints and request/response formats;
 - successful build;
 - code review before merge.
