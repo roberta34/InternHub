@@ -4,7 +4,7 @@ InternHub is a platform for managing internship offers and student applications.
 
 The AI component is advisory only: it provides CV feedback to students and does **not** rank, accept, or reject candidates.
 
----
+
 
 ## 1. Repository Information
 
@@ -34,7 +34,7 @@ feature/decide-application
 fix/application-deadline-validation
 ```
 
----
+
 
 ## 2. Project Goals
 
@@ -49,7 +49,7 @@ InternHub aims to:
 - provide local AI-assisted CV feedback;
 - keep CV content private and outside the application database and logs.
 
----
+
 
 ## 3. Main Actors
 
@@ -99,7 +99,7 @@ Output:
 
 The AI service is advisory only and is independent from the final recruitment decision.
 
----
+
 
 ## 4. Product Backlog
 
@@ -120,7 +120,7 @@ The current Product Backlog is organized around functional slices.
 
 The backlog is expected to evolve when requirements are clarified or feedback is received.
 
----
+
 
 ## 5. Team Organization
 
@@ -167,7 +167,7 @@ Student-facing CV Feedback integration.
 
 Shared API contracts and DTO consistency.
 
----
+
 
 ### Person 2 — Application Lifecycle
 
@@ -200,7 +200,6 @@ Deterministic Fake `ICvFeedbackProvider` used by automated tests.
 
 Database migrations and data-integrity conventions.
 
----
 
 ### Person 3 — Internship Offer Management
 
@@ -247,7 +246,7 @@ Local Ollama provider integration:
 
 Docker / CI / reproducible local development environment.
 
----
+
 
 ### Person 4 — Application Evaluation + Slot Management
 
@@ -293,7 +292,7 @@ AI model evaluation:
 
 Testing strategy, security, and quality conventions.
 
----
+
 
 ## 6. Collaboration Model
 
@@ -386,7 +385,7 @@ flowchart TD
     AC --> WL
 ```
 
----
+
 
 ## 8. Application Flow
 
@@ -408,7 +407,7 @@ flowchart TD
 
 All business rules are enforced in the backend, not only in the frontend.
 
----
+
 
 ## 9. Recruiter Decision and Concurrency Flow
 
@@ -540,7 +539,6 @@ works end-to-end with backend validation and automated tests.
 
 **Sprint outcome:** students can manage applications, recruiters can close offers, and recruiter decisions work in non-concurrent scenarios.
 
----
 
 ### Sprint 4 — Slot Management, Concurrency and Reliability
 
@@ -571,7 +569,7 @@ works end-to-end with backend validation and automated tests.
 
 **Sprint outcome:** the slot limit remains correct even under simultaneous requests.
 
----
+
 
 ### Sprint 5 — AI CV Feedback
 
@@ -617,7 +615,6 @@ Student -> Offer -> CV Feedback -> Structured AI Result
 
 works with both deterministic tests and the local Ollama implementation.
 
----
 
 ### Sprint 6 — Integration, Hardening and Final Delivery
 
@@ -639,7 +636,7 @@ works with both deterministic tests and the local Ollama implementation.
 
 **Sprint outcome:** all implemented stories satisfy the applicable Definition of Done criteria and the complete application is demonstrable from a clean setup.
 
----
+
 
 ## 12. Definition of Done
 
@@ -683,7 +680,7 @@ A user story is considered **Done** only when all applicable criteria are satisf
 - the application builds successfully;
 - changes are reviewed before merge.
 
----
+
 
 ## 13. Open Requirements
 
@@ -700,7 +697,6 @@ The following points require clarification:
 
 These decisions will be updated in the requirements, backlog, tests, and README once clarified.
 
----
 
 ## 14. Suggested Repository Structure
 
@@ -732,7 +728,7 @@ InternHub/
 
 The exact source-tree structure may be adjusted to the final application architecture. The important rule is to keep feature ownership and vertical slices clear.
 
----
+
 
 ## 15. Project Completion Criteria
 
@@ -749,7 +745,7 @@ The project is ready for final delivery when:
 - documentation is up to date;
 - the repository remains private and the required reviewer/collaborator has access.
 
----
+
 
 ## 16. Current Planning Summary
 
