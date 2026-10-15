@@ -1,8 +1,8 @@
 # InternHub
 
-InternHub is a platform for managing internship offers and student applications. Students can discover internship opportunities, apply to offers, track and withdraw applications when permitted, and request AI-assisted feedback about how well their CV matches an internship offer. Recruiters can publish and close offers and evaluate applications.
+InternHub is a platform for managing internship offers and student applications. Students can discover internship opportunities, apply to offers, track and withdraw applications when permitted, and request AI-assisted feedback about how well their CV matches an internship offer. Recruiters can publish and close offers, evaluate applications, and optionally use AI-assisted CV analysis to support that evaluation.
 
-The AI component is advisory only: it provides CV feedback to students and does **not** rank, accept, or reject candidates.
+The AI component is advisory only. It provides CV feedback to students and can also help recruiters evaluate applications by comparing a candidate's CV with the selected offer requirements. It highlights matched skills, missing or unclear skills, supporting evidence, and a concise summary. The AI does not make the final recruitment decision, automatically accept or reject candidates, or replace recruiter judgment.
 
 
 
@@ -30,6 +30,7 @@ feature/student-profile
 feature/publish-offer
 feature/apply-offer
 feature/cv-feedback
+feature/recruiter-ai-review
 feature/decide-application
 fix/application-deadline-validation
 ```
@@ -44,9 +45,12 @@ InternHub aims to:
 - allow students to create and manage internship applications;
 - allow recruiters to publish and close internship offers;
 - allow recruiters to accept or reject candidates;
+- allow recruiters to request AI-assisted analysis of candidate CVs against offer requirements;
 - enforce application limits, deadlines, slot limits, and other business rules;
 - safely handle concurrent decisions for the final available internship slot;
-- provide local AI-assisted CV feedback;
+- provide local AI-assisted CV feedback for students;
+- provide local AI-assisted application review for recruiters;
+- keep final recruitment decisions under recruiter control;
 - keep CV content private and outside the application database and logs.
 
 
@@ -72,12 +76,17 @@ A recruiter can:
 - publish internship offers;
 - define requirements, deadline, and maximum available slots;
 - evaluate applications;
-- accept or reject candidates;
+- request AI-assisted analysis for a selected application;
+- review matched skills, missing or unclear skills, supporting evidence, and an AI-generated summary;
+- accept or reject candidates based on their own evaluation;
 - manually close an internship offer.
 
 ### Local AI Service
 
-InternHub uses a local Ollama-based AI service for CV analysis.
+InternHub uses a local Ollama-based AI service for CV analysis. The same AI capability supports two user-facing scenarios:
+
+1. student CV feedback before or during the application process;
+2. recruiter-assisted application review.
 
 Input:
 
@@ -87,7 +96,7 @@ CV text
 Selected offer requirements
 ```
 
-Output:
+Student-facing output:
 
 ```json
 {
@@ -97,7 +106,20 @@ Output:
 }
 ```
 
-The AI service is advisory only and is independent from the final recruitment decision.
+Recruiter-facing output:
+
+```json
+{
+  "matchedSkills": [],
+  "missingOrUnclearSkills": [],
+  "evidence": [],
+  "summary": ""
+}
+```
+
+For recruiters, the AI analysis is requested on demand for a selected application. It helps the recruiter identify how the CV relates to the offer requirements, but it does not change the application status automatically.
+
+The final decision always belongs to the recruiter. Only an explicit recruiter action can accept or reject a candidate.
 
 
 
@@ -117,6 +139,7 @@ The current Product Backlog is organized around functional slices.
 | PB-08 | View My Applications | Student |
 | PB-09 | Close Internship Offer | Recruiter |
 | PB-10 | AI CV Feedback | Student |
+| PB-11 | AI-Assisted Application Review | Recruiter |
 
 The backlog is expected to evolve when requirements are clarified or feedback is received.
 
@@ -140,13 +163,13 @@ Each team member is responsible for implementing complete features end-to-end, i
 - integration with other slices;
 - documentation.
 
-### Person 1 — Student Profile + Offer Discovery
+### Person 1 - Student Profile + Offer Discovery
 
 **Main backlog items**
 
-- PB-01 — Create Student Profile
-- PB-03 — Browse Active Offers
-- PB-04 — View Offer Details
+- PB-01 - Create Student Profile
+- PB-03 - Browse Active Offers
+- PB-04 - View Offer Details
 
 **Main responsibilities**
 
@@ -169,13 +192,13 @@ Shared API contracts and DTO consistency.
 
 
 
-### Person 2 — Application Lifecycle
+### Person 2 - Application Lifecycle
 
 **Main backlog items**
 
-- PB-05 — Apply to an Offer
-- PB-06 — Withdraw Application
-- PB-08 — View My Applications
+- PB-05 - Apply to an Offer
+- PB-06 - Withdraw Application
+- PB-08 - View My Applications
 
 **Main responsibilities**
 
@@ -194,19 +217,19 @@ Shared API contracts and DTO consistency.
 
 **AI responsibility**
 
-Deterministic Fake `ICvFeedbackProvider` used by automated tests.
+Deterministic Fake `ICvFeedbackProvider` used by automated tests for both student-facing CV feedback and recruiter-facing application review.
 
 **Coordination responsibility**
 
 Database migrations and data-integrity conventions.
 
 
-### Person 3 — Internship Offer Management
+### Person 3 - Internship Offer Management
 
 **Main backlog items**
 
-- PB-02 — Publish Internship Offer
-- PB-09 — Close Internship Offer
+- PB-02 - Publish Internship Offer
+- PB-09 - Close Internship Offer
 
 **Main responsibilities**
 
@@ -237,7 +260,8 @@ Version
 Local Ollama provider integration:
 
 - send CV text and Offer requirements to the local model;
-- validate structured AI output;
+- support both student-facing feedback and recruiter-facing application analysis;
+- validate the structured AI output required by each use case;
 - handle invalid responses;
 - return a clear failure when the AI service is unavailable;
 - ensure the rest of InternHub remains operational when AI fails.
@@ -248,15 +272,19 @@ Docker / CI / reproducible local development environment.
 
 
 
-### Person 4 — Application Evaluation + Slot Management
+### Person 4 - Application Evaluation + Slot Management
 
-**Main backlog item**
+**Main backlog items**
 
-- PB-07 — Decide Application
+- PB-07 - Decide Application
+- PB-11 - AI-Assisted Application Review
 
 **Main responsibilities**
 
 - recruiter application-evaluation UI;
+- on-demand AI analysis action for a selected application;
+- display recruiter-facing AI results: matched skills, missing or unclear skills, evidence, and summary;
+- keep AI analysis separate from the final recruiter decision;
 - Accept / Reject actions;
 - `Accepted`, `Rejected`, and `Waitlisted` outcomes;
 - available-slot enforcement;
@@ -279,13 +307,15 @@ Request B ----/                   |
 
 **AI / ML responsibility**
 
-AI model evaluation:
+Recruiter-facing AI review and AI model evaluation:
 
-- prepare synthetic CV–offer test pairs;
+- integrate AI analysis into the recruiter application-review flow;
+- prepare synthetic CV-offer test pairs;
 - manually label expected skills;
 - compare multiple models;
 - measure structured-output validity;
 - compare AI output with manual labels;
+- verify that AI results remain advisory;
 - document evaluation results.
 
 **Coordination responsibility**
@@ -318,13 +348,15 @@ flowchart TD
     P1["Person 1<br/>Browse / View / CV UI"]
     P2["Person 2<br/>Apply / Withdraw"]
     P3["Person 3<br/>Publish / Close"]
-    P4["Person 4<br/>Decide / Slots"]
-    AI["PB-10<br/>AI CV Feedback"]
+    P4["Person 4<br/>Decide / Slots / AI Review"]
+    AI["PB-10 / PB-11<br/>AI CV Analysis"]
 
     OFFER --> P1
     OFFER --> P2
     OFFER --> P4
     OFFER --> AI
+    AI --> P1
+    AI --> P4
     P3 --> OFFER
 ```
 
@@ -334,9 +366,13 @@ flowchart TD
 flowchart LR
     Student --> Application
     Offer --> Application
-    Offer --> CVFeedback["CV Feedback"]
+    Offer --> CVAnalysis["AI CV Analysis"]
+    Application --> CVAnalysis
+    CVAnalysis --> StudentFeedback["Student Feedback"]
+    CVAnalysis --> RecruiterReview["Recruiter Review"]
     Application --> Decision["Recruiter Decision"]
     Offer --> Decision
+    RecruiterReview --> Decision
 ```
 
 ---
@@ -373,6 +409,8 @@ flowchart TD
     PO["Publish Offer"]
     CO["Close Offer"]
     EA["Evaluate Application"]
+    AI["Request AI Analysis"]
+    AR["Review AI Findings"]
     AC["Accept"]
     RJ["Reject"]
     WL["Waitlist if no slot remains"]
@@ -380,8 +418,12 @@ flowchart TD
     R --> PO
     R --> CO
     R --> EA
+    EA -->|"Optional"| AI
+    AI --> AR
     EA --> AC
     EA --> RJ
+    AR --> AC
+    AR --> RJ
     AC --> WL
 ```
 
@@ -409,18 +451,24 @@ All business rules are enforced in the backend, not only in the frontend.
 
 
 
-## 9. Recruiter Decision and Concurrency Flow
+## 9. Recruiter AI Review, Decision and Concurrency Flow
 
 ```mermaid
 flowchart TD
-    A["Recruiter selects application"] --> B{"Decision"}
-    B -->|Reject| C["Status = Rejected"]
-    B -->|Accept| D{"Slot available?"}
-    D -->|No| E["Status = Waitlisted"]
-    D -->|Yes| F["Try optimistic-concurrency update"]
-    F -->|Success| G["Status = Accepted"]
-    F -->|Version conflict / slot consumed| E
+    A["Recruiter selects application"] --> B{"Use AI assistance?"}
+    B -->|Yes| C["Analyze CV against offer requirements"]
+    C --> D["Show matched skills, missing or unclear skills, evidence, and summary"]
+    D --> E{"Recruiter decision"}
+    B -->|No| E
+    E -->|Reject| F["Status = Rejected"]
+    E -->|Accept| G{"Slot available?"}
+    G -->|No| H["Status = Waitlisted"]
+    G -->|Yes| I["Try optimistic-concurrency update"]
+    I -->|Success| J["Status = Accepted"]
+    I -->|Version conflict / slot consumed| H
 ```
+
+AI assistance is optional and never changes an application status by itself. The recruiter remains responsible for the final decision.
 
 The Offer `Version` property protects the final available slot from concurrent acceptance.
 
@@ -432,7 +480,7 @@ The team works in **1-week Scrum sprints**.
 
 The exact number of calendar weeks depends on the course deadline. The following sequence describes the planned work until the product is complete; if the available calendar changes, milestones can be split or combined without changing the backlog ownership.
 
-### Sprint 1 — Foundation and Shared Contracts
+### Sprint 1 - Foundation and Shared Contracts
 
 **Goal:** create a working project foundation and establish the contracts needed for independent development.
 
@@ -458,6 +506,7 @@ The exact number of calendar weeks depends on the course deadline. The following
 **Person 4**
 
 - Recruiter decision contract;
+- recruiter AI-review contract;
 - slot-management design;
 - testing/concurrency test strategy.
 
@@ -474,7 +523,7 @@ The exact number of calendar weeks depends on the course deadline. The following
 
 ---
 
-### Sprint 2 — Offer Discovery and Application Submission
+### Sprint 2 - Offer Discovery and Application Submission
 
 **Goal:** complete the first end-to-end student journey from discovering an offer to applying.
 
@@ -498,6 +547,7 @@ The exact number of calendar weeks depends on the course deadline. The following
 **Person 4**
 
 - recruiter-side evaluation view/API skeleton;
+- AI-assisted application-review contract;
 - integration contract for Application decisions.
 
 **Sprint outcome:**
@@ -510,7 +560,7 @@ works end-to-end with backend validation and automated tests.
 
 ---
 
-### Sprint 3 — Application and Offer Lifecycle
+### Sprint 3 - Application and Offer Lifecycle
 
 **Goal:** complete the normal application-management lifecycle.
 
@@ -540,7 +590,7 @@ works end-to-end with backend validation and automated tests.
 **Sprint outcome:** students can manage applications, recruiters can close offers, and recruiter decisions work in non-concurrent scenarios.
 
 
-### Sprint 4 — Slot Management, Concurrency and Reliability
+### Sprint 4 - Slot Management, Concurrency and Reliability
 
 **Goal:** complete the most important consistency and concurrency scenarios.
 
@@ -571,30 +621,33 @@ works end-to-end with backend validation and automated tests.
 
 
 
-### Sprint 5 — AI CV Feedback
+### Sprint 5 - AI CV Feedback and Recruiter Application Review
 
-**Goal:** complete PB-10 end-to-end.
+**Goal:** complete PB-10 and PB-11 end-to-end.
 
 **Person 1**
 
-- CV Feedback UI;
-- API integration;
-- display structured results.
+- student CV Feedback UI;
+- student-side API integration;
+- display `matchedSkills`, `missingSkills`, and `suggestions`.
 
 **Person 2**
 
-- deterministic Fake provider;
+- deterministic Fake provider for both AI use cases;
 - repeatable automated AI integration tests.
 
 **Person 3**
 
-- Ollama provider;
-- structured output validation;
+- shared Ollama provider;
+- structured output validation for student and recruiter responses;
 - AI-service failure handling;
 - privacy checks around CV payloads.
 
 **Person 4**
 
+- recruiter AI-assisted application-review UI;
+- on-demand AI analysis action for a selected application;
+- display `matchedSkills`, `missingOrUnclearSkills`, `evidence`, and `summary`;
 - AI/model evaluation;
 - synthetic evaluation dataset;
 - model comparison;
@@ -603,7 +656,8 @@ works end-to-end with backend validation and automated tests.
 **Shared**
 
 - ensure AI is independent from Apply;
-- ensure AI never performs recruitment decisions;
+- ensure AI never changes an application status automatically;
+- ensure final recruitment decisions remain human-controlled;
 - ensure CV text is not persisted or logged;
 - verify Romanian and English CV/offer analysis.
 
@@ -611,12 +665,14 @@ works end-to-end with backend validation and automated tests.
 
 ```text
 Student -> Offer -> CV Feedback -> Structured AI Result
+
+Recruiter -> Application -> AI Analysis -> Review Findings -> Human Decision
 ```
 
-works with both deterministic tests and the local Ollama implementation.
+Both flows work with deterministic tests and the local Ollama implementation.
 
 
-### Sprint 6 — Integration, Hardening and Final Delivery
+### Sprint 6 - Integration, Hardening and Final Delivery
 
 **Goal:** make the complete system ready for final review/demo.
 
@@ -668,7 +724,11 @@ A user story is considered **Done** only when all applicable criteria are satisf
 
 ### AI and privacy
 
-- AI feedback remains advisory;
+- AI feedback remains advisory for both students and recruiters;
+- recruiter-facing AI analysis compares the candidate CV with the selected offer requirements;
+- recruiter-facing output exposes matched skills, missing or unclear skills, evidence, and a concise summary;
+- AI never accepts, rejects, waitlists, or otherwise changes an application status automatically;
+- final recruitment decisions require an explicit recruiter action;
 - automated tests do not depend on live Ollama;
 - raw CV text is not stored in the application database;
 - raw CV text is not written to logs or error messages;
@@ -709,7 +769,8 @@ InternHub/
 │   ├── Offers/
 │   ├── Applications/
 │   ├── Decisions/
-│   └── CvFeedback/
+│   ├── CvFeedback/
+│   └── RecruiterAiReview/
 │
 ├── tests/
 │   ├── Unit/
@@ -738,7 +799,10 @@ The project is ready for final delivery when:
 - acceptance criteria are satisfied;
 - critical business rules are covered by tests;
 - optimistic concurrency prevents slot overbooking;
-- AI feedback works locally without affecting recruitment decisions;
+- student AI feedback works locally;
+- recruiter AI-assisted application review works locally;
+- AI does not make or automatically execute recruitment decisions;
+- final recruitment decisions remain under recruiter control;
 - no raw CV content is persisted or logged;
 - the complete automated test suite passes;
 - the project builds from a clean environment;
