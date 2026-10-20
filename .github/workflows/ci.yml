@@ -1,0 +1,34 @@
+name: InternHub CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore API
+        run: dotnet restore src/InternHub.Api/InternHub.Api.csproj
+
+      - name: Restore tests
+        run: dotnet restore tests/InternHub.Tests/InternHub.Tests.csproj
+
+      - name: Build API
+        run: dotnet build src/InternHub.Api/InternHub.Api.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-build

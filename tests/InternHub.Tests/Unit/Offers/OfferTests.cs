@@ -1,7 +1,6 @@
 using InternHub.Api.Domain.Offers;
 
-namespace InternHub.Api.Tests.Domain.Offers;
-
+namespace InternHub.Tests.Unit.Offers;
 public class OfferTests
 {
     [Fact]

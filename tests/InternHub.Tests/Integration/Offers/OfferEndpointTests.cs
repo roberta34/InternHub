@@ -2,8 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 
-namespace InternHub.Api.Tests.Features.Offers;
-
+namespace InternHub.Tests.Integration.Offers;
 public class OfferEndpointTests :
     IClassFixture<WebApplicationFactory<Program>>
 {
