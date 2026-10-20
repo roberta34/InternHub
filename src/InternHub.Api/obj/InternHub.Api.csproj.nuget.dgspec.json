@@ -1,25 +1,31 @@
 {
   "format": 1,
   "restore": {
-    "D:\\fac\\an 3\\.net\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj": {}
+    "C:\\Users\\Roberta-Adm\\Desktop\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj": {}
   },
   "projects": {
-    "D:\\fac\\an 3\\.net\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj": {
+    "C:\\Users\\Roberta-Adm\\Desktop\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\fac\\an 3\\.net\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj",
+        "projectUniqueName": "C:\\Users\\Roberta-Adm\\Desktop\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj",
         "projectName": "InternHub.Api",
-        "projectPath": "D:\\fac\\an 3\\.net\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj",
-        "packagesPath": "C:\\Users\\carin\\.nuget\\packages\\",
-        "outputPath": "D:\\fac\\an 3\\.net\\InternHub\\src\\InternHub.Api\\obj\\",
+        "projectPath": "C:\\Users\\Roberta-Adm\\Desktop\\InternHub\\src\\InternHub.Api\\InternHub.Api.csproj",
+        "packagesPath": "C:\\Users\\Roberta-Adm\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Roberta-Adm\\Desktop\\InternHub\\src\\InternHub.Api\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\carin\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Roberta-Adm\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
