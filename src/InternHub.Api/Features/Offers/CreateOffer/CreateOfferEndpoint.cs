@@ -47,20 +47,3 @@ public static class CreateOfferEndpoint
         }
     }
 }
-
-public record CreateOfferRequest(
-    string Title,
-    string CompanyName,
-    string Requirements,
-    DateTime Deadline,
-    int MaximumAvailableSlots);
-
-public record CreateOfferResponse(
-    Guid Id,
-    string Title,
-    string CompanyName,
-    string Requirements,
-    DateTime Deadline,
-    int MaximumAvailableSlots,
-    bool IsClosed,
-    int Version);
