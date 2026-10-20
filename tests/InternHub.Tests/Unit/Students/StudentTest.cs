@@ -1,5 +1,6 @@
 using InternHub.Domain.Students;
 using Xunit;
+using InternHub.Api.Domain.InternshipCandidacies;
 
 namespace InternHub.Tests.Unit.Students;
 
@@ -68,6 +69,49 @@ public class StudentTests
             student.Update(
                 "",
                 "updated@mail.com"));
+
+        Assert.Equal("Ana Pop", student.FullName);
+        Assert.Equal("ana@mail.com", student.Email);
+    }
+    
+    [Fact]
+    public void InternshipCandidacies_InitiallyIsEmpty()
+    {
+        var student = new Student(
+            Guid.NewGuid(),
+            "Ana Pop",
+            "ana@mail.com");
+
+        Assert.Empty(student.InternshipCandidacies);
+    }
+
+    [Fact]
+    public void InternshipCandidacies_IsReadOnly()
+    {
+        var student = new Student(
+            Guid.NewGuid(),
+            "Ana Pop",
+            "ana@mail.com");
+
+        var collection =
+            Assert.IsAssignableFrom<ICollection<InternshipCandidacy>>(
+                student.InternshipCandidacies);
+
+        Assert.True(collection.IsReadOnly);
+    }
+    
+    [Fact]
+    public void Update_WithInvalidEmail_DoesNotPartiallyChangeStudent()
+    {
+        var student = new Student(
+            Guid.NewGuid(),
+            "Ana Pop",
+            "ana@mail.com");
+
+        Assert.Throws<ArgumentException>(() =>
+            student.Update(
+                "Ana Popescu",
+                "invalid-email"));
 
         Assert.Equal("Ana Pop", student.FullName);
         Assert.Equal("ana@mail.com", student.Email);

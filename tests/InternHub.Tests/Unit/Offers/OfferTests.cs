@@ -1,5 +1,5 @@
 using InternHub.Api.Domain.Offers;
-
+using InternHub.Api.Domain.InternshipCandidacies;
 namespace InternHub.Tests.Unit.Offers;
 public class OfferTests
 {
@@ -71,5 +71,35 @@ public class OfferTests
 
         // Assert
         Assert.Throws<ArgumentException>(action);
+    }
+    
+    [Fact]
+    public void InternshipCandidacies_InitiallyIsEmpty()
+    {
+        var offer = new Offer(
+            "Software Engineer Intern",
+            "Microsoft",
+            "C#, .NET",
+            DateTime.UtcNow.AddDays(30),
+            3);
+
+        Assert.Empty(offer.InternshipCandidacies);
+    }
+
+    [Fact]
+    public void InternshipCandidacies_IsReadOnly()
+    {
+        var offer = new Offer(
+            "Software Engineer Intern",
+            "Microsoft",
+            "C#, .NET",
+            DateTime.UtcNow.AddDays(30),
+            3);
+
+        var collection =
+            Assert.IsAssignableFrom<ICollection<InternshipCandidacy>>(
+                offer.InternshipCandidacies);
+
+        Assert.True(collection.IsReadOnly);
     }
 }

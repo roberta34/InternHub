@@ -4,6 +4,8 @@ using InternHub.Features.Students.CreateStudent;
 using InternHub.Features.Students.GetStudentById;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using InternHub.Features.Students.GetStudents;
+using InternHub.Features.Students.UpdateStudent;
 
 namespace InternHub.Tests.Integration.Students;
 
@@ -73,5 +75,192 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     {
         var res = await _client.GetAsync($"/students/{Guid.NewGuid()}");
         Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+    
+    [Fact]
+    public async Task GetStudents_Returns200()
+    {
+        var response = await _client.GetAsync("/students");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task GetStudents_AfterCreatingStudent_ContainsStudent()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/students",
+            new CreateStudentRequest(
+                "Maria Popescu",
+                $"list-{Guid.NewGuid()}@mail.com"));
+
+        var createdStudent =
+            await createResponse.Content.ReadFromJsonAsync<CreateStudentResponse>();
+
+        Assert.NotNull(createdStudent);
+
+        var response = await _client.GetAsync("/students");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var students =
+            await response.Content.ReadFromJsonAsync<List<GetStudentsResponse>>();
+
+        Assert.NotNull(students);
+
+        Assert.Contains(
+            students,
+            student => student.Id == createdStudent.Id);
+    }
+    
+    [Fact]
+    public async Task Update_ExistingStudent_Returns204()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"update-{Guid.NewGuid()}@mail.com"));
+
+        var createdStudent =
+            await createResponse.Content.ReadFromJsonAsync<CreateStudentResponse>();
+
+        Assert.NotNull(createdStudent);
+
+        var updateRequest = new UpdateStudentRequest(
+            "Ana Popescu",
+            $"updated-{Guid.NewGuid()}@mail.com");
+
+        var response = await _client.PutAsJsonAsync(
+            $"/students/{createdStudent.Id}",
+            updateRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task Update_ExistingStudent_ChangesStudentData()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"before-{Guid.NewGuid()}@mail.com"));
+
+        var createdStudent =
+            await createResponse.Content.ReadFromJsonAsync<CreateStudentResponse>();
+
+        Assert.NotNull(createdStudent);
+
+        var newEmail = $"after-{Guid.NewGuid()}@mail.com";
+
+        var updateResponse = await _client.PutAsJsonAsync(
+            $"/students/{createdStudent.Id}",
+            new UpdateStudentRequest(
+                "Ana Popescu",
+                newEmail));
+
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        var getResponse =
+            await _client.GetAsync($"/students/{createdStudent.Id}");
+
+        var updatedStudent =
+            await getResponse.Content.ReadFromJsonAsync<GetStudentByIdResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        Assert.NotNull(updatedStudent);
+
+        Assert.Equal("Ana Popescu", updatedStudent.FullName);
+        Assert.Equal(newEmail, updatedStudent.Email);
+    }
+    
+    [Fact]
+    public async Task Update_MissingStudent_Returns404()
+    {
+        var response = await _client.PutAsJsonAsync(
+            $"/students/{Guid.NewGuid()}",
+            new UpdateStudentRequest(
+                "Ana Pop",
+                "ana@mail.com"));
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task Update_InvalidData_Returns400()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"invalid-update-{Guid.NewGuid()}@mail.com"));
+
+        var createdStudent =
+            await createResponse.Content.ReadFromJsonAsync<CreateStudentResponse>();
+
+        Assert.NotNull(createdStudent);
+
+        var response = await _client.PutAsJsonAsync(
+            $"/students/{createdStudent.Id}",
+            new UpdateStudentRequest(
+                "",
+                "bad-email"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task Delete_ExistingStudent_Returns204()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"delete-{Guid.NewGuid()}@mail.com"));
+
+        var createdStudent =
+            await createResponse.Content.ReadFromJsonAsync<CreateStudentResponse>();
+
+        Assert.NotNull(createdStudent);
+
+        var response =
+            await _client.DeleteAsync($"/students/{createdStudent.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task Delete_ExistingStudent_ThenGetReturns404()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"delete-get-{Guid.NewGuid()}@mail.com"));
+
+        var createdStudent =
+            await createResponse.Content.ReadFromJsonAsync<CreateStudentResponse>();
+
+        Assert.NotNull(createdStudent);
+
+        var deleteResponse =
+            await _client.DeleteAsync($"/students/{createdStudent.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        var getResponse =
+            await _client.GetAsync($"/students/{createdStudent.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+    
+    [Fact]
+    public async Task Delete_MissingStudent_Returns404()
+    {
+        var response =
+            await _client.DeleteAsync($"/students/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

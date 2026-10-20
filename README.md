@@ -34,6 +34,35 @@ feature/recruiter-ai-review
 feature/decide-internship-candidacy
 fix/internship-candidacy-deadline-validation
 ```
+### Running the Project
+
+#### Prerequisites
+
+- .NET SDK 10
+
+#### Build
+
+From the repository root:
+
+```bash
+dotnet build
+```
+
+#### Run the API
+
+```bash
+dotnet run --project ./src/InternHub.Api/InternHub.Api.csproj
+```
+
+The API address will be displayed in the terminal after the application starts.
+
+The current implementation uses in-memory repositories, so stored Students and Offers are reset when the application is restarted.
+
+#### Run Tests
+
+```bash
+dotnet test ./tests/InternHub.Tests/InternHub.Tests.csproj
+```
 
 
 

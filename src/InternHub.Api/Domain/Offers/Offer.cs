@@ -1,5 +1,7 @@
 ﻿namespace InternHub.Api.Domain.Offers;
 
+using InternHub.Api.Domain.InternshipCandidacies;
+
 public class Offer
 {
     public Guid Id { get; private set; }
@@ -11,6 +13,11 @@ public class Offer
     public bool IsClosed { get; private set; }
     public int Version { get; private set; } 
     
+	private readonly List<InternshipCandidacy> _internshipCandidacies = new();
+
+    public IReadOnlyCollection<InternshipCandidacy> InternshipCandidacies =>
+        _internshipCandidacies.AsReadOnly();
+
     public Offer(
         string title,
         string companyName,

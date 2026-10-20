@@ -8,18 +8,26 @@ public static class UpdateStudentEndpoint
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPut("/students/{id:guid}", Handle);
 
-    private static Results<NoContent, BadRequest<string>, NotFound> Handle(
+    private static Results<
+        NoContent,
+        BadRequest<string>,
+        NotFound> Handle(
         Guid id,
         UpdateStudentRequest request,
         IStudentRepository repository)
     {
         var student = repository.GetById(id);
+
         if (student is null)
+        {
             return TypedResults.NotFound();
+        }
 
         try
         {
-            student.Update(request.FullName!, request.Email!);
+            student.Update(
+                request.FullName,
+                request.Email);
         }
         catch (ArgumentException ex)
         {
