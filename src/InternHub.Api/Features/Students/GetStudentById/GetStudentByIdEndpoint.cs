@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace InternHub.Features.Students.GetStudentById;
 
-public sealed record GetStudentByIdResponse(Guid Id, string FullName, string Email);
-
 public static class GetStudentByIdEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>

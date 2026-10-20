@@ -3,9 +3,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace InternHub.Features.Students.CreateStudent;
 
-public sealed record CreateStudentRequest(string? FullName, string? Email);
-public sealed record CreateStudentResponse(Guid Id, string FullName, string Email);
-
 public static class CreateStudentEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) =>
