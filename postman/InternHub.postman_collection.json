@@ -1,0 +1,104 @@
+{
+  "info": {
+    "name": "InternHub - Students (Person 1)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5202" },
+    { "key": "studentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "CreateStudent",
+      "item": [
+        {
+          "name": "Create - happy path (201)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Location header', () => pm.response.to.have.header('Location'));",
+              "pm.collectionVariables.set('studentId', pm.response.json().id);"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/students",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"ana@mail.com\"\n}" }
+          }
+        },
+        {
+          "name": "Create - invalid email (400)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/students",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"not-an-email\"\n}" }
+          }
+        },
+        {
+          "name": "Create - edge: trim + lowercase email (201)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Normalized', () => {",
+              "  const b = pm.response.json();",
+              "  pm.expect(b.fullName).to.eql('Ion Ionescu');",
+              "  pm.expect(b.email).to.eql('ion@mail.com');",
+              "});"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/students",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"  Ion Ionescu  \",\n  \"email\": \"ION@Mail.com\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetStudentById",
+      "item": [
+        {
+          "name": "GetById - existing (200)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));"
+            ] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/students/{{studentId}}" }
+        },
+        {
+          "name": "GetById - missing (404)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+            ] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/students/00000000-0000-0000-0000-000000000001" }
+        },
+        {
+          "name": "GetById - edge: invalid Guid (404, route constraint)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+            ] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/students/not-a-guid" }
+        }
+      ]
+    }
+  ]
+}
