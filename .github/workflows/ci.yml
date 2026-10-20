@@ -30,5 +30,8 @@ jobs:
       - name: Build tests
         run: dotnet build tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-restore
 
-      - name: Run tests
+      - name: Run unit and integration tests
         run: dotnet test tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-build
+        
+      - name: Check vulnerable dependencies
+        run: dotnet list src/InternHub.Api/InternHub.Api.csproj package --vulnerable --include-transitive
