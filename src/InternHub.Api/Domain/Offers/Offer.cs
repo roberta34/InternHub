@@ -34,4 +34,29 @@ public class Offer
         IsClosed = false;
         Version = 0;
     }
+    
+    public void Update(
+        string title,
+        string companyName,
+        string requirements,
+        DateTime deadline,
+        int maximumAvailableSlots)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title is required.", nameof(title));
+
+        if (string.IsNullOrWhiteSpace(companyName))
+            throw new ArgumentException("Company name is required.", nameof(companyName));
+
+        if (string.IsNullOrWhiteSpace(requirements))
+            throw new ArgumentException("Requirements are required.", nameof(requirements));
+
+        Title = title;
+        CompanyName = companyName;
+        Requirements = requirements;
+        Deadline = deadline;
+        MaximumAvailableSlots = maximumAvailableSlots;
+
+        Version++;
+    }
 }

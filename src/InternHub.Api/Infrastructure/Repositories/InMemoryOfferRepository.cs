@@ -2,7 +2,7 @@
 using InternHub.Api.Domain.Offers;
 namespace InternHub.Api.Infrastructure.Repositories;
 
-public class InMemorOfferRepository : IOfferRepository
+public class InMemoryOfferRepository : IOfferRepository
 {
     private readonly ConcurrentDictionary<Guid, Offer> _offers = new();
     
