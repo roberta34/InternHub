@@ -24,6 +24,28 @@ public class StudentTests
     [Fact]
     public void Constructor_EmptyId_Throws() =>
         Assert.Throws<ArgumentException>(() => new Student(Guid.Empty, "Ana", "a@b.com"));
+
+    [Fact]
+    public void Update_ValidData_ChangesStudentDetails()
+    {
+        var student = new Student(Guid.NewGuid(), "Ana Pop", "ana@mail.com");
+
+        student.Update("Ion Pop", "ion@mail.com");
+
+        Assert.Equal("Ion Pop", student.FullName);
+        Assert.Equal("ion@mail.com", student.Email);
+    }
+
+    [Fact]
+    public void Update_InvalidData_DoesNotPartiallyChangeStudent()
+    {
+        var student = new Student(Guid.NewGuid(), "Ana Pop", "ana@mail.com");
+
+        Assert.Throws<ArgumentException>(() => student.Update("", "updated@mail.com"));
+
+        Assert.Equal("Ana Pop", student.FullName);
+        Assert.Equal("ana@mail.com", student.Email);
+    }
 }
 
 public class InMemoryStudentRepositoryTests
