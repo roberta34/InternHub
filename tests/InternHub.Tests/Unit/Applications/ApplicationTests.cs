@@ -1,4 +1,4 @@
-using InternHub.Domain.Applications;
+using InternHub.Api.Domain.Applications;
 
 namespace InternHub.Tests.Unit.Applications;
 
