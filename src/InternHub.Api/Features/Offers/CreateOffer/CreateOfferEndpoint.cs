@@ -38,7 +38,7 @@ public static class CreateOfferEndpoint
                 offer.Version);
 
             return TypedResults.Created(
-                $"/offers/{offer.Id}",
+                $"/api/v1/offers/{offer.Id}",
                 response);
         }
         catch (ArgumentException exception)

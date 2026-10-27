@@ -25,6 +25,6 @@ public static class CreateStudentEndpoint
             return TypedResults.Conflict($"Student {student.Id} already exists.");
 
         var response = new CreateStudentResponse(student.Id, student.FullName, student.Email);
-        return TypedResults.Created($"/students/{student.Id}", response);
+        return TypedResults.Created($"/api/v1/students/{student.Id}", response);
     }
 }

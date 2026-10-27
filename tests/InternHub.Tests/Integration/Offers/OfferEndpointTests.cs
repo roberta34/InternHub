@@ -25,7 +25,7 @@ public class OfferEndpointTests :
             maximumAvailableSlots = 3
         };
 
-        var response = await _client.PostAsJsonAsync("/offers", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/offers", request);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
@@ -43,7 +43,7 @@ public class OfferEndpointTests :
             maximumAvailableSlots = 3
         };
 
-        var response = await _client.PostAsJsonAsync("/offers", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/offers", request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -53,8 +53,8 @@ public class OfferEndpointTests :
     {
         var id = Guid.NewGuid();
 
-        var response = await _client.GetAsync($"/offers/{id}");
-
+        var response = await _client.GetAsync($"/api/v1/offers/{id}");
+        
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -71,7 +71,7 @@ public class OfferEndpointTests :
         };
 
         var createResponse =
-            await _client.PostAsJsonAsync("/offers", request);
+            await _client.PostAsJsonAsync("/api/v1/offers", request);
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
@@ -81,7 +81,7 @@ public class OfferEndpointTests :
         Assert.NotNull(createdOffer);
 
         var getResponse =
-            await _client.GetAsync($"/offers/{createdOffer.Id}");
+            await _client.GetAsync($"/api/v1/offers/{createdOffer.Id}");
 
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
     }
