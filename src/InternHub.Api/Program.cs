@@ -26,19 +26,21 @@ builder.Services.AddSingleton<
 
 var app = builder.Build();
 
+var v1 = app.MapGroup("/api/v1");
+
 // Offer endpoints
-CreateOfferEndpoint.Map(app);
-GetOfferByIdEndpoint.Map(app);
-GetOffersEndpoint.Map(app);
-UpdateOfferEndpoint.Map(app);
-DeleteOfferEndpoint.Map(app);
+CreateOfferEndpoint.Map(v1);
+GetOfferByIdEndpoint.Map(v1);
+GetOffersEndpoint.Map(v1);
+UpdateOfferEndpoint.Map(v1);
+DeleteOfferEndpoint.Map(v1);
 
 // Student endpoints
-CreateStudentEndpoint.Map(app);
-GetStudentByIdEndpoint.Map(app);
-GetStudentsEndpoint.Map(app);
-UpdateStudentEndpoint.Map(app);
-DeleteStudentEndpoint.Map(app);
+CreateStudentEndpoint.Map(v1);
+GetStudentByIdEndpoint.Map(v1);
+GetStudentsEndpoint.Map(v1);
+UpdateStudentEndpoint.Map(v1);
+DeleteStudentEndpoint.Map(v1);
 
 app.MapGet("/", () => "Hello World!");
 
