@@ -1,17 +1,13 @@
 using InternHub.Api.Domain.Offers;
-using Microsoft.AspNetCore.Http.HttpResults;
+using InternHub.Api.Features.Shared;
 
 namespace InternHub.Api.Features.Offers.GetOffers;
 
-public static class GetOffersEndpoint
+public sealed class GetOffersHandler(IOfferRepository offers) : IGetOffersHandler
 {
-    public static void Map(IEndpointRouteBuilder app) =>
-        app.MapGet("/offers", Handle);
-
-    private static Ok<List<GetOffersResponse>> Handle(
-        IOfferRepository repository)
+    public Result<IReadOnlyList<GetOffersResponse>> Handle(GetOffersQuery query)
     {
-        var offers = repository
+        var response = offers
             .GetAll()
             .Select(offer => new GetOffersResponse(
                 offer.Id,
@@ -24,6 +20,6 @@ public static class GetOffersEndpoint
                 offer.Version))
             .ToList();
 
-        return TypedResults.Ok(offers);
+        return Result<IReadOnlyList<GetOffersResponse>>.Success(response);
     }
 }
