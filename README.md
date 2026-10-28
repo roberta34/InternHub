@@ -64,7 +64,13 @@ The current implementation uses in-memory repositories, so stored Students and O
 dotnet test ./tests/InternHub.Tests/InternHub.Tests.csproj
 ```
 
+#### Run Tests with Coverage
 
+```bash
+dotnet test ./tests/InternHub.Tests/InternHub.Tests.csproj --collect:"XPlat Code Coverage" --results-directory ./TestResults
+```
+
+This creates a `coverage.cobertura.xml` report under a generated `TestResults/<GUID>/` folder. The same command is used in CI and the coverage file is uploaded as a workflow artifact.
 
 ## 2. Project Goals
 

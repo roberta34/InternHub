@@ -5,9 +5,7 @@ using InternHub.Api.Domain.Offers;
 using InternHub.Api.Infrastructure.Repositories;
 using InternHub.Api.Features.Shared;
 using InternHub.Api.Features.Students;
-using InternHub.Api.Features.Offers.CreateOffer;
-using InternHub.Api.Features.Offers.GetOfferById;
-using InternHub.Api.Features.Offers.GetOffers;
+using InternHub.Api.Features.Offers;
 using InternHub.Api.Features.Offers.UpdateOffer;
 using InternHub.Api.Features.Offers.DeleteOffer;
 using InternHub.Api.Features.Students.GetStudentById;
@@ -22,16 +20,18 @@ builder.Services.AddSingleton<
 builder.Services.AddSingleton<
     IStudentRepository,
     InMemoryStudentRepository>();
+
 builder.Services.AddStudentFeatures();
+builder.Services.AddOfferFeatures();
 
 var app = builder.Build();
 
 var v1 = app.MapV1();
 
 // Offer endpoints
-CreateOfferEndpoint.Map(v1);
-GetOfferByIdEndpoint.Map(v1);
-GetOffersEndpoint.Map(v1);
+InternHub.Api.Features.Offers.CreateOffer.Endpoint.Map(v1);
+InternHub.Api.Features.Offers.GetOfferById.Endpoint.Map(v1);
+InternHub.Api.Features.Offers.GetOffers.Endpoint.Map(v1);
 UpdateOfferEndpoint.Map(v1);
 DeleteOfferEndpoint.Map(v1);
 
