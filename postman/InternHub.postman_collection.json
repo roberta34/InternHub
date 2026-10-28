@@ -416,6 +416,194 @@
       ]
     },
     {
+      "name": "UpdateStudent duplicate-email conflict",
+      "item": [
+        {
+          "name": "Create first conflict student (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const conflictFirstSuffix = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('conflictFirstStudentEmail', 'conflict.first.' + conflictFirstSuffix + '@mail.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('First conflict student data is correct', () => {",
+                  "  pm.expect(body.fullName).to.eql('Conflict First Student');",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('conflictFirstStudentEmail'));",
+                  "});",
+                  "if (pm.response.code === 201 && body.id) {",
+                  "  pm.collectionVariables.set('conflictFirstStudentId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Conflict First Student\",\n  \"email\": \"{{conflictFirstStudentEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create second conflict student (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const conflictSecondSuffix = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('conflictSecondStudentEmail', 'conflict.second.' + conflictSecondSuffix + '@mail.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Second conflict student data is correct', () => {",
+                  "  pm.expect(body.fullName).to.eql('Conflict Second Student');",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('conflictSecondStudentEmail'));",
+                  "});",
+                  "if (pm.response.code === 201 && body.id) {",
+                  "  pm.collectionVariables.set('conflictSecondStudentId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Conflict Second Student\",\n  \"email\": \"{{conflictSecondStudentEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update second student with first email (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{conflictSecondStudentId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Changed Conflict Second Student\",\n  \"email\": \"{{conflictFirstStudentEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get first conflict student - unchanged (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const student = pm.response.json();",
+                  "pm.test('First student preserves original data', () => {",
+                  "  pm.expect(student.id).to.eql(pm.collectionVariables.get('conflictFirstStudentId'));",
+                  "  pm.expect(student.fullName).to.eql('Conflict First Student');",
+                  "  pm.expect(student.email).to.eql(pm.collectionVariables.get('conflictFirstStudentEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{conflictFirstStudentId}}"
+          }
+        },
+        {
+          "name": "Get second conflict student - unchanged (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const student = pm.response.json();",
+                  "pm.test('Second student preserves original data', () => {",
+                  "  pm.expect(student.id).to.eql(pm.collectionVariables.get('conflictSecondStudentId'));",
+                  "  pm.expect(student.fullName).to.eql('Conflict Second Student');",
+                  "  pm.expect(student.email).to.eql(pm.collectionVariables.get('conflictSecondStudentEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{conflictSecondStudentId}}"
+          }
+        }
+      ]
+    },
+    {
       "name": "DeleteStudent",
       "item": [
         {
