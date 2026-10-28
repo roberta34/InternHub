@@ -52,7 +52,16 @@ public sealed class EfCoreStudentRepository(InternHubDbContext db) : IStudentRep
             return false;
 
         db.Students.Update(student);
-        db.SaveChanges();
+        try
+        {
+            db.SaveChanges();
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicateStudentEmailConflict(exception))
+        {
+            return false;
+        }
+
         return true;
     }
 

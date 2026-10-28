@@ -7,6 +7,7 @@ internal sealed class FakeStudentRepository : IStudentRepository
     private readonly Dictionary<Guid, Student> _students = new();
 
     public bool AddResult { get; set; } = true;
+    public bool UpdateResult { get; set; } = true;
 
     public bool Add(Student student) =>
         AddResult && _students.TryAdd(student.Id, student);
@@ -18,6 +19,9 @@ internal sealed class FakeStudentRepository : IStudentRepository
 
     public bool Update(Student student)
     {
+        if (!UpdateResult)
+            return false;
+
         if (!_students.ContainsKey(student.Id))
             return false;
 

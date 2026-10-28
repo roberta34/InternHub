@@ -80,4 +80,22 @@ public sealed class UpdateStudentHandlerTests
         updatedStudent!.FullName.Should().Be("Ana Popescu");
         updatedStudent.Email.Should().Be("updated@mail.com");
     }
+
+    [Fact]
+    public void Given_RepositoryConflict_When_UpdatingStudent_Then_ReturnsConflict()
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Ana Pop", "ana@mail.com");
+        var repository = new FakeStudentRepository { UpdateResult = false };
+        repository.Add(student);
+        var handler = new UpdateStudentHandler(repository);
+
+        // Act
+        var result = handler.Handle(
+            new UpdateStudentCommand(student.Id, "Ana Popescu", "updated@mail.com"));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Conflict);
+        result.Error.Should().Contain("already exists");
+    }
 }

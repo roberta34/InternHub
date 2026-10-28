@@ -21,7 +21,8 @@ public sealed class UpdateStudentHandler(IStudentRepository students) : IUpdateS
             return Result<bool>.Validation(ex.Message);
         }
 
-        students.Update(student);
+        if (!students.Update(student))
+            return Result<bool>.Conflict($"Student {student.Id} already exists.");
 
         return Result<bool>.Success(true);
     }

@@ -248,3 +248,27 @@ All Person 3 interactions above used **Copilot following SKILL.md instructions**
 | Prompt summary | Skills used | Observed problem | Skill improvement | Verified before/after result |
 |---|---|---|---|---|
 | Fix duplicate Student email handling so SQLite uniqueness conflicts become `Result.Conflict` and HTTP 409; preserve the repository contract and verify SQLite state. | `.claude/skills/efcore-sqlite-repositories/SKILL.md`, `.claude/skills/cqrs/SKILL.md`, `.claude/skills/integration-testing/SKILL.md` | Before the fix, `EfCoreStudentRepository.Add` let `DbUpdateException` escape from SQLite's unique `Students.Email` index; the integration test observed the unhandled exception instead of HTTP 409. | EF persistence guidance now requires translating only SQLite error code 19 identifying `Students.Email` into `false`, while unrelated database errors propagate. Integration guidance now requires duplicate-resource tests to assert 409 and unchanged state rather than codifying a 500/exception defect. | Before: duplicate request propagated `DbUpdateException`; after: duplicate request returns HTTP 409 with conflict text, and fresh SQLite state contains only the original student. `dotnet build` passed with 0 warnings/errors; `dotnet test` passed 120/120. |
+
+## Person 2 — Student Update/Delete integration tests
+
+| Prompt summary | Skill used | Observed problem | Skill change | Verified result |
+|---|---|---|---|---|
+| Add isolated SQLite HTTP integration tests for UpdateStudent and DeleteStudent, including duplicate-email update investigation. | `.claude/skills/integration-testing/SKILL.md`, `.claude/skills/efcore-sqlite-repositories/SKILL.md` | `EfCoreStudentRepository.Update` propagates `DbUpdateException` for a duplicate `Students.Email` update, so no HTTP 409 is produced. | None; production changes were outside this test-only task. The intended 409 regression remains explicitly skipped rather than treating the exception as correct behavior. | Five required scenarios pass with fresh SQLite state. Full suite: 126 passed, 1 skipped. The unskipped duplicate-email regression was independently verified to fail with SQLite error 19; the suite was restored to a passing state. |
+
+## Person 2 — Fix Student duplicate-email update conflict
+
+| Prompt summary | Skills used | Observed problem | Skill improvement | Verified result |
+|---|---|---|---|---|
+| Fix `UpdateStudent` duplicate-email handling so SQLite uniqueness conflicts produce `Result.Conflict` and HTTP 409 while preserving both database rows. | `.claude/skills/efcore-sqlite-repositories/SKILL.md`, `.claude/skills/cqrs/SKILL.md`, `.claude/skills/integration-testing/SKILL.md` | Before the fix, `EfCoreStudentRepository.Update` propagated SQLite error 19 (`UNIQUE constraint failed: Students.Email`) and `UpdateStudentHandler` ignored the repository's boolean result. | EF persistence guidance now requires the same narrow SQLite `Students.Email` translation for both `Add` and `Update`, with fresh-context verification that rejected updates preserve persisted rows. | Enabled duplicate-email integration test now passes with HTTP 409 and unchanged students. Added a handler conflict unit test. `dotnet build` passed with 0 warnings/errors; `dotnet test` passed 128/128 with 0 skipped. |
+
+## Person 2 — Student–InternshipCandidacy persistence integrity
+
+| Prompt summary | Skills read | Result |
+|---|---|---|
+| Complete persistence integrity verification for Student–InternshipCandidacy using the existing SQLite integration factory, without adding an API endpoint or changing production code. | `.claude/skills/integration-testing/SKILL.md`, `.claude/skills/efcore-sqlite-repositories/SKILL.md` | Added three focused integration tests using fresh factory databases and fresh DbContext scopes: valid Student/Offer/InternshipCandidacy persistence and reload, Student deletion cascading to candidacies while preserving the Offer, and SQLite foreign-key rejection for a candidacy referencing a missing Student. Tests use existing domain constructors and repository contracts, Given/When/Then names, AAA sections, xUnit and FluentAssertions 7.x. |
+
+## Postman — Student duplicate-email update conflict
+
+| Prompt summary | Result |
+|---|---|
+| Add a repeatable Postman scenario for updating one Student with another Student's email, without changing existing requests or assertions. | Added a scenario before `DeleteStudent` that creates two students with GUID-generated email addresses, updates the second with the first email, asserts HTTP 409, and GETs both IDs to verify their original names and emails remain unchanged. All requests use `/api/{{apiVersion}}/students`; generated emails prevent conflicts with prior collection runs. The collection JSON was validated successfully. |
