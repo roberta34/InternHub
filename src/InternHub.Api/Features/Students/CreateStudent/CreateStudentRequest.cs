@@ -1,4 +1,4 @@
-namespace InternHub.Features.Students.CreateStudent;
+namespace InternHub.Api.Features.Students.CreateStudent;
 
 public sealed record CreateStudentRequest(
     string? FullName,

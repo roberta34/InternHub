@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "internhub-students-v1",
+    "name": "InternHub v1 - Student vertical slices (Person 1)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5202"
+    },
+    {
+      "key": "apiVersion",
+      "value": "v1"
+    },
+    {
+      "key": "studentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "CreateStudent",
+      "item": [
+        {
+          "name": "Create valid student - 201 Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var body = pm.response.json();",
+                  "var idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
+                  "pm.test('Location header is present and points to the created student', function () {",
+                  "    pm.response.to.have.header('Location');",
+                  "    pm.expect(pm.response.headers.get('Location')).to.include('/api/v1/students/' + body.id);",
+                  "});",
+                  "pm.test('Response contains a non-empty GUID', function () {",
+                  "    pm.expect(body.id).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.id).to.match(idPattern);",
+                  "});",
+                  "pm.test('Created student fields are correct', function () {",
+                  "    pm.expect(body.fullName).to.eql('Ana Pop');",
+                  "    pm.expect(body.email).to.eql('ana@mail.com');",
+                  "});",
+                  "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
+                  "    pm.collectionVariables.set('studentId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"ana@mail.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        },
+        {
+          "name": "Create student with invalid email - 400 Bad Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"not-an-email\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        },
+        {
+          "name": "Create student with whitespace and uppercase email - 201 Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var body = pm.response.json();",
+                  "var idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
+                  "pm.test('Name is trimmed and email is normalized', function () {",
+                  "    pm.expect(body.fullName).to.eql('Ion Ionescu');",
+                  "    pm.expect(body.email).to.eql('ion@mail.com');",
+                  "});",
+                  "pm.test('Response contains a valid student ID', function () {",
+                  "    pm.expect(body.id).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.id).to.match(idPattern);",
+                  "});",
+                  "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
+                  "    pm.collectionVariables.set('studentId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"  Ion Ionescu  \",\n  \"email\": \"ION@Mail.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetStudentById",
+      "item": [
+        {
+          "name": "Get existing student - 200 OK",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var body = pm.response.json();",
+                  "pm.test('Response matches the previously created student', function () {",
+                  "    pm.expect(body.id).to.eql(pm.collectionVariables.get('studentId'));",
+                  "    pm.expect(body.fullName).to.eql('Ion Ionescu');",
+                  "    pm.expect(body.email).to.eql('ion@mail.com');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Get missing student - 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000001"
+          }
+        },
+        {
+          "name": "Get student with invalid GUID - 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found from the GUID route constraint', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/not-a-guid"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetStudents",
+      "item": [
+        {
+          "name": "Get all students - 200 OK",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var students = pm.response.json();",
+                  "pm.test('Response is a JSON array', function () {",
+                  "    pm.expect(students).to.be.an('array');",
+                  "});",
+                  "pm.test('Array contains the previously created student', function () {",
+                  "    pm.expect(students.some(function (student) {",
+                  "        return student.id === pm.collectionVariables.get('studentId') &&",
+                  "            student.fullName === 'Ion Ionescu' &&",
+                  "            student.email === 'ion@mail.com';",
+                  "    })).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        }
+      ]
+    }
+  ]
+}
