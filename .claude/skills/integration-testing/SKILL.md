@@ -84,6 +84,14 @@ Every test must assert all applicable parts of the complete behavior:
 
 At least **one happy-path and one failure-path test per use case**. Add a separate `409 Conflict` scenario only where an actual conflict rule exists. A passing status-only test is incomplete.
 
+For a configured SQLite unique index such as `Students.Email`, test duplicate
+creation through real HTTP and require the documented `409 Conflict` response,
+a meaningful conflict body, and unchanged SQLite state. If the request instead
+propagates `DbUpdateException` or returns `500`, record that as a production
+defect; do not rewrite the test to expect the defect. The persistence
+implementation must translate only the known unique-index violation, not swallow
+unrelated database exceptions.
+
 Use real calls such as `client.PutAsJsonAsync`, `client.DeleteAsync`, `client.GetAsync`, `client.PostAsJsonAsync` with the actual contract and `/api/v1` route. Use JSON helpers only for response shapes that the API really returns.
 
 ## 6. InternHub Offer Update / Delete scenarios

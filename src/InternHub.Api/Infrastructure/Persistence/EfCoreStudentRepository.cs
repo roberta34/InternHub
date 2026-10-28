@@ -1,5 +1,6 @@
 using InternHub.Domain.Students;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 
 namespace InternHub.Api.Infrastructure.Persistence;
 
@@ -8,9 +9,27 @@ public sealed class EfCoreStudentRepository(InternHubDbContext db) : IStudentRep
     public bool Add(Student student)
     {
         db.Students.Add(student);
-        db.SaveChanges();
+        try
+        {
+            db.SaveChanges();
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicateStudentEmailConflict(exception))
+        {
+            return false;
+        }
+
         return true;
     }
+
+    private static bool IsDuplicateStudentEmailConflict(DbUpdateException exception) =>
+        exception.InnerException is SqliteException
+        {
+            SqliteErrorCode: 19
+        } sqliteException
+        && sqliteException.Message.Contains(
+            "Students.Email",
+            StringComparison.OrdinalIgnoreCase);
 
     public Student? GetById(Guid id)
     {

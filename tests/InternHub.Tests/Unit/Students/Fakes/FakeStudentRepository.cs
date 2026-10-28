@@ -6,7 +6,10 @@ internal sealed class FakeStudentRepository : IStudentRepository
 {
     private readonly Dictionary<Guid, Student> _students = new();
 
-    public bool Add(Student student) => _students.TryAdd(student.Id, student);
+    public bool AddResult { get; set; } = true;
+
+    public bool Add(Student student) =>
+        AddResult && _students.TryAdd(student.Id, student);
 
     public Student? GetById(Guid id) =>
         _students.TryGetValue(id, out var student) ? student : null;

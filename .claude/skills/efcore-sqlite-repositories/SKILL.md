@@ -355,9 +355,27 @@ public sealed class EfCoreStudentRepository(InternHubDbContext db) : IStudentRep
     public bool Add(Student student)
     {
         db.Students.Add(student);
-        db.SaveChanges();
+        try
+        {
+            db.SaveChanges();
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicateStudentEmailConflict(exception))
+        {
+            return false;
+        }
+
         return true;
     }
+
+    private static bool IsDuplicateStudentEmailConflict(DbUpdateException exception) =>
+        exception.InnerException is SqliteException
+        {
+            SqliteErrorCode: 19
+        } sqliteException
+        && sqliteException.Message.Contains(
+            "Students.Email",
+            StringComparison.OrdinalIgnoreCase);
 
     public Student? GetById(Guid id)
     {
@@ -394,6 +412,15 @@ public sealed class EfCoreStudentRepository(InternHubDbContext db) : IStudentRep
     }
 }
 ```
+
+When `StudentConfiguration` declares `Students.Email` as a unique index, `Add`
+must translate only the known SQLite unique-constraint violation for that index
+into `false`. This preserves the unchanged `IStudentRepository` contract so
+`CreateStudentHandler` can return `Result.Conflict`, which the endpoint maps to
+HTTP 409. Do not catch every `DbUpdateException`, every SQLite error code 19, or
+an arbitrary message: unrelated schema, connection, foreign-key, and other
+database failures must still propagate instead of being misreported as a
+duplicate email.
 
 Rules:
 - Constructor injects `InternHubDbContext` (not an interface); primary constructor syntax.
@@ -670,6 +697,7 @@ Before finishing, verify every item:
 - [ ] `OfferConfiguration` maps all properties, marks `Version` with `.IsConcurrencyToken()` (NOT `.IsRowVersion()`), and maps the navigation with `UsePropertyAccessMode(Field)`.
 - [ ] `InternshipCandidacyConfiguration` maps `Id`, `StudentId`, `OfferId` as `string`, and `Status` as `string`.
 - [ ] `EfCoreStudentRepository` implements all five `IStudentRepository` methods with correct `bool` / `Student?` / `IReadOnlyList<Student>` return types.
+- [ ] `EfCoreStudentRepository.Add` translates only SQLite error code 19 whose message identifies `Students.Email` into `false`; unrelated `DbUpdateException`s still propagate.
 - [ ] `EfCoreOfferRepository` implements all five `IOfferRepository` methods with correct `bool` / `Offer?` / `IReadOnlyCollection<Offer>` return types.
 - [ ] `EfCoreOfferRepository.Update` catches `DbUpdateConcurrencyException` and translates it to `OfferConcurrencyException`.
 - [ ] `PersistenceExtensions.AddPersistence` registers `DbContext` as Scoped and both repositories as Scoped.

@@ -236,3 +236,15 @@ All Person 3 interactions above used **Copilot following SKILL.md instructions**
 **Verified result:** Final Postman execution passed **48/48 assertions**.
 
 **Claude skills usage:** Person 4 used the project's Claude-format skill instructions (`cqrs`, `efcore-sqlite-repositories`, `unit-testing`, `integration-testing`) through Copilot Agent. The integration-testing skill content was drafted with ChatGPT. Native Claude Code execution has not been documented and must not be asserted without an actual run.
+
+## Person 1 — Student Create/GetById/GetAll unit testing
+
+| Prompt summary | Tool and skill | Observed problem | Skill change | Verified result |
+|---|---|---|---|---|
+| Generate meaningful xUnit + FluentAssertions 7.x tests for `CreateStudentHandler`, `GetStudentByIdHandler` and `GetStudentsHandler`; inspect contracts, use the existing fake, run build/test and measure scoped coverage. | GitHub Copilot Agent following `.claude/skills/unit-testing/SKILL.md` | The existing `FakeStudentRepository` could not simulate the Create handler's repository-conflict branch. | None; added only a configurable `AddResult` to the existing test fake. | `dotnet build` passed with 0 warnings and 0 errors; `dotnet test` passed 113/113 tests. Cobertura reported 100% line and branch coverage for all three requested handlers with no uncovered lines or paths. Existing Student domain tests cover constructor validation, normalization, update atomicity and candidacy collection behavior. |
+
+## Person 1 — Student duplicate-email conflict handling
+
+| Prompt summary | Skills used | Observed problem | Skill improvement | Verified before/after result |
+|---|---|---|---|---|
+| Fix duplicate Student email handling so SQLite uniqueness conflicts become `Result.Conflict` and HTTP 409; preserve the repository contract and verify SQLite state. | `.claude/skills/efcore-sqlite-repositories/SKILL.md`, `.claude/skills/cqrs/SKILL.md`, `.claude/skills/integration-testing/SKILL.md` | Before the fix, `EfCoreStudentRepository.Add` let `DbUpdateException` escape from SQLite's unique `Students.Email` index; the integration test observed the unhandled exception instead of HTTP 409. | EF persistence guidance now requires translating only SQLite error code 19 identifying `Students.Email` into `false`, while unrelated database errors propagate. Integration guidance now requires duplicate-resource tests to assert 409 and unchanged state rather than codifying a 500/exception defect. | Before: duplicate request propagated `DbUpdateException`; after: duplicate request returns HTTP 409 with conflict text, and fresh SQLite state contains only the original student. `dotnet build` passed with 0 warnings/errors; `dotnet test` passed 120/120. |

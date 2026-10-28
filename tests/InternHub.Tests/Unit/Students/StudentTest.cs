@@ -1,6 +1,7 @@
 using InternHub.Domain.Students;
 using Xunit;
 using InternHub.Api.Domain.InternshipCandidacies;
+using FluentAssertions;
 
 namespace InternHub.Tests.Unit.Students;
 
@@ -116,4 +117,22 @@ public class StudentTests
         Assert.Equal("Ana Pop", student.FullName);
         Assert.Equal("ana@mail.com", student.Email);
     }
+
+	[Fact]
+public void Given_FullNameLongerThan200Characters_When_CreatingStudent_Then_ThrowsArgumentException()
+{
+    // Arrange
+    var fullName = new string('A', 201);
+
+    // Act
+    Action act = () => new Student(
+        Guid.NewGuid(),
+        fullName,
+        "ana@mail.com");
+
+    // Assert
+    act.Should()
+        .Throw<ArgumentException>()
+        .WithMessage("*Full name must be at most 200 characters.*");
+}
 }
