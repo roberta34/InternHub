@@ -250,6 +250,141 @@
           }
         }
       ]
+    },
+    {
+      "name": "StudentWrite",
+      "item": [
+        {
+          "name": "Update existing student - 204 No Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ion Ionescu Updated\",\n  \"email\": \"ion.updated@mail.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Update existing student with invalid data - 400 Bad Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"\",\n  \"email\": \"invalid-email\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Update missing student - 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Missing Student\",\n  \"email\": \"missing.student@mail.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000001"
+          }
+        },
+        {
+          "name": "Delete existing student - 204 No Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Delete missing student - 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000001"
+          }
+        }
+      ]
     }
   ]
 }
