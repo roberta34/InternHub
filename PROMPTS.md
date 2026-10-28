@@ -134,4 +134,17 @@ result.Error.Should().Contain("Full name is required.");
 - Apply the shared EF Core + SQLite skill before the unit-testing stage, in the required order.
 - Regenerate/rework Person 3 unit tests via the unit-testing skill and measure Domain/handler coverage; then run Offer integration tests using Person 4's shared infrastructure.
 - Confirm the GitHub Actions workflow and coverage artifact on GitHub.
+
+### Interaction 6 - Generate Person 3 unit tests after persistence integration
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt:** Generate/refactor meaningful xUnit + FluentAssertions 7.x tests for Offer, CreateOfferHandler, GetOfferByIdHandler and GetOffersHandler using deterministic inputs and a complete hand-written fake repository; verify the CQRS and EF Core + SQLite prerequisites, then run build, tests and Cobertura coverage.
+
+**Observed problem:** The existing Offer tests used non-deterministic dates, xUnit assertions and non-`Given_When_Then` names, while the requested handler tests were absent.
+
+**Skill change:** None; the current skill already required the repository-first checks, deterministic tests, complete fakes, FluentAssertions 7.x and scoped coverage reporting.
+
+**Verified result:** `dotnet build` passed with 0 warnings and 0 errors; `dotnet test tests\InternHub.Tests\InternHub.Tests.csproj --collect:"XPlat Code Coverage" --results-directory TestResults --no-build` passed 90/90 tests. Cobertura reported 100% line and branch coverage for all four requested classes with no uncovered branches.
 - The interactions above used **Copilot following SKILL.md instructions**, not native **Claude Skill execution**. They must not be represented as Claude runs. The assignment's explicit Claude-skill-generation requirement remains to be satisfied before submission.
