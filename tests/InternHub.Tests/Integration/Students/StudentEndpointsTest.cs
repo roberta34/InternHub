@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using InternHub.Features.Students.CreateStudent;
+using InternHub.Api.Features.Students.CreateStudent;
 using InternHub.Features.Students.GetStudentById;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
