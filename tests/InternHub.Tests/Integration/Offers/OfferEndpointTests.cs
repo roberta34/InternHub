@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace InternHub.Tests.Integration.Offers;
+
+[Collection("Integration")]
 public class OfferEndpointTests :
     IClassFixture<WebApplicationFactory<Program>>
 {

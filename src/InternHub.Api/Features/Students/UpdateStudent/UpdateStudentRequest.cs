@@ -1,3 +1,3 @@
-namespace InternHub.Features.Students.UpdateStudent;
+namespace InternHub.Api.Features.Students.UpdateStudent;
 
 public sealed record UpdateStudentRequest(string? FullName, string? Email);

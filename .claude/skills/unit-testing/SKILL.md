@@ -42,6 +42,7 @@ Before generating any code, open and verify:
 - Copy public signatures from the **real production code**. Current `IOfferRepository` / `IStudentRepository` contracts may be synchronous; do not assume otherwise.
 - For synchronous repositories use the real synchronous handler call, e.g. `handler.Handle(query)`. **Never generate `HandleAsync` unless the target handler actually declares it.**
 - Assert existing `Result<T>` members, such as `result.Status.Should().Be(ResultStatus.NotFound)`, **only if** the inspected Result implementation exposes them. Do not invent `IsSuccess`, `IsNotFound`, or other convenience members.
+- When asserting `Result<T>.Error` from an `ArgumentException`, verify the stable domain message without depending on the runtime-generated parameter-name suffix. Prefer a meaningful substring assertion unless the repository explicitly defines the complete error string as a public contract.
 - Match actual nullable signatures. If a command or Domain constructor accepts `string?`, test null, empty, whitespace, and other invalid/boundary values **where the implementation defines behavior**. Do not assume all strings are non-nullable.
 - Do not infer validation rules that do not exist. A Domain exception can be asserted in a Domain test when that is its documented behavior; handler tests should verify how expected failures become Results.
 

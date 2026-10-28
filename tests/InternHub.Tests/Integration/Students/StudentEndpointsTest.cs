@@ -5,10 +5,11 @@ using InternHub.Features.Students.GetStudentById;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using InternHub.Features.Students.GetStudents;
-using InternHub.Features.Students.UpdateStudent;
+using InternHub.Api.Features.Students.UpdateStudent;
 
 namespace InternHub.Tests.Integration.Students;
 
+[Collection("Integration")]
 public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -17,7 +18,11 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Given_ValidStudent_WhenCreatingStudent_ThenReturns201WithLocation()
     {
-        var res = await _client.PostAsJsonAsync("/api/v1/students", new CreateStudentRequest("Ana Pop", "ana@mail.com"));
+        var res = await _client.PostAsJsonAsync(
+            "/api/v1/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"created-location-{Guid.NewGuid()}@mail.com"));
         Assert.Equal(HttpStatusCode.Created, res.StatusCode);
         Assert.NotNull(res.Headers.Location);
     }
@@ -47,7 +52,11 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Given_ExistingStudent_WhenGettingStudentById_ThenReturns200()
     {
-        var created = await _client.PostAsJsonAsync("/api/v1/students", new CreateStudentRequest("Ana Pop", "ana2@mail.com"));
+        var created = await _client.PostAsJsonAsync(
+            "/api/v1/students",
+            new CreateStudentRequest(
+                "Ana Pop",
+                $"get-status-{Guid.NewGuid()}@mail.com"));
         var res = await _client.GetAsync(created.Headers.Location);
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
