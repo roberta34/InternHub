@@ -6,3 +6,7 @@
 
 *.user
 *.suo
+
+internhub.db
+internhub.db-shm
+internhub.db-wal
