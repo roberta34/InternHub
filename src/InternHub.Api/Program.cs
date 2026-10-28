@@ -1,6 +1,4 @@
 using InternHub.Domain.Students;
-using InternHub.Features.Students.UpdateStudent;
-using InternHub.Features.Students.DeleteStudent;
 using InternHub.Infrastructure.Repositories;
 
 using InternHub.Api.Domain.Offers;
@@ -41,8 +39,8 @@ DeleteOfferEndpoint.Map(v1);
 InternHub.Api.Features.Students.CreateStudent.Endpoint.Map(v1);
 InternHub.Api.Features.Students.GetStudentById.Endpoint.Map(v1);
 InternHub.Api.Features.Students.GetStudents.Endpoint.Map(v1);
-UpdateStudentEndpoint.Map(v1);
-DeleteStudentEndpoint.Map(v1);
+InternHub.Api.Features.Students.UpdateStudent.Endpoint.Map(v1);
+InternHub.Api.Features.Students.DeleteStudent.Endpoint.Map(v1);
 
 app.MapGet("/", () => "Hello World!");
 

@@ -5,7 +5,7 @@ using InternHub.Features.Students.GetStudentById;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using InternHub.Features.Students.GetStudents;
-using InternHub.Features.Students.UpdateStudent;
+using InternHub.Api.Features.Students.UpdateStudent;
 
 namespace InternHub.Tests.Integration.Students;
 
