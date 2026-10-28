@@ -15,7 +15,7 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Create_Valid_Returns201WithLocation()
+    public async Task Given_ValidStudent_WhenCreatingStudent_ThenReturns201WithLocation()
     {
         var res = await _client.PostAsJsonAsync("/api/v1/students", new CreateStudentRequest("Ana Pop", "ana@mail.com"));
         Assert.Equal(HttpStatusCode.Created, res.StatusCode);
@@ -23,7 +23,7 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task Create_Valid_ReturnsCreatedStudent()
+    public async Task Given_ValidStudent_WhenCreatingStudent_ThenReturnsCreatedStudent()
     {
         var res = await _client.PostAsJsonAsync(
             "/api/v1/students",
@@ -38,14 +38,14 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task Create_Invalid_Returns400()
+    public async Task Given_InvalidStudent_WhenCreatingStudent_ThenReturns400()
     {
         var res = await _client.PostAsJsonAsync("/api/v1/students", new CreateStudentRequest("", "bad"));
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
     }
 
     [Fact]
-    public async Task GetById_Existing_Returns200()
+    public async Task Given_ExistingStudent_WhenGettingStudentById_ThenReturns200()
     {
         var created = await _client.PostAsJsonAsync("/api/v1/students", new CreateStudentRequest("Ana Pop", "ana2@mail.com"));
         var res = await _client.GetAsync(created.Headers.Location);
@@ -53,7 +53,7 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetById_Existing_ReturnsStudent()
+    public async Task Given_ExistingStudent_WhenGettingStudentById_ThenReturnsStudent()
     {
         var email = $"get-{Guid.NewGuid()}@mail.com";
         var created = await _client.PostAsJsonAsync(
@@ -71,14 +71,14 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetById_Missing_Returns404()
+    public async Task Given_MissingStudent_WhenGettingStudentById_ThenReturns404()
     {
         var res = await _client.GetAsync($"/api/v1/students/{Guid.NewGuid()}");
         Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
     }
     
     [Fact]
-    public async Task GetStudents_Returns200()
+    public async Task Given_ValidStudent_WhenGettingStudents_ThenReturns200()
     {
         var response = await _client.GetAsync("/api/v1/students");
 
@@ -86,7 +86,7 @@ public class StudentEndpointsTests(WebApplicationFactory<Program> factory)
     }
     
     [Fact]
-    public async Task GetStudents_AfterCreatingStudent_ContainsStudent()
+    public async Task Given_ValidStudent_WhenGettingStudents_ThenContainsStudent()
     {
         var createResponse = await _client.PostAsJsonAsync(
             "/api/v1/students",
