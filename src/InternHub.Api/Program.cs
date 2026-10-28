@@ -2,8 +2,6 @@ using InternHub.Api.Domain.Offers;
 using InternHub.Api.Features.Shared;
 using InternHub.Api.Features.Students;
 using InternHub.Api.Features.Offers;
-using InternHub.Api.Features.Offers.UpdateOffer;
-using InternHub.Api.Features.Offers.DeleteOffer;
 using InternHub.Api.Features.Students.GetStudentById;
 using InternHub.Api.Features.Students.GetStudents;
 using InternHub.Api.Infrastructure.Persistence;
@@ -28,8 +26,8 @@ var v1 = app.MapV1();
 InternHub.Api.Features.Offers.CreateOffer.Endpoint.Map(v1);
 InternHub.Api.Features.Offers.GetOfferById.Endpoint.Map(v1);
 InternHub.Api.Features.Offers.GetOffers.Endpoint.Map(v1);
-UpdateOfferEndpoint.Map(v1);
-DeleteOfferEndpoint.Map(v1);
+InternHub.Api.Features.Offers.UpdateOffer.Endpoint.Map(v1);
+InternHub.Api.Features.Offers.DeleteOffer.Endpoint.Map(v1);
 
 // Student endpoints
 InternHub.Api.Features.Students.CreateStudent.Endpoint.Map(v1);

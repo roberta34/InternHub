@@ -1,7 +1,8 @@
 {
   "info": {
-    "name": "InternHub - Sprint 2 (Students P1 + Offers P3)",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "InternHub - Sprint 2 (Students P1/P2 + Offers P3/P4)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run the folders in listed order with a running InternHub API and a fresh test database. Create steps store generated IDs, UpdateOffer tracks optimistic concurrency versions, Delete steps run last. The collection includes Sprint 2 requests for Persons 1 through 4."
   },
   "variable": [
     {
@@ -19,6 +20,18 @@
     {
       "key": "offerId",
       "value": ""
+    },
+    {
+      "key": "offerVersion",
+      "value": "0"
+    },
+    {
+      "key": "staleOfferVersion",
+      "value": "0"
+    },
+    {
+      "key": "updatedStudentEmail",
+      "value": ""
     }
   ],
   "item": [
@@ -29,6 +42,16 @@
           "name": "Create - happy path (201)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const uniqueStudentSuffix = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('createdStudentEmail', 'ana.' + uniqueStudentSuffix + '@mail.com');"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -36,6 +59,9 @@
                   "pm.test('201 Created', () => pm.response.to.have.status(201));",
                   "pm.test('Location header', () => pm.response.to.have.header('Location'));",
                   "const body = pm.response.json();",
+                  "pm.test('Created Student email matches generated value', () => {",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('createdStudentEmail'));",
+                  "});",
                   "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
                   "pm.test('Response contains a valid non-empty GUID', () => {",
                   "  pm.expect(body.id).to.be.a('string').and.not.empty;",
@@ -59,7 +85,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"ana@mail.com\"\n}",
+              "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"{{createdStudentEmail}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -105,6 +131,18 @@
           "name": "Create - edge: trim + lowercase email (201)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const uniqueEdgeSuffix = pm.variables.replaceIn('{{$guid}}');",
+                  "const emailBeforeNormalization = 'ION.' + uniqueEdgeSuffix + '@Mail.com';",
+                  "pm.collectionVariables.set('edgeStudentEmail', emailBeforeNormalization);",
+                  "pm.collectionVariables.set('normalizedEdgeStudentEmail', emailBeforeNormalization.trim().toLowerCase());"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -113,7 +151,7 @@
                   "pm.test('Normalized', () => {",
                   "  const b = pm.response.json();",
                   "  pm.expect(b.fullName).to.eql('Ion Ionescu');",
-                  "  pm.expect(b.email).to.eql('ion@mail.com');",
+                  "  pm.expect(b.email).to.eql(pm.collectionVariables.get('normalizedEdgeStudentEmail'));",
                   "});",
                   "const body = pm.response.json();",
                   "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
@@ -139,7 +177,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"  Ion Ionescu  \",\n  \"email\": \"ION@Mail.com\"\n}",
+              "raw": "{\n  \"fullName\": \"  Ion Ionescu  \",\n  \"email\": \"{{edgeStudentEmail}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -240,6 +278,186 @@
       ]
     },
     {
+      "name": "UpdateStudent",
+      "item": [
+        {
+          "name": "Update Student - happy path (204)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('updatedStudentEmail', 'updated.' + Date.now() + '@example.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Student\",\n  \"email\": \"{{updatedStudentEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get updated Student - persisted values (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const student = pm.response.json();",
+                  "pm.test('Updated Student is persisted', () => {",
+                  "  pm.expect(student.id).to.eql(pm.collectionVariables.get('studentId'));",
+                  "  pm.expect(student.fullName).to.eql('Updated Student');",
+                  "  pm.expect(student.email).to.eql(pm.collectionVariables.get('updatedStudentEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Update Student - invalid email (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Student\",\n  \"email\": \"invalid-email\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Student - missing (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000002",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Missing Student\",\n  \"email\": \"missing.student@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteStudent",
+      "item": [
+        {
+          "name": "Delete Student - happy path (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Delete Student - already deleted (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
+        }
+      ]
+    },
+    {
       "name": "CreateOffer",
       "item": [
         {
@@ -279,6 +497,8 @@
                   "});",
                   "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
                   "  pm.collectionVariables.set('offerId', body.id);",
+                  "  pm.collectionVariables.set('staleOfferVersion', body.version);",
+                  "  pm.collectionVariables.set('offerVersion', body.version);",
                   "}"
                 ]
               }
@@ -421,6 +641,278 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateOffer",
+      "item": [
+        {
+          "name": "Update Offer - happy path (204)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('updateDeadline', new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));",
+                  "if (pm.response.code === 204) {",
+                  "  const previousVersion = Number(pm.collectionVariables.get('offerVersion'));",
+                  "  pm.collectionVariables.set('staleOfferVersion', previousVersion);",
+                  "  pm.collectionVariables.set('offerVersion', previousVersion + 1);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Backend Internship\",\n  \"companyName\": \"InternHub Demo Company 2\",\n  \"requirements\": \"C#, .NET 10, SQLite\",\n  \"deadline\": \"{{updateDeadline}}\",\n  \"maximumAvailableSlots\": 5,\n  \"version\": {{offerVersion}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get updated Offer - persisted values and Version (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const offer = pm.response.json();",
+                  "pm.test('Updated values and incremented Version are persisted', () => {",
+                  "  pm.expect(offer.id).to.eql(pm.collectionVariables.get('offerId'));",
+                  "  pm.expect(offer.title).to.eql('Updated Backend Internship');",
+                  "  pm.expect(offer.companyName).to.eql('InternHub Demo Company 2');",
+                  "  pm.expect(offer.maximumAvailableSlots).to.eql(5);",
+                  "  pm.expect(offer.version).to.eql(Number(pm.collectionVariables.get('offerVersion')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Update Offer - invalid title (400)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('updateDeadline', new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"companyName\": \"InternHub Demo Company 2\",\n  \"requirements\": \"C#, .NET 10, SQLite\",\n  \"deadline\": \"{{updateDeadline}}\",\n  \"maximumAvailableSlots\": 5,\n  \"version\": {{offerVersion}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Offer - missing (404)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('updateDeadline', new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/00000000-0000-0000-0000-000000000002",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Missing Offer\",\n  \"companyName\": \"Example Company\",\n  \"requirements\": \"C#, SQL\",\n  \"deadline\": \"{{updateDeadline}}\",\n  \"maximumAvailableSlots\": 2,\n  \"version\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Offer - stale Version Conflict (409)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('updateDeadline', new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('Conflict explains stale version', () => pm.expect(pm.response.text().toLowerCase()).to.include('stale version'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should Not Persist - Stale Update\",\n  \"companyName\": \"Should Not Persist Ltd\",\n  \"requirements\": \"C#, .NET 10, SQLite\",\n  \"deadline\": \"{{updateDeadline}}\",\n  \"maximumAvailableSlots\": 5,\n  \"version\": {{staleOfferVersion}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Offer after Conflict - original data preserved (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const offer = pm.response.json();",
+                  "pm.test('409 did not overwrite database state', () => {",
+                  "  pm.expect(offer.title).to.eql('Updated Backend Internship');",
+                  "  pm.expect(offer.companyName).to.eql('InternHub Demo Company 2');",
+                  "  pm.expect(offer.version).to.eql(Number(pm.collectionVariables.get('offerVersion')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteOffer",
+      "item": [
+        {
+          "name": "Delete Offer - happy path (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Delete Offer - already deleted (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
           }
         }
       ]

@@ -33,7 +33,16 @@ public sealed class EfCoreOfferRepository(InternHubDbContext db) : IOfferReposit
             return false;
 
         db.Offers.Update(offer);
-        db.SaveChanges();
+
+        try
+        {
+            db.SaveChanges();
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new OfferConcurrencyException(offer.Id, exception);
+        }
+
         return true;
     }
 

@@ -1,10 +1,10 @@
 # InternHub - PROMPTS.md
 
-Short log of relevant Sprint 2 AI interactions. Each member adds their own entries.
+Short log of relevant Sprint 2 AI interactions. Each member adds their own entries. The team used the Claude-format skill definitions stored under `.claude/skills/` as generation instructions in GitHub Copilot Agent; this is distinct from executing a skill in Claude Code.
 
 ## CQRS - Person 1
 
-**Skill referenced:** `.claude/skills/cqrs/SKILL.md`  
+**Skill referenced:** `.claude/skills/cqrs/SKILL.md`
 
 | Prompt summary | Result |
 |---|---|
@@ -23,11 +23,10 @@ Short log of relevant Sprint 2 AI interactions. Each member adds their own entri
 - **Follow-up:** Asked Copilot to correct the JSON and add missing scenarios.
 - **Result:** 7 requests across 3 folders; imported and reported passing in Postman.
 
-## Skill improvement (required before submission)
+## Skill improvement reconciliation
 
-**Pending:** Record one *real* failed generation, the exact change to a `SKILL.md` file, regeneration with Claude and the verified before/after result. Do not invent an iteration.
+The documented Person 2 unit-testing improvement is a real observed failure and records the exact `SKILL.md` change and verified result. It was performed through Copilot following the skill, not through native Claude execution; no Claude regeneration is claimed. The repository history contains no verified Claude execution to document.
 
-**Compliance note:** Assignment 2 requires Claude-generated production and test code through the team's skills. The Copilot runs above do not fulfill that requirement.
 
 ## Person 2 — Student Update/Delete, EF Core + SQLite și unit testing
 
@@ -131,9 +130,9 @@ result.Error.Should().Contain("Full name is required.");
 
 ### Remaining verification / assignment compliance
 
-- Apply the shared EF Core + SQLite skill before the unit-testing stage, in the required order.
-- Regenerate/rework Person 3 unit tests via the unit-testing skill and measure Domain/handler coverage; then run Offer integration tests using Person 4's shared infrastructure.
-- Confirm the GitHub Actions workflow and coverage artifact on GitHub.
+- The shared EF Core + SQLite stage was applied before the Person 3 unit-testing stage.
+- Person 3 unit tests were regenerated/reworked and measured at 100% scoped line and branch coverage; Person 4 integration tests subsequently passed using the shared SQLite factory.
+- GitHub-hosted workflow execution and artifact upload remain unconfirmed.
 
 ### Interaction 6 - Generate Person 3 unit tests after persistence integration
 
@@ -147,4 +146,93 @@ result.Error.Should().Contain("Full name is required.");
 **Skill change:** None; the current skill already required the repository-first checks, deterministic tests, complete fakes, FluentAssertions 7.x and scoped coverage reporting.
 
 **Verified result:** `dotnet build` passed with 0 warnings and 0 errors; `dotnet test tests\InternHub.Tests\InternHub.Tests.csproj --collect:"XPlat Code Coverage" --results-directory TestResults --no-build` passed 90/90 tests. Cobertura reported 100% line and branch coverage for all four requested classes with no uncovered branches.
-- The interactions above used **Copilot following SKILL.md instructions**, not native **Claude Skill execution**. They must not be represented as Claude runs. The assignment's explicit Claude-skill-generation requirement remains to be satisfied before submission.
+
+### Interaction 7 - Generate Update/Delete Offer handler unit tests
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt:** Generate meaningful isolated xUnit + FluentAssertions 7.x tests for `UpdateOfferHandler` and `DeleteOfferHandler`, including success, validation, not-found, stale-version and repository concurrency-conflict paths, using hand-written fakes.
+
+**Observed problem:** The existing Offer fake did not expose update/delete call counts or a way to simulate `OfferConcurrencyException`; the requested handler tests did not exist.
+
+**Skill change:** None; the current skill already required exact contracts, complete fakes, deterministic IDs/dates, Result assertions and scoped coverage.
+
+**Verified result:** `dotnet build` passed with 0 warnings and 0 errors; `dotnet test tests\InternHub.Tests\InternHub.Tests.csproj --collect:"XPlat Code Coverage" --results-directory TestResults --no-build` passed 98/98 tests. Cobertura reported 100% line and branch coverage for both requested handlers with no uncovered lines.
+
+All Person 3 interactions above used **Copilot following SKILL.md instructions**, not native **Claude Skill execution**.
+
+## Person 4 — Offer Update/Delete, concurrency, integration testing and Postman
+
+**Date:** 28 October 2026  
+**Tools used:** GitHub Copilot Agent guided by the project's Claude-format `SKILL.md` files; ChatGPT for drafting the integration-testing skill  
+**Scope:** `UpdateOffer`, `DeleteOffer`, optimistic concurrency, integration-test infrastructure and Postman scenarios
+
+### Interaction 1 - Refactor Offer Update/Delete to CQRS
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Request (summary):** Refactor only `UpdateOffer` and `DeleteOffer` to commands and handlers behind interfaces, reuse `Result<T>`, register handlers in DI, preserve repository contracts and map `/api/v1` routes.
+
+**Result:** Added commands, handler interfaces, handlers and CQRS endpoints; registered both handlers in `OffersFeaturesExtensions`; removed the two legacy endpoint implementations. `UpdateOffer` accepts `Version` and maps success, validation, not-found and stale-version conflict outcomes. `dotnet build` passed with 0 warnings and 0 errors.
+
+### Interaction 2 - Add optimistic concurrency handling
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/efcore-sqlite-repositories/SKILL.md`
+
+**Request (summary):** Handle EF Core concurrency failures without coupling `UpdateOfferHandler` to EF Core, preserve `Offer.Version` as a concurrency token, prevent stale overwrites and retain not-found behavior.
+
+**Observed problem:** The existing bool `IOfferRepository.Update` contract could not distinguish not-found from conflict, and the skill required `DbUpdateConcurrencyException` to escape into the handler, conflicting with the EF-independence requirement.
+
+**Skill improvement:** The EF repository now translates `DbUpdateConcurrencyException` into domain-level `OfferConcurrencyException`; `UpdateOfferHandler` catches that exception and returns `Result.Conflict`, which maps to HTTP 409. `Offer.Version` remains configured with `.IsConcurrencyToken()`, and the repository interface remains unchanged.
+
+**Verified result:** `dotnet build` passed with 0 warnings and 0 errors; `dotnet test` passed 90/90 tests. No unrelated slices or tests were changed in this interaction.
+
+### Interaction 3 - Generate Update/Delete handler unit tests
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Request (summary):** Generate isolated xUnit and FluentAssertions 7.x tests using a hand-written fake for successful update/delete, validation, not-found, stale-version and concurrency-conflict paths.
+
+**Observed problem:** The existing Offer fake did not expose repository call counts or simulate `OfferConcurrencyException`; handler tests were absent.
+
+**Skill change:** None; the existing skill already specified exact contracts, complete fakes, deterministic inputs, Result assertions and scoped coverage.
+
+**Verified result:** `dotnet build` passed with 0 warnings and 0 errors; `dotnet test tests\InternHub.Tests\InternHub.Tests.csproj` passed **98/98 tests**. Cobertura reported 100% line and branch coverage for both handlers.
+
+### Interaction 4 - Create integration-testing skill and SQLite WebApplicationFactory infrastructure
+
+**Tool:** ChatGPT (skill content), GitHub Copilot Agent (implementation)
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Request (summary):** Define and implement reusable integration-test infrastructure using `WebApplicationFactory<Program>`, a fresh open SQLite in-memory connection per test, DI replacement of the production DbContext and fresh-context database assertions.
+
+**Skill content:** ChatGPT created the integration-testing skill guidance after inspecting the project conventions and contracts. It requires real HTTP requests, SQLite relational behavior, isolated connections, response/status assertions, persisted-state checks and deterministic stale-version scenarios. This was not a Claude execution.
+
+**Result:** Copilot added `InternHubSqliteFactory` and the requested integration-test folder structure without modifying production code or existing integration tests.
+
+### Interaction 5 - Generate Update/Delete Offer integration tests
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Request (summary):** Add real HTTP tests for successful, invalid, missing and stale-version Offer updates plus successful and missing Offer deletion, asserting statuses, response bodies and SQLite state.
+
+**Result:** Added isolated SQLite `WebApplicationFactory` tests. Successful updates verify persisted fields and exactly one version increment; failed updates verify unchanged state; stale updates verify HTTP 409 and preservation of the newer data.
+
+**Verified result:** `dotnet build` passed with 0 warnings and 0 errors; `dotnet test` passed **104/104 tests**.
+
+### Interaction 6 - Update Postman Offer scenarios
+
+**Tool:** GitHub Copilot Agent  
+**Request (summary):** Extend the existing collection with UpdateOffer 204/400/404/409 and DeleteOffer 204/404 scenarios, reuse `offerId` and version variables, and order the stale-version conflict before deletion.
+
+**Result:** Added Offer setup and ordered Offer write requests using `/api/{{apiVersion}}/offers`, saved and reused `offerId`, `offerVersion` and `staleOfferVersion`, and added status/body assertions. The collection JSON was validated after modification.
+
+**Verified result:** Final Postman execution passed **48/48 assertions**.
+
+**Claude skills usage:** Person 4 used the project's Claude-format skill instructions (`cqrs`, `efcore-sqlite-repositories`, `unit-testing`, `integration-testing`) through Copilot Agent. The integration-testing skill content was drafted with ChatGPT. Native Claude Code execution has not been documented and must not be asserted without an actual run.

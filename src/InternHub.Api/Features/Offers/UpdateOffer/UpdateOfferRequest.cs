@@ -5,4 +5,5 @@ public sealed record UpdateOfferRequest(
     string CompanyName,
     string Requirements,
     DateTime Deadline,
-    int MaximumAvailableSlots);
+    int MaximumAvailableSlots,
+    int Version);
