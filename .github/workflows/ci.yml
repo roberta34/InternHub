@@ -31,7 +31,15 @@ jobs:
         run: dotnet build tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-restore
 
       - name: Run unit and integration tests
-        run: dotnet test tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-build
-        
+        run: dotnet test tests/InternHub.Tests/InternHub.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: '**/coverage.cobertura.xml'
+          if-no-files-found: warn
+
       - name: Check vulnerable dependencies
         run: dotnet list src/InternHub.Api/InternHub.Api.csproj package --vulnerable --include-transitive
