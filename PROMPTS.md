@@ -28,3 +28,71 @@ Short log of relevant Sprint 2 AI interactions. Each member adds their own entri
 **Pending:** Record one *real* failed generation, the exact change to a `SKILL.md` file, regeneration with Claude and the verified before/after result. Do not invent an iteration.
 
 **Compliance note:** Assignment 2 requires Claude-generated production and test code through the team's skills. The Copilot runs above do not fulfill that requirement.
+
+## Person 3 - Offer CQRS, Unit Testing and Coverage
+
+**Date:** 28 October 2026  
+**Tools used:** GitHub Copilot Agent, ChatGPT  
+**Scope:** `CreateOffer`, `GetOfferById`, `GetOffers`, reusable unit-testing skill, coverage and existing CI
+
+### Interaction 1 - Generate Offer CQRS slices
+
+**Tool:** GitHub Copilot Agent  
+**Skill instructions:** `.claude/skills/cqrs/SKILL.md` (owned by Person 1)
+
+**Request (summary):** Refactor only `CreateOffer`, `GetOfferById` and `GetOffers` to Commands/Queries, handler interfaces and handlers. Reuse the existing `Result<T>` model and `/api/v1` routes. Preserve request/response contracts; do not modify Update/Delete, persistence or tests.
+
+**Result:** Copilot generated the three handlers, their interfaces and Command/Query types, changed the endpoints to call handlers and added DI registrations in `OffersFeaturesExtensions.cs`.
+
+**Observed problem:** Endpoint files/classes retained their old names (`CreateOfferEndpoint.cs`, etc.), contrary to the CQRS skill's `Endpoint.cs` convention.
+
+### Interaction 2 - Regenerate endpoint naming
+
+**Tool:** GitHub Copilot Agent  
+**Skill instructions:** `.claude/skills/cqrs/SKILL.md`
+
+**Request (summary):** Regenerate the three Offer endpoints using `Endpoint.cs` and an `Endpoint` class in each use-case namespace. Update `Program.cs` references, keep behavior and routes unchanged, and remove legacy endpoint files.
+
+**Improvement after regeneration:** All three slices now have `Endpoint.cs`; `Program.cs` registers their routes once under the shared `MapV1()` group. The endpoints invoke handlers, not `IOfferRepository` directly. `dotnet build` succeeded and **60/60 existing tests passed**. This is a concrete before/after correction of generated output.
+
+### Interaction 3 - Improve the Unit Testing skill
+
+**Tools:** ChatGPT (draft/revision), GitHub Copilot Agent (read-only review)  
+**Skill:** `.claude/skills/unit-testing/SKILL.md` (owned by Person 3)
+
+**Request (summary):** Review the skill against the actual InternHub test layout, Domain entities, CQRS handlers, `Result<T>` contracts and `.csproj`. Identify incompatibilities before generating tests.
+
+**Problems observed in the initial draft:** Some examples assumed an incorrect test-folder layout or asynchronous handler methods; the skill needed explicit dependency checks, complete fake-repository contracts, deterministic dates and a clearer split between per-slice and project-wide coverage.
+
+**Changes made to SKILL.md:** Added repository-first checks; required the real namespaces and signatures; aligned examples with existing `Unit/Offers/` folders and synchronous `Handle`/`ResultStatus`; added a FluentAssertions 7.x prerequisite gate, deterministic tests, complete hand-written fakes, and explicit per-slice coverage scope.
+
+**Verification:** The updated file contains the hard-prerequisite, dependency-blocker and coverage-scope rules. A later Copilot review still reported some already-addressed points; those claims were not accepted as proof of a new defect without matching the current file. **Test-generation improvement is not yet verified.**
+
+### Interaction 4 - Attempt to generate GetOffersHandler tests
+
+**Tool:** GitHub Copilot Agent  
+**Skill instructions:** `.claude/skills/unit-testing/SKILL.md`
+
+**Request (summary):** Generate xUnit + FluentAssertions 7.0.0 tests for `GetOffersHandler` with an empty repository and multiple offers, using a complete fake repository and Given/When/Then naming.
+
+**Result:** The skill stopped without generating files because EF Core + SQLite had not yet been applied. Its prerequisite rule requires the earlier CQRS and persistence stages to be complete. FluentAssertions 7.0.0 was already installed. **No new unit tests were generated in this interaction.**
+
+**Next step:** After the shared EF Core stage is integrated, invoke the skill again for `Offer`, `CreateOfferHandler`, `GetOfferByIdHandler` and `GetOffersHandler`; verify the tests and coverage.
+
+### Interaction 5 - Integrate code coverage into CI
+
+**Tool:** GitHub Copilot Agent  
+**Skill:** Not applicable; CI maintenance task (existing Sprint 1 responsibility)
+
+**Request (summary):** Retain the existing .NET 10 GitHub Actions build/test/security checks, collect Cobertura coverage via Coverlet and upload the report as an artifact. Keep changes minimal; do not edit production code or tests or enforce a premature 100% threshold.
+
+**Result:** The workflow was updated to run `dotnet test` with `--collect:"XPlat Code Coverage" --results-directory TestResults` and to upload `**/coverage.cobertura.xml` through `actions/upload-artifact@v4`. Short coverage instructions were also added to README. The local coverage command passed **60/60 tests** and produced a Cobertura report. **GitHub-hosted workflow execution and artifact upload still need confirmation.**
+
+**Coverage baseline before new handler tests:** Overall line coverage **83.04%**; `Offer` **93.47%**; `CreateOfferHandler` **96.15%**; `GetOfferByIdHandler` **100%**; `GetOffersHandler` **0%**. These percentages are observed line coverage, not proof of complete behavioral or branch coverage.
+
+### Remaining verification / assignment compliance
+
+- Apply the shared EF Core + SQLite skill before the unit-testing stage, in the required order.
+- Regenerate/rework Person 3 unit tests via the unit-testing skill and measure Domain/handler coverage; then run Offer integration tests using Person 4's shared infrastructure.
+- Confirm the GitHub Actions workflow and coverage artifact on GitHub.
+- The interactions above used **Copilot following SKILL.md instructions**, not native **Claude Skill execution**. They must not be represented as Claude runs. The assignment's explicit Claude-skill-generation requirement remains to be satisfied before submission.

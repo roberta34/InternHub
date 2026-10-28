@@ -1,12 +1,25 @@
 {
   "info": {
-    "name": "InternHub - Students (Person 1)",
+    "name": "InternHub - Sprint 2 (Students P1 + Offers P3)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5202" },
-    { "key": "apiVersion", "value": "v1" },
-    { "key": "studentId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5202"
+    },
+    {
+      "key": "apiVersion",
+      "value": "v1"
+    },
+    {
+      "key": "studentId",
+      "value": ""
+    },
+    {
+      "key": "offerId",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -14,71 +27,125 @@
       "item": [
         {
           "name": "Create - happy path (201)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('201 Created', () => pm.response.to.have.status(201));",
-              "pm.test('Location header', () => pm.response.to.have.header('Location'));",
-              "const body = pm.response.json();",
-              "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
-              "pm.test('Response contains a valid non-empty GUID', () => {",
-              "  pm.expect(body.id).to.be.a('string').and.not.empty;",
-              "  pm.expect(body.id).to.match(idPattern);",
-              "});",
-              "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
-              "  pm.collectionVariables.set('studentId', body.id);",
-              "}"
-            ] }
-          }],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Location header', () => pm.response.to.have.header('Location'));",
+                  "const body = pm.response.json();",
+                  "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
+                  "pm.test('Response contains a valid non-empty GUID', () => {",
+                  "  pm.expect(body.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.id).to.match(idPattern);",
+                  "});",
+                  "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
+                  "  pm.collectionVariables.set('studentId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/{{apiVersion}}/students",
-            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"ana@mail.com\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"ana@mail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
           "name": "Create - invalid email (400)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
-            ] }
-          }],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/{{apiVersion}}/students",
-            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"not-an-email\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Pop\",\n  \"email\": \"not-an-email\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
           "name": "Create - edge: trim + lowercase email (201)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('201 Created', () => pm.response.to.have.status(201));",
-              "pm.test('Normalized', () => {",
-              "  const b = pm.response.json();",
-              "  pm.expect(b.fullName).to.eql('Ion Ionescu');",
-              "  pm.expect(b.email).to.eql('ion@mail.com');",
-              "});",
-              "const body = pm.response.json();",
-              "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
-              "pm.test('Response contains a valid non-empty GUID', () => {",
-              "  pm.expect(body.id).to.be.a('string').and.not.empty;",
-              "  pm.expect(body.id).to.match(idPattern);",
-              "});",
-              "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
-              "  pm.collectionVariables.set('studentId', body.id);",
-              "}"
-            ] }
-          }],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Normalized', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.fullName).to.eql('Ion Ionescu');",
+                  "  pm.expect(b.email).to.eql('ion@mail.com');",
+                  "});",
+                  "const body = pm.response.json();",
+                  "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
+                  "pm.test('Response contains a valid non-empty GUID', () => {",
+                  "  pm.expect(body.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.id).to.match(idPattern);",
+                  "});",
+                  "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
+                  "  pm.collectionVariables.set('studentId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": "{{baseUrl}}/api/{{apiVersion}}/students",
-            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"  Ion Ionescu  \",\n  \"email\": \"ION@Mail.com\"\n}" }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"  Ion Ionescu  \",\n  \"email\": \"ION@Mail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         }
       ]
@@ -88,33 +155,57 @@
       "item": [
         {
           "name": "GetById - existing (200)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('200 OK', () => pm.response.to.have.status(200));"
-            ] }
-          }],
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}" }
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+          }
         },
         {
           "name": "GetById - missing (404)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-            ] }
-          }],
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000001" }
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000001"
+          }
         },
         {
           "name": "GetById - edge: invalid Guid (404, route constraint)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-            ] }
-          }],
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/{{apiVersion}}/students/not-a-guid" }
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/not-a-guid"
+          }
         }
       ]
     },
@@ -123,22 +214,213 @@
       "item": [
         {
           "name": "Get all students (200, contains created student)",
-          "event": [{
-            "listen": "test",
-            "script": { "type": "text/javascript", "exec": [
-              "pm.test('200 OK', () => pm.response.to.have.status(200));",
-              "const students = pm.response.json();",
-              "pm.test('Response body is a JSON array', () => {",
-              "  pm.expect(students).to.be.an('array');",
-              "});",
-              "pm.test('Array contains the previously created student ID', () => {",
-              "  pm.expect(students.some(student => student.id === pm.collectionVariables.get('studentId'))).to.eql(true);",
-              "});"
-            ] }
-          }],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const students = pm.response.json();",
+                  "pm.test('Response body is a JSON array', () => {",
+                  "  pm.expect(students).to.be.an('array');",
+                  "});",
+                  "pm.test('Array contains the previously created student ID', () => {",
+                  "  pm.expect(students.some(student => student.id === pm.collectionVariables.get('studentId'))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CreateOffer",
+      "item": [
+        {
+          "name": "Create - happy path (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const daysFromNow = 30;",
+                  "pm.variables.set('futureDeadline', new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Location header', () => pm.response.to.have.header('Location'));",
+                  "const body = pm.response.json();",
+                  "const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;",
+                  "pm.test('Response contains a valid non-empty GUID', () => {",
+                  "  pm.expect(body.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.id).to.match(idPattern);",
+                  "});",
+                  "pm.test('Location points to created Offer', () => {",
+                  "  pm.expect(pm.response.headers.get('Location')).to.include('/api/' + pm.collectionVariables.get('apiVersion') + '/offers/' + body.id);",
+                  "});",
+                  "pm.test('Offer fields are returned', () => {",
+                  "  pm.expect(body.title).to.eql('Backend Internship');",
+                  "  pm.expect(body.companyName).to.eql('InternHub Demo Company');",
+                  "  pm.expect(body.maximumAvailableSlots).to.eql(3);",
+                  "  pm.expect(body.version).to.eql(0);",
+                  "});",
+                  "if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {",
+                  "  pm.collectionVariables.set('offerId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend Internship\",\n  \"companyName\": \"InternHub Demo Company\",\n  \"requirements\": \"C#, .NET, SQL\",\n  \"deadline\": \"{{futureDeadline}}\",\n  \"maximumAvailableSlots\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create - invalid title (400)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const daysFromNow = 30;",
+                  "pm.variables.set('futureDeadline', new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"companyName\": \"InternHub Demo Company\",\n  \"requirements\": \"C#, .NET, SQL\",\n  \"deadline\": \"{{futureDeadline}}\",\n  \"maximumAvailableSlots\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetOfferById",
+      "item": [
+        {
+          "name": "GetById - existing (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Returns previously created Offer', () => {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('offerId'));",
+                  "  pm.expect(body.title).to.eql('Backend Internship');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "GetById - missing (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/00000000-0000-0000-0000-000000000001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetOffers",
+      "item": [
+        {
+          "name": "Get all offers (200, contains created Offer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const offers = pm.response.json();",
+                  "pm.test('Response body is a JSON array', () => {",
+                  "  pm.expect(offers).to.be.an('array');",
+                  "});",
+                  "pm.test('Contains previously created Offer', () => {",
+                  "  pm.expect(offers.some(offer => offer.id === pm.collectionVariables.get('offerId'))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
           }
         }
       ]
