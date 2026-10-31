@@ -1,11 +1,14 @@
 ---
 name: integration-testing
-description: Generates and regenerates InternHub ASP.NET Core integration tests using xUnit, WebApplicationFactory<Program>, real HTTP requests, and a fresh SQLite in-memory database per test. Use after CQRS, EF Core SQLite persistence, and unit-testing skills have been applied, when testing Student, Offer, or future vertical slices. Do not use for production CQRS/persistence changes, unit tests, or code review.
+description: "Generates and regenerates InternHub integration tests: HTTP endpoints via xUnit and WebApplicationFactory<Program>, or direct EF Core repositories via xUnit and a fresh real SQLite in-memory database per test. Use after the relevant production contracts and persistence exist. Do not use for production CQRS/persistence changes, unit tests, or code review."
 ---
 
 # Integration-testing skill — InternHub
 
-You generate **integration-test code**, not production behavior. Follow the project architecture and the actual implemented API contracts. Every generated test must exercise HTTP endpoints and assert the resulting SQLite state.
+You generate **integration-test code**, not production behavior. Follow the project architecture and actual implemented contracts. There are **two explicit test modes**:
+- **HTTP endpoint integration tests**: use real HTTP requests with `WebApplicationFactory<Program>` and assert the resulting SQLite state.
+- **Repository integration tests**: invoke the actual EF Core repository directly against real SQLite and assert persisted state in a fresh `DbContext`. These tests need no HTTP endpoint or `WebApplicationFactory`.
+  Choose the mode requested; do not conflate them.
 
 If generation is incorrect, **improve this `SKILL.md`, then regenerate**. Do not manually patch generated production or test code. Do not claim a test passed unless it was executed successfully.
 
@@ -15,7 +18,8 @@ Read the real files; never invent an endpoint, DTO, field, service registration,
 
 1. `src/InternHub.Api/Program.cs` — startup, `/api/v1` route group, `partial class Program`, `EnsureCreated()` behavior, and DI registration.
 2. `src/InternHub.Api/Infrastructure/Persistence/` — `InternHubDbContext`, database-registration extension, EF model configurations, and repository implementations.
-3. The requested `Features/<Aggregate>/<UseCase>/` folders — HTTP method, route, request/response, handler, and expected result mapping.
+3. For **HTTP mode**: the requested `Features/<Aggregate>/<UseCase>/` folders — HTTP method, route, request/response, handler, and expected result mapping.
+   For **repository mode**: the repository interface, concrete implementation, entity mappings, `DbContext`, entity constructors, and available domain transitions.
 4. Relevant Domain models and repository contracts, especially `Offer.Version` and concurrency behavior.
 5. `tests/InternHub.Tests/InternHub.Tests.csproj`, existing `Integration/` tests and fixtures, plus `.claude/skills/unit-testing/SKILL.md` for naming/assertion conventions.
 6. The current shared `Result` and HTTP mapping, if relevant to failure assertions.
@@ -27,7 +31,8 @@ Reuse existing test packages and infrastructure when correct. Do not duplicate f
 - Generate only the integration fixture and test slices explicitly requested.
 - Keep existing vertical slices and production endpoints unchanged. If a production defect is discovered, report the file and problem; fix production code only through its owning skill in the required order.
 - Do not refactor unit tests, other members' slices, CI, README, or Postman as a side effect.
-- Use **xUnit**, `WebApplicationFactory<Program>`, `HttpClient`, **EF Core + real SQLite**, and **FluentAssertions 7.*** when available in the project.
+- Use **xUnit**, **EF Core + real SQLite**, and **FluentAssertions 7.*** when available in the project.
+- For **HTTP mode**, additionally use `WebApplicationFactory<Program>` and `HttpClient`; for **repository mode**, call the real EF Core repository directly without HTTP.
 - Tests must run with `dotnet test` and require no running API, Ollama instance, network service, or other external dependency.
 - No `UseInMemoryDatabase()` or mocked repository for HTTP integration tests. These would bypass real relational behavior.
 - No mocking library. Do not use sleeps, retries, real-time assumptions, or test-order dependence to make tests pass.
@@ -48,9 +53,9 @@ tests/InternHub.Tests/
             └── DeleteOfferEndpointTests.cs
 ```
 
-For other aggregates, replace `Offers` with their actual feature folder. Preserve a compatible existing project convention where already established.
+For other aggregates, replace `Offers` with their actual feature folder. In **repository mode**, put tests under `tests/InternHub.Tests/Integration/Persistence/<RepositoryName>Tests.cs` (or the existing repository-test convention). Preserve a compatible existing project convention where already established.
 
-- Test class: `<UseCase>EndpointTests` (or the consistent existing project convention).
+- Test class: `<UseCase>EndpointTests` for HTTP mode, `<RepositoryName>Tests` for repository mode (or the consistent existing project convention).
 - Test method: `Given_<state>_When_<action>_Then_<expected>`.
 - Every test visibly separates **Arrange**, **Act**, and **Assert**, with blank lines between sections.
 - One meaningful behavior per test. Use `[Theory]` for variations of the *same* behavior.
@@ -60,7 +65,9 @@ For other aggregates, replace `Offers` with their actual feature folder. Preserv
 
 ## 4. A real, fresh SQLite database for each test
 
-Each individual `[Fact]` / `[Theory]` case MUST have its **own factory instance** and **its own in-memory SQLite connection**:
+Every individual `[Fact]` / `[Theory]` case MUST have its **own in-memory SQLite connection**.
+
+For **HTTP mode** each test MUST also have its **own factory instance**:
 
 1. Open a `Microsoft.Data.Sqlite.SqliteConnection` with `Data Source=:memory:` before starting the test host.
 2. Keep this **same open connection** alive until the test and all its assertions complete; closing it destroys the in-memory database.
@@ -74,6 +81,19 @@ When replacing the EF registration, inspect the actual EF Core version and regis
 
 Do not run integration tests in parallel against a shared database file. Separate factory + connection per test enables isolation even with xUnit parallel execution.
 
+## 4a. Direct EF Core repository integration tests (repository mode only)
+
+Use this mode only when the task explicitly requests testing an EF Core repository rather than an HTTP endpoint.
+
+1. Read the actual repository interface and implementation, `InternHubDbContext`, entity configurations, and domain constructors before generating tests. Assert only implemented behavior; report missing capabilities instead of inventing new setters or transitions.
+2. For **each test**, create and open a new `SqliteConnection("Data Source=:memory:")`; configure `DbContextOptions<InternHubDbContext>` with `UseSqlite(connection)`. Call `EnsureCreated()` once on this isolated test database. Keep the connection open throughout the test and dispose all contexts and the connection at the end.
+3. Seed any required `Student` and `Offer` rows through the real context, respecting existing foreign keys and valid entity constructors, before inserting an `InternshipCandidacy`. Respect Sprint 3's business invariant of at most one active candidacy per `(StudentId, OfferId)` pair: use distinct offers for multiple active candidacies of one student and distinct students for multiple active candidacies of one offer. Do not skip relational constraints or use `UseInMemoryDatabase()`.
+4. Instantiate the **real** `EfCoreInternshipCandidacyRepository` (or the actual requested EF repository) with a fresh `InternHubDbContext`. Call the repository method under test, not a mocked interface.
+5. Verify persisted data using a **different, newly created `InternHubDbContext`**, preferably with `AsNoTracking()`. Verify both return values and SQLite state. Check unchanged state for false/not-found outcomes when relevant.
+6. For the Sprint 3 `IInternshipCandidacyRepository`, cover `Add`, `GetById`, `GetByStudent`, `GetByOffer`, `HasActiveForStudentAndOffer`, `CountActiveForStudent`, `CountAcceptedForOffer`, and `Update`, including meaningful empty/not-found and status-filter cases. Use the agreed active-status set: `Submitted`, `Shortlisted`, `Accepted`, `Waitlisted`; `Rejected` and `Withdrawn` are not active. **Do not invent a status setter**: if status transitions required by `Update` are not yet available from Person 4, report that dependency and test only supported update behavior.
+7. Do not create HTTP endpoints, call `WebApplicationFactory`, alter production files, or create a duplicate general SQLite fixture merely to satisfy HTTP-specific rules. Keep Arrange / Act / Assert and Given_When_Then conventions.
+8. Run the repository-specific tests and then the full test suite. Report exact pass/fail counts, any blocked cases, and whether SQLite isolation was actually verified.
+
 ## 5. What every HTTP integration test asserts
 
 Every test must assert all applicable parts of the complete behavior:
@@ -81,6 +101,7 @@ Every test must assert all applicable parts of the complete behavior:
 1. **HTTP status**: exact code, not only `IsSuccessStatusCode`.
 2. **Response contract**: parse/assert relevant fields for `200`/`201`; assert `Location` for a created resource; assert meaningful error response for `400`/`404`/`409`; assert no response body for `204` where appropriate.
 3. **SQLite state**: query through a fresh scope and verify inserted/changed/deleted/unchanged data, including `Version` where relevant.
+4. Do not assert collection ordering unless the endpoint or query explicitly guarantees an order; use order-independent equivalence for unordered results.
 
 At least **one happy-path and one failure-path test per use case**. Add a separate `409 Conflict` scenario only where an actual conflict rule exists. A passing status-only test is incomplete.
 
@@ -198,15 +219,17 @@ The example is a pattern, not authorization to invent DTO names, packages, or pr
 
 ## 8. Self-check before finishing
 
-- [ ] Production startup and EF registrations inspected before editing.
-- [ ] Tests use actual request/response records and `/api/v1` routes.
-- [ ] `WebApplicationFactory<Program>` uses real HTTP and the application's actual DI setup.
+- [ ] Production startup, repository implementation, and EF registrations inspected before editing.
+- [ ] The requested mode (HTTP or repository) is followed, with no invented contracts.
+- [ ] For **HTTP mode**, tests use actual request/response records and `/api/v1` routes.
+- [ ] For **HTTP mode**, `WebApplicationFactory<Program>` uses real HTTP and the application's actual DI setup.
+- [ ] For **repository mode**, the real EF repository is invoked directly, with valid relational seed data and a fresh verification context.
 - [ ] Every test owns a fresh, open in-memory SQLite connection and disposes it.
 - [ ] No test connects to on-disk development/production SQLite.
 - [ ] Real relational constraints and concurrency are exercised (not EF InMemory provider).
-- [ ] Status, response body where applicable, and fresh-context SQLite state are asserted.
-- [ ] Happy path and failure path exist for each requested slice.
-- [ ] Stale Offer update asserts `409` and preserves current data.
+- [ ] For HTTP mode, status and response body are asserted; for both modes, fresh-context SQLite state is asserted.
+- [ ] Happy path and failure/empty path exist for each requested behavior where applicable.
+- [ ] For HTTP Offer Update tests, a stale version asserts `409` and preserves current data.
 - [ ] Every method follows `Given_When_Then`; AAA sections are visible.
 - [ ] No shared mutable state, live services, mocks, sleeps, or manually patched generated tests.
 - [ ] `dotnet build` and `dotnet test` pass, or exact failures are reported.
@@ -216,7 +239,7 @@ The example is a pattern, not authorization to invent DTO names, packages, or pr
 Return a concise report containing:
 
 1. Files added, changed, and deleted.
-2. A table `Test | Endpoint | Expected HTTP | Database assertion`.
+2. For **HTTP mode**, a table `Test | Endpoint | Expected HTTP | Database assertion`; for **repository mode**, `Test | Repository method | Expected result | SQLite assertion`.
 3. `dotnet build` and `dotnet test` outcomes, including passed/failed counts.
 4. Actual defects, missing contracts, assumptions, or untested concurrency paths.
 5. Any skill improvement (problem observed, change in `SKILL.md`, and improvement after regeneration) that should be logged in `PROMPTS.md`. Do **not** fabricate prompt history or outcomes.

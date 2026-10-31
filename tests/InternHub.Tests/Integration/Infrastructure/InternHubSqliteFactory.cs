@@ -13,9 +13,11 @@ namespace InternHub.Tests.Integration.Infrastructure;
 public sealed class InternHubSqliteFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
+    private readonly TimeProvider _timeProvider;
 
-    public InternHubSqliteFactory()
+    public InternHubSqliteFactory(TimeProvider? timeProvider = null)
     {
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _connection.Open();
     }
 
@@ -27,6 +29,8 @@ public sealed class InternHubSqliteFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<InternHubDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<InternHubDbContext>>();
             services.AddDbContext<InternHubDbContext>(options => options.UseSqlite(_connection));
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton(_timeProvider);
         });
     }
 

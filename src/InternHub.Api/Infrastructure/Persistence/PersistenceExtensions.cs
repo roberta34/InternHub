@@ -1,6 +1,7 @@
 using InternHub.Api.Domain.Offers;
 using InternHub.Domain.Students;
 using Microsoft.EntityFrameworkCore;
+using InternHub.Api.Domain.InternshipCandidacies;
 
 namespace InternHub.Api.Infrastructure.Persistence;
 
@@ -18,7 +19,7 @@ public static class PersistenceExtensions
 
         services.AddScoped<IStudentRepository, EfCoreStudentRepository>();
         services.AddScoped<IOfferRepository, EfCoreOfferRepository>();
-
+        services.AddScoped<IInternshipCandidacyRepository, EfCoreInternshipCandidacyRepository>();
         return services;
     }
 }

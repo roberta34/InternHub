@@ -194,6 +194,29 @@ This log distinguishes **skill instructions used**, **the tool identified in the
 
 A previously generated Cobertura report showed **100% line and branch coverage** for all listed Domain classes and CQRS handlers, including Offer, Student, InternshipCandidacy and all Offer/Student handlers. That report predates the final integration-test refactor; it is not presented as a fresh coverage measurement after that change.
 
+### Interaction 8 — EfCoreInternshipCandidacyRepository integration tests
+
+**Recorded tool:** GitHub Copilot Agent
+**Skill:** `.claude/skills/integration-testing/SKILL.md` (repository integration-test mode), with `.claude/skills/efcore-sqlite-repositories/SKILL.md` consulted for persistence conventions.
+
+**Prompt summary:** Generate direct EF Core + SQLite integration tests for all eight `IInternshipCandidacyRepository` methods using isolated in-memory databases, valid Student/Offer foreign-key seed data, fresh verification contexts, deterministic dates, active-status filtering and missing-record behavior.
+
+**Observed problem:** The existing repository had no integration-test coverage. `InternshipCandidacy` has no status transition method or setter, so the Update test must use a new entity instance with the existing ID rather than inventing a Domain API.
+
+**Skill change:** None; the repository integration-testing section already required direct repository invocation, fresh SQLite connections and contexts, valid relational seed data, active-status cases and no invented status setter.
+
+**Verified result:** Added `EfCoreInternshipCandidacyRepositoryTests.cs` covering Add, GetById found/missing, GetByStudent, GetByOffer, active-status detection, active counting, accepted counting, successful Update and missing Update. The repository-filtered run passed **15/15**, and the full suite passed **148/148**, with 0 failed and 0 skipped. `dotnet build` passed with 0 warnings and 0 errors.
+
+### Interaction 9 — Correct active-candidacy test fixtures
+
+**Prompt summary:** Review and correct the generated repository integration tests so fixtures respect Sprint 3's one-active-candidacy-per-student-per-offer rule, while proving Student/Offer filtering for active and accepted queries.
+
+**Observed problem:** The original `GetByStudent` fixture inserted two active candidacies for the same Student and Offer, and the original `GetByOffer` and `CountAcceptedForOffer` fixtures inserted multiple active candidacies for the same Student and Offer.
+
+**Skill improvement:** Added an explicit repository integration-test rule to `.claude/skills/integration-testing/SKILL.md`: multiple active candidacies for one student must use distinct offers, and multiple active candidacies for one offer must use distinct students.
+
+**Result:** Regenerated the affected tests to use valid distinct Student/Offer pairs, added separate `HasActiveForStudentAndOffer` cases for another student and another offer, and added an accepted candidacy on another offer to prove exclusion.
+
 ---
 
 ## Person 4 — Offer Update/Delete and integration testing
@@ -249,3 +272,45 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 | README coverage instructions | `dotnet test ... --collect:"XPlat Code Coverage" --results-directory ./TestResults` |
 
 **Skill iteration documented:** The `unit-testing` skill was improved following an actual brittle `ArgumentException` assertion; the updated rule avoids runtime-generated parameter-name suffixes. Subsequent scoped tests passed. Skill use and tool attribution are separated above so that the development log remains auditable.
+
+## Sprint 3 — Person 3: Offer Management
+
+### CloseOffer — Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Generate xUnit and FluentAssertions tests for `Offer.Close()`, covering successful closure, version increment, repeated closure (idempotency), and preservation of existing Offer properties.
+
+**Verified result:** Generated unit tests passed. The complete test suite was also executed successfully.
+
+### CloseOffer — Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate HTTP integration tests for `POST /api/v1/offers/{id}/close`, using WebApplicationFactory and isolated SQLite in-memory databases. Verify successful closure (204), missing offers (404), idempotency, persisted `IsClosed` and `Version` values.
+
+**Verified result:** The generated integration tests and the complete test suite passed.
+
+### Browse Active Offers — Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Extend `GetOffersHandlerTests` to verify `ActiveOnly` filtering with a deterministic TimeProvider. Cover open future offers, closed offers, expired offers, deadline equality, unfiltered queries, and empty results.
+
+**Verified result:** Generated tests passed after adapting existing tests to the new TimeProvider constructor dependency.
+
+### Browse Active Offers — Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate HTTP integration tests for `GET /api/v1/offers?activeOnly=true`, using WebApplicationFactory, isolated SQLite databases and a controllable TimeProvider. Verify filtering, backward compatibility and empty results.
+
+**Verified result:** The generated integration tests and the complete test suite passed.
+
+### Postman Verification
+
+**Collection:** `postman/InternHub.postman_collection.json`
+
+The shared collection was extended with CloseOffer and Browse Active Offers scenarios.
+
+**Verified result:** Manual Postman tests passed for both features. A single shared collection is retained instead of separate person-specific collections.

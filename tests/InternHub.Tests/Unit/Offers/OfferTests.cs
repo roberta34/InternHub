@@ -93,6 +93,74 @@ public sealed class OfferTests
         offer.Version.Should().Be(1);
     }
 
+    [Fact]
+    public void Given_OpenOffer_When_ClosingOffer_Then_SetsIsClosedToTrue()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 1);
+
+        // Act
+        offer.Close();
+
+        // Assert
+        offer.IsClosed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Given_OpenOffer_When_ClosingOffer_Then_IncrementsVersionExactlyOnce()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 1);
+
+        // Act
+        offer.Close();
+
+        // Assert
+        offer.Version.Should().Be(1);
+    }
+
+    [Fact]
+    public void Given_ClosedOffer_When_ClosingOfferAgain_Then_PreservesClosedStateAndVersion()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 1);
+        offer.Close();
+        var versionAfterClosing = offer.Version;
+
+        // Act
+        offer.Close();
+
+        // Assert
+        offer.IsClosed.Should().BeTrue();
+        offer.Version.Should().Be(versionAfterClosing);
+    }
+
+    [Fact]
+    public void Given_OpenOffer_When_ClosingOffer_Then_PreservesOtherProperties()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 1);
+        var id = offer.Id;
+        var title = offer.Title;
+        var companyName = offer.CompanyName;
+        var requirements = offer.Requirements;
+        var deadline = offer.Deadline;
+        var maximumAvailableSlots = offer.MaximumAvailableSlots;
+        var internshipCandidacies = offer.InternshipCandidacies.ToArray();
+
+        // Act
+        offer.Close();
+
+        // Assert
+        offer.Id.Should().Be(id);
+        offer.Title.Should().Be(title);
+        offer.CompanyName.Should().Be(companyName);
+        offer.Requirements.Should().Be(requirements);
+        offer.Deadline.Should().Be(deadline);
+        offer.MaximumAvailableSlots.Should().Be(maximumAvailableSlots);
+        offer.InternshipCandidacies.Should().BeEquivalentTo(internshipCandidacies);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]

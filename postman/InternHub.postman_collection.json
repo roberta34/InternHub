@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "InternHub - Sprint 2 (Students P1/P2 + Offers P3/P4)",
+    "name": "InternHub - Sprint 2 + Sprint 3 Offers (CloseOffer + BrowseActiveOffers)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Run the folders in listed order with a running InternHub API and a fresh test database. Create steps store generated IDs, UpdateOffer tracks optimistic concurrency versions, Delete steps run last. The collection includes Sprint 2 requests for Persons 1 through 4."
+    "description": "Preserves Sprint 2 and Sprint 3 CloseOffer requests, and adds BrowseActiveOffers checks. Run CreateOffer and UpdateOffer before CloseOffer. BrowseActiveOffers seeds its own offers; run its requests in order. Run DeleteOffer last. For Sprint 3 team ownership, use docs/postman/parts/p3.json before final consolidation."
   },
   "variable": [
     {
@@ -31,6 +31,26 @@
     },
     {
       "key": "updatedStudentEmail",
+      "value": ""
+    },
+    {
+      "key": "closeOfferVersionBefore",
+      "value": ""
+    },
+    {
+      "key": "closeOfferVersionAfterFirst",
+      "value": ""
+    },
+    {
+      "key": "browseActiveOfferId",
+      "value": ""
+    },
+    {
+      "key": "browseExpiredOfferId",
+      "value": ""
+    },
+    {
+      "key": "browseClosedOfferId",
       "value": ""
     }
   ],
@@ -1060,6 +1080,402 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
           }
+        }
+      ]
+    },
+    {
+      "name": "CloseOffer",
+      "description": "Run after CreateOffer and UpdateOffer, before DeleteOffer. Uses the existing {{offerId}}. Tests successful close, persistence, version increment, idempotency and missing offer.",
+      "item": [
+        {
+          "name": "Get Offer before closing - open (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const offer = pm.response.json();",
+                  "  pm.test('Expected Offer is open', () => {",
+                  "    pm.expect(offer.id).to.eql(pm.collectionVariables.get('offerId'));",
+                  "    pm.expect(offer.isClosed).to.eql(false);",
+                  "    pm.expect(offer.version).to.be.a('number');",
+                  "  });",
+                  "  if (offer.isClosed === false && Number.isInteger(offer.version)) {",
+                  "    pm.collectionVariables.set('closeOfferVersionBefore', String(offer.version));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Close Offer - happy path (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}/close"
+          }
+        },
+        {
+          "name": "Get closed Offer - persisted and Version incremented (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const offer = pm.response.json();",
+                  "  pm.test('Close is persisted and Version incremented once', () => {",
+                  "    pm.expect(offer.id).to.eql(pm.collectionVariables.get('offerId'));",
+                  "    pm.expect(offer.isClosed).to.eql(true);",
+                  "    const versionBefore = Number(pm.collectionVariables.get('closeOfferVersionBefore'));",
+                  "    pm.expect(offer.version).to.eql(versionBefore + 1);",
+                  "  });",
+                  "  if (offer.isClosed === true && Number.isInteger(offer.version)) {",
+                  "    pm.collectionVariables.set('closeOfferVersionAfterFirst', String(offer.version));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Close Offer again - idempotent (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content on repeated close', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}/close"
+          }
+        },
+        {
+          "name": "Get Offer after repeated close - Version unchanged (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const offer = pm.response.json();",
+                  "  pm.test('Offer stays closed and Version does not increment again', () => {",
+                  "    pm.expect(offer.isClosed).to.eql(true);",
+                  "    pm.expect(offer.version).to.eql(Number(pm.collectionVariables.get('closeOfferVersionAfterFirst')));",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        },
+        {
+          "name": "Close Offer - missing (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/00000000-0000-0000-0000-000000000001/close"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BrowseActiveOffers",
+      "description": "Sprint 3. Run this folder top to bottom. It seeds separate open, expired, and closed offers, then validates activeOnly query semantics independently of the earlier CloseOffer folder.",
+      "item": [
+        {
+          "name": "Create open future offer (201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Browse Active - open future\",\n  \"companyName\": \"InternHub Postman Validation\",\n  \"requirements\": \"C# and .NET\",\n  \"deadline\": \"{{browseFutureDeadline}}\",\n  \"maximumAvailableSlots\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('browseFutureDeadline', new Date(Date.now() + 30 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  const offer = pm.response.json();",
+                  "  pm.test('Created offer has valid id', () => pm.expect(offer.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));",
+                  "  pm.collectionVariables.set('browseActiveOfferId', offer.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create expired open offer (201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Browse Active - expired\",\n  \"companyName\": \"InternHub Postman Validation\",\n  \"requirements\": \"C# and .NET\",\n  \"deadline\": \"{{browseExpiredDeadline}}\",\n  \"maximumAvailableSlots\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('browseExpiredDeadline', new Date(Date.now() - 3 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  const offer = pm.response.json();",
+                  "  pm.test('Created offer has valid id', () => pm.expect(offer.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));",
+                  "  pm.collectionVariables.set('browseExpiredOfferId', offer.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create future offer to close (201)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Browse Active - to close\",\n  \"companyName\": \"InternHub Postman Validation\",\n  \"requirements\": \"C# and .NET\",\n  \"deadline\": \"{{browseFutureDeadline}}\",\n  \"maximumAvailableSlots\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('browseFutureDeadline', new Date(Date.now() + 30 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  const offer = pm.response.json();",
+                  "  pm.test('Created offer has valid id', () => pm.expect(offer.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));",
+                  "  pm.collectionVariables.set('browseClosedOfferId', offer.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Close seeded future offer (204)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{browseClosedOfferId}}/close"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get active offers - activeOnly=true (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers?activeOnly=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const offers = pm.response.json();",
+                  "  pm.test('JSON array', () => pm.expect(offers).to.be.an('array'));",
+                  "  pm.test('Includes seeded active offer', () => pm.expect(offers.some(o => o.id === pm.collectionVariables.get('browseActiveOfferId'))).to.eql(true));",
+                  "  pm.test('Excludes seeded closed offer', () => pm.expect(offers.some(o => o.id === pm.collectionVariables.get('browseClosedOfferId'))).to.eql(false));",
+                  "  pm.test('Excludes seeded expired offer', () => pm.expect(offers.some(o => o.id === pm.collectionVariables.get('browseExpiredOfferId'))).to.eql(false));",
+                  "  pm.test('Every returned offer is open with future deadline', () => {",
+                  "    const now = Date.now();",
+                  "    offers.forEach(o => {",
+                  "      pm.expect(o.isClosed).to.eql(false);",
+                  "      pm.expect(Date.parse(o.deadline)).to.be.above(now);",
+                  "    });",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get offers - activeOnly=false (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers?activeOnly=false"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const offers = pm.response.json();",
+                  "  pm.test('JSON array', () => pm.expect(offers).to.be.an('array'));",
+                  "  pm.test('Includes all three seeded offers without filtering', () => {",
+                  "    ['browseActiveOfferId','browseClosedOfferId','browseExpiredOfferId'].forEach(key =>",
+                  "      pm.expect(offers.some(o => o.id === pm.collectionVariables.get(key)), key).to.eql(true));",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get offers - no filter (200)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  const offers = pm.response.json();",
+                  "  pm.test('JSON array', () => pm.expect(offers).to.be.an('array'));",
+                  "  pm.test('Absent activeOnly preserves all seeded offers', () => {",
+                  "    ['browseActiveOfferId','browseClosedOfferId','browseExpiredOfferId'].forEach(key =>",
+                  "      pm.expect(offers.some(o => o.id === pm.collectionVariables.get(key)), key).to.eql(true));",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
