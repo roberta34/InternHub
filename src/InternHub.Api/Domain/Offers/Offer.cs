@@ -1,4 +1,4 @@
-﻿namespace InternHub.Api.Domain.Offers;
+namespace InternHub.Api.Domain.Offers;
 
 using InternHub.Api.Domain.InternshipCandidacies;
 
@@ -11,8 +11,8 @@ public class Offer
     public DateTime Deadline { get; private set; }
     public int MaximumAvailableSlots { get; private set; }
     public bool IsClosed { get; private set; }
-    public int Version { get; private set; } 
-    
+    public int Version { get; private set; }
+
 	private readonly List<InternshipCandidacy> _internshipCandidacies = new();
 
     public IReadOnlyCollection<InternshipCandidacy> InternshipCandidacies =>
@@ -27,7 +27,7 @@ public class Offer
     {
         if(string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Title is required.", nameof(title));
-        
+
         if(string.IsNullOrWhiteSpace(companyName))
             throw new ArgumentException("Company name is required.", nameof(companyName));
         if (string.IsNullOrWhiteSpace(requirements))
@@ -41,7 +41,7 @@ public class Offer
         IsClosed = false;
         Version = 0;
     }
-    
+
     public void Update(
         string title,
         string companyName,
@@ -64,6 +64,15 @@ public class Offer
         Deadline = deadline;
         MaximumAvailableSlots = maximumAvailableSlots;
 
+        Version++;
+    }
+
+    public void Close()
+    {
+        if (IsClosed)
+            return;
+
+        IsClosed = true;
         Version++;
     }
 }
