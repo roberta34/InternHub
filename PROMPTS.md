@@ -314,3 +314,16 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 The shared collection was extended with CloseOffer and Browse Active Offers scenarios.
 
 **Verified result:** Manual Postman tests passed for both features. A single shared collection is retained instead of separate person-specific collections.
+
+## Sprint 3 — Person 2
+
+### CQRS skill update
+
+**Prompt summary:** Review `.claude/skills/cqrs/SKILL.md` against the Sprint 3 modular feature registration architecture. Do not implement a vertical slice or modify production code, tests, Domain, repositories, or `Program.cs`.
+
+**Work completed:**
+
+- Read the existing CQRS skill and verified its rules against `Program.cs`, `IFeatureModule`, `ApiRoutes`, and the existing `OfferManagementModule`.
+- Updated the skill to distinguish legacy feature wiring from new Sprint 3+ modules.
+- Documented that new slices must implement a public parameterless `IFeatureModule`, register handlers in `RegisterServices`, map endpoints in `MapEndpoints`, and rely on automatic module discovery instead of editing `Program.cs`.
+- Preserved the existing CQRS, Result, route, handler, and compatibility rules.

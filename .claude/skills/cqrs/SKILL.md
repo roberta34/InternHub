@@ -22,6 +22,7 @@ Never guess names, routes or contracts. Before generating, open and read:
 3. The Domain entity (`Domain/<Aggregate>/`): public constructor/factory, update methods, how invalid data is reported (exception or result).
 4. The repository interface (`IStudentRepository`, `IOfferRepository`). Use it exactly as it is; never change it. Mirror its sync/async style (in Sprint 1 it is synchronous and returns `bool` / `T?`).
 5. `Features/Shared/` (Result type, HTTP mapping, route group). If it exists, reuse it unchanged. Generate it only when it does not exist.
+6. `IFeatureModule` and an existing Sprint 3 feature module, when generating a new feature. New modules must participate in the shared module discovery mechanism instead of adding registrations or endpoint mappings directly to `Program.cs`.
 
 InternHub specifics (verify, do not assume they never change):
 - `Student` is created with `new Student(id, fullName, email)` and normalizes values.
@@ -51,6 +52,7 @@ src/InternHub.Api/Features/
 │   └── ApiRoutes.cs                  (the single /api/v1 group)
 └── <Aggregate>/
     ├── <Aggregate>FeaturesExtensions.cs   (DI registration for the aggregate)
+    ├── <Aggregate>FeatureModule.cs        (Sprint 3+ module for new slices)
     └── <UseCase>/
         ├── <UseCase>Command.cs       (or <UseCase>Query.cs)
         ├── I<UseCase>Handler.cs
@@ -71,7 +73,9 @@ Names:
 ## 4. Rules
 
 1. No mediator library (no MediatR or similar). Handlers are called directly through their interface.
-2. Every handler is behind a small interface and resolved through DI (`AddScoped`). Registration lives in `<Aggregate>FeaturesExtensions.cs`, called once from `Program.cs`.
+2. Every handler is behind a small interface and resolved through DI (`AddScoped`).
+   - Existing features may keep their `<Aggregate>FeaturesExtensions.cs` registration and explicit endpoint mapping in `Program.cs`.
+   - New Sprint 3+ slices must be grouped in a public, parameterless class implementing `IFeatureModule`. Register their handlers in `RegisterServices(IServiceCollection)` and map their endpoints in `MapEndpoints(RouteGroupBuilder)`. Do not edit `Program.cs` for a new module; the shared discovery loop handles both registrations and endpoint mapping.
 3. Handlers contain the application behavior: orchestration, repository calls, translation of outcomes to Result.
 4. Domain invariants stay in the Domain. Do not duplicate them in the handler. If the Domain signals invalid data by exception, the handler catches only that exception type and returns `Result.Validation`. Never catch in endpoints.
 5. Handlers depend only on repository interfaces. Never on `DbContext`, EF Core or SQLite.
@@ -99,6 +103,8 @@ HTTP mapping (implemented once in `Features/Shared/ResultHttpMapping.cs`, used b
 `Conflict` is produced only where a real conflict exists (stale `Offer.Version`, concurrency conflict, duplicate resource). Never replace 400 or 404 with 409, and never add a Conflict path to a use case without a conflict rule (e.g. Student Update/Delete). `UpdateOfferHandler` returns `Conflict` when the request `Version` differs from the stored one.
 
 ## 6. Routes
+
+New Sprint 3+ modules receive the shared `/api/v1` group through `MapEndpoints(RouteGroupBuilder)` and call each slice's `Endpoint.Map(group)` from there. Do not create another route group or map the same endpoint in `Program.cs`.
 
 - All endpoints map on one shared group: `app.MapGroup("/api/v1")` defined in `Features/Shared/ApiRoutes.cs`.
 - Slices map relative routes only (`"/students"`, `"/students/{id:guid}"`). Never repeat `"/api/v1"` in a slice, except to build the `Location` value, which comes from a shared helper.
@@ -258,6 +264,7 @@ public static class StudentFeaturesExtensions
 - [ ] Real names read from the code (domain constructors, repository methods, request/response records).
 - [ ] Each use case has its own folder, command/query, handler interface and handler.
 - [ ] Handlers registered in DI; no mediator package added.
+- [ ] New Sprint 3+ handlers and endpoints are registered and mapped through an `IFeatureModule`; legacy features remain compatible with their existing extension/`Program.cs` wiring.
 - [ ] Queries do not call `Add`, `Update` or `Delete`.
 - [ ] No exceptions escape handlers for expected outcomes; no try/catch in endpoints.
 - [ ] Endpoints contain no business rules and use `ResultHttpMapping`.
