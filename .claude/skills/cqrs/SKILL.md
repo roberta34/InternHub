@@ -274,3 +274,26 @@ End with a short report:
 1. Files created, changed and deleted.
 2. A table `Use case | Type | Handler | Route | Statuses mapped`.
 3. Any production problem noticed (file, expected vs. actual) and any assumption made.
+
+
+## 11. Sprint 3 — InternshipCandidacy slices (override of rules 2, 5 and 6 for these slices)
+
+- Folder: `Features/InternshipCandidacies/<UseCase>/`. Namespace = folder path.
+- Registration: one public sealed class `<Name>Module : IFeatureModule` with a public parameterless
+  constructor. `RegisterServices` does `AddScoped<I...Handler, ...Handler>()`; `MapEndpoints` calls
+  `<UseCase>.Endpoint.Map(group)`. Do NOT create `<Aggregate>FeaturesExtensions` and do NOT edit
+  `Program.cs`: modules are discovered automatically.
+- Routes are relative to the shared group: `POST /candidacies`,
+  `GET /students/{studentId:guid}/candidacies`.
+- Use `IInternshipCandidacyRepository`, `IStudentRepository`, `IOfferRepository` exactly as they are.
+- Time: inject `TimeProvider` and use `timeProvider.GetUtcNow().UtcDateTime`. Never `DateTime.UtcNow`.
+- Create: `CreateInternshipCandidacyRequest(StudentId, OfferId)` is separate from the Command.
+  The handler generates `Guid.NewGuid()`, sets `ApplicationDate` from TimeProvider and status
+  `Submitted`. Success -> 201 with `Location: /api/v1/candidacies/{id}`.
+- Result mapping for Apply: empty ids -> Validation; missing student/offer -> NotFound;
+  closed offer, deadline <= now, duplicate active candidacy for student+offer, or 5 active
+  candidacies -> Conflict (409). These are real business conflicts and are allowed.
+- Query (Get student candidacies): read-only; 404 if the student does not exist; items contain
+  candidacy id, offer id, offer title, company name, application date and status; ordered by
+  `ApplicationDate` descending, then `Id`.
+- `Features/Shared` already exists: reuse it, never regenerate it.
