@@ -392,3 +392,17 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 **Skill change:** None.
 
 **Verification:** JSON structure and request placement were validated locally. Postman HTTP assertions were not executed because they require a running API and test data.
+
+### Code-review Skill — Sprint 3 Person 2
+
+**Prompt summary:** Create only `.claude/skills/code-review/SKILL.md` for Assignment 2 and Sprint 3. The skill is strictly read-only, supports InternHub and classmate repositories, reviews CQRS/vertical slices, Domain invariants, repositories, DI, error handling, naming, and tests, and requires YAML-based rules, fixed severities/categories, exact file lines, actionable fixes, sorted findings, and a summary plus one Markdown table.
+
+**Created file:**
+
+- `.claude/skills/code-review/SKILL.md`
+
+**Observed problem:** No existing code-review skill was present. Existing skills use YAML frontmatter and structured numbered sections; the new skill follows those conventions and adds an explicit YAML review-rule block.
+
+**Skill change:** Created the requested skill only. No production code, tests, repositories, existing skills, teammate files, or `REVIEW.md` were modified.
+
+**Verification:** YAML frontmatter and the skill structure were inspected successfully. No code review was run.
