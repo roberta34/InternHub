@@ -406,3 +406,29 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 **Skill change:** Created the requested skill only. No production code, tests, repositories, existing skills, teammate files, or `REVIEW.md` were modified.
 
 **Verification:** YAML frontmatter and the skill structure were inspected successfully. No code review was run.
+
+## Sprint 3 — Person 1: Candidacy Application
+
+### Apply to Offer / Get My Candidacies — Code generation
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Generate the `CreateInternshipCandidacy` and `GetStudentCandidacies` slices (command/query, handler + interface, endpoint) and the `CandidacyApplicationModule` IFeatureModule, using `IInternshipCandidacyRepository`, `TimeProvider` and `Result<T>`.
+
+**Verified result:** Pending confirmation from Person 1.
+
+### Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** xUnit + FluentAssertions tests with `FakeInternshipCandidacyRepository`: success, missing student/offer, closed offer, expired deadline, duplicate, limit of 5, ordering.
+
+**Verified result:** Pending confirmation from Person 1.
+
+### Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** HTTP tests on isolated SQLite (`InternHubSqliteFactory`) with controllable `TimeProvider`; data seeded directly in the DbContext. Verify 201/400/404/409, persisted state and descending order.
+
+**Verified result:** Pending confirmation from Person 1.

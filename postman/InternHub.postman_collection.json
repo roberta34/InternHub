@@ -60,6 +60,22 @@
     {
       "key": "browseClosedOfferId",
       "value": ""
+    },
+    {
+      "key": "p1StudentId",
+      "value": ""
+    },
+    {
+      "key": "p1OfferId",
+      "value": ""
+    },
+    {
+      "key": "p1Email",
+      "value": ""
+    },
+    {
+      "key": "p1Deadline",
+      "value": ""
     }
   ],
   "item": [
@@ -1575,6 +1591,278 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{missingCandidacyId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "P1 - Candidacies (Apply + My Candidacies)",
+      "item": [
+        {
+          "name": "Setup - Create student",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p1Email', 'p1.' + pm.variables.replaceIn('{{$guid}}') + '@mail.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('p1StudentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"fullName\": \"Ana Pop\", \"email\": \"{{p1Email}}\" }"
+            }
+          }
+        },
+        {
+          "name": "Setup - Create open offer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p1Deadline', new Date(Date.now() + 7 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('p1OfferId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"title\": \"Backend Intern\", \"companyName\": \"Example Co\", \"requirements\": \"C#\", \"deadline\": \"{{p1Deadline}}\", \"maximumAvailableSlots\": 2 }"
+            }
+          }
+        },
+        {
+          "name": "Apply - happy path (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Location header', () => pm.response.to.have.header('Location'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is Submitted', () => pm.expect(body.status).to.eql('Submitted'));",
+                  "pm.test('Ids match', () => {",
+                  "  pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p1StudentId'));",
+                  "  pm.expect(body.offerId).to.eql(pm.collectionVariables.get('p1OfferId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"{{p1StudentId}}\", \"offerId\": \"{{p1OfferId}}\" }"
+            }
+          }
+        },
+        {
+          "name": "Apply - duplicate (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"{{p1StudentId}}\", \"offerId\": \"{{p1OfferId}}\" }"
+            }
+          }
+        },
+        {
+          "name": "Apply - missing student (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"11111111-1111-4111-8111-111111111111\", \"offerId\": \"{{p1OfferId}}\" }"
+            }
+          }
+        },
+        {
+          "name": "Apply - missing offer (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"{{p1StudentId}}\", \"offerId\": \"22222222-2222-4222-8222-222222222222\" }"
+            }
+          }
+        },
+        {
+          "name": "Apply - empty ids (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"00000000-0000-0000-0000-000000000000\", \"offerId\": \"00000000-0000-0000-0000-000000000000\" }"
+            }
+          }
+        },
+        {
+          "name": "My Candidacies - existing student (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json();",
+                  "pm.test('Contains the created candidacy', () => {",
+                  "  pm.expect(items).to.be.an('array').with.lengthOf(1);",
+                  "  pm.expect(items[0].offerId).to.eql(pm.collectionVariables.get('p1OfferId'));",
+                  "  pm.expect(items[0].offerTitle).to.eql('Backend Intern');",
+                  "  pm.expect(items[0].companyName).to.eql('Example Co');",
+                  "  pm.expect(items[0].status).to.eql('Submitted');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p1StudentId}}/candidacies"
+          }
+        },
+        {
+          "name": "My Candidacies - missing student (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/11111111-1111-4111-8111-111111111111/candidacies"
           }
         }
       ]
