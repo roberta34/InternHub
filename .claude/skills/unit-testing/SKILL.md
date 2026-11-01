@@ -52,6 +52,7 @@ Before generating any code, open and verify:
 - `WebApplicationFactory` / HTTP / real database tests belong to the **integration-testing skill**. Keep existing integration tests unchanged.
 - Use small **hand-written fake repositories** for handler isolation; do not add Moq, NSubstitute, or other mocking libraries.
 - A fake must implement **every member of the exact interface** inspected in source. Do not leave `NotImplementedException` in any exercised path. Reuse a shared fake only if doing so does not introduce shared mutable state.
+- Keep test-data seeding separate from fake operation counters: seed arranged state through a dedicated helper, or capture counter baselines after Arrange before asserting handler interactions.
 - Create new entities, IDs, and repository state per test. Use `Guid.NewGuid()` for valid generated IDs; use `Guid.Empty` only when testing rejection.
 - Use fixed explicit UTC dates for constructor/update scenarios, e.g. `new DateTime(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc)`. Do not base expected values on `DateTime.UtcNow`/`DateTime.Now`, arbitrary sleeps, or elapsed wall time.
 - When tested production behavior depends on the current time, use its existing injected `TimeProvider` / clock seam with a fake. If no controllable seam exists, **report the testability blocker**; do not modify production code with this skill.
