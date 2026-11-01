@@ -377,3 +377,18 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 **Skill change:** None.
 
 **Verified result:** The scoped HTTP integration tests passed **3/3**. The complete `dotnet test` suite passed **182/182** with 0 failures and 0 skipped tests. `dotnet build --no-restore` succeeded with 0 warnings and 0 errors. No production code, existing tests, fixtures, dependencies, or other teammates' files were modified.
+
+### Get Internship Candidacy Details — Postman
+
+**Prompt summary:** Add only Postman requests for `GET /api/v1/candidacies/{{candidacyId}}` and a separate missing-candidacy `404` request to the existing `postman/InternHub.postman_collection.json`. Reuse the collection's `baseUrl` and `apiVersion` variables, add candidacy-specific variables, and assert status codes, response fields, and the missing-ID error.
+
+**Changed files:**
+
+- `postman/InternHub.postman_collection.json`
+- `PROMPTS.md`
+
+**Observed result:** The collection parses successfully as Postman Collection v2.1 JSON and contains the two requests under a new `GetInternshipCandidacyById` folder. The successful request requires `candidacyId` to be set to an existing persisted candidacy; this task did not seed data or start the API.
+
+**Skill change:** None.
+
+**Verification:** JSON structure and request placement were validated locally. Postman HTTP assertions were not executed because they require a running API and test data.

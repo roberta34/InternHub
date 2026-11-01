@@ -22,6 +22,14 @@
       "value": ""
     },
     {
+      "key": "candidacyId",
+      "value": ""
+    },
+    {
+      "key": "missingCandidacyId",
+      "value": "00000000-0000-0000-0000-000000000003"
+    },
+    {
       "key": "offerVersion",
       "value": "0"
     },
@@ -1517,6 +1525,56 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetInternshipCandidacyById",
+      "item": [
+        {
+          "name": "Get candidacy details - existing (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const candidacy = pm.response.json();",
+                  "pm.test('Candidacy response fields match requested record', () => {",
+                  "  pm.expect(candidacy.id).to.eql(pm.collectionVariables.get('candidacyId'));",
+                  "  pm.expect(candidacy).to.have.property('studentId');",
+                  "  pm.expect(candidacy).to.have.property('offerId');",
+                  "  pm.expect(candidacy).to.have.property('applicationDate');",
+                  "  pm.expect(candidacy).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{candidacyId}}"
+          }
+        },
+        {
+          "name": "Get candidacy details - missing (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "pm.test('Error identifies missing candidacy', () => pm.expect(pm.response.text()).to.contain(pm.collectionVariables.get('missingCandidacyId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{missingCandidacyId}}"
           }
         }
       ]
