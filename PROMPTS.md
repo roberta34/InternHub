@@ -361,3 +361,19 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 **Skill change:** None.
 
 **Verified result:** The scoped handler tests passed **3/3**. The full `dotnet test` suite passed **179/179** with 0 failures and 0 skipped tests. Cobertura reported `GetInternshipCandidacyByIdHandler` at **100% line and branch coverage**. No production, Domain, repository, existing test, dependency, or integration-test files were modified.
+
+### GetInternshipCandidacyById — HTTP Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate only HTTP integration tests for `GetInternshipCandidacyById`, reusing the existing `InternHubSqliteFactory` and `Integration` collection. Seed Student, Offer, and InternshipCandidacy entities directly through the real EF Core SQLite context, then verify successful retrieval, missing-candidacy errors, and read-only persistence behavior.
+
+**Generated files:**
+
+- `tests/InternHub.Tests/Integration/InternshipCandidacies/GetInternshipCandidacyById/GetInternshipCandidacyByIdEndpointTests.cs`
+
+**Observed problem:** None. The existing factory already provided the required fresh in-memory SQLite connection per factory and the production endpoint was mapped by the existing Sprint 3 feature module.
+
+**Skill change:** None.
+
+**Verified result:** The scoped HTTP integration tests passed **3/3**. The complete `dotnet test` suite passed **182/182** with 0 failures and 0 skipped tests. `dotnet build --no-restore` succeeded with 0 warnings and 0 errors. No production code, existing tests, fixtures, dependencies, or other teammates' files were modified.
