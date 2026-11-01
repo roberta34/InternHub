@@ -344,3 +344,20 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 - `src/InternHub.Api/Features/InternshipCandidacies/InternshipCandidacyFeatureModule.cs`
 
 **Validation:** `dotnet build --no-restore` succeeded with 0 warnings and 0 errors. No tests were run. Rider file inspection still reports unresolved-symbol diagnostics in the newly created files, although the compiler resolves them successfully; this appears to be an IDE index issue rather than a build error.
+
+### GetInternshipCandidacyById — Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Generate only unit tests for `GetInternshipCandidacyByIdHandler`, using xUnit, FluentAssertions 7.x, a complete in-memory fake `IInternshipCandidacyRepository`, deterministic IDs and a fixed UTC application date. Cover successful response mapping, unknown-ID not-found behavior, and read-only behavior without repository updates. Do not modify production or integration-test code.
+
+**Generated files:**
+
+- `tests/InternHub.Tests/Unit/InternshipCandidacies/GetInternshipCandidacyById/GetInternshipCandidacyByIdHandlerTests.cs`
+- `tests/InternHub.Tests/Unit/InternshipCandidacies/Fakes/FakeInternshipCandidacyRepository.cs`
+
+**Observed problem:** None. The required CQRS and EF Core + SQLite stages were already present, and the test project already referenced FluentAssertions 7.0.0.
+
+**Skill change:** None.
+
+**Verified result:** The scoped handler tests passed **3/3**. The full `dotnet test` suite passed **179/179** with 0 failures and 0 skipped tests. Cobertura reported `GetInternshipCandidacyByIdHandler` at **100% line and branch coverage**. No production, Domain, repository, existing test, dependency, or integration-test files were modified.
