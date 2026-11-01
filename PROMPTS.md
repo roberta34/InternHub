@@ -327,3 +327,20 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 - Updated the skill to distinguish legacy feature wiring from new Sprint 3+ modules.
 - Documented that new slices must implement a public parameterless `IFeatureModule`, register handlers in `RegisterServices`, map endpoints in `MapEndpoints`, and rely on automatic module discovery instead of editing `Program.cs`.
 - Preserved the existing CQRS, Result, route, handler, and compatibility rules.
+
+### GetInternshipCandidacyById
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Implement only the `GetInternshipCandidacyById` query for `GET /api/v1/candidacies/{id}` using `IInternshipCandidacyRepository`, the existing `Result<T>` pattern and the Sprint 3 `IFeatureModule` architecture. Do not implement Withdraw or generate tests.
+
+**Generated files:**
+
+- `src/InternHub.Api/Features/InternshipCandidacies/GetInternshipCandidacyById/GetInternshipCandidacyByIdQuery.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/GetInternshipCandidacyById/GetInternshipCandidacyByIdResponse.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/GetInternshipCandidacyById/IGetInternshipCandidacyByIdHandler.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/GetInternshipCandidacyById/GetInternshipCandidacyByIdHandler.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/GetInternshipCandidacyById/Endpoint.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/InternshipCandidacyFeatureModule.cs`
+
+**Validation:** `dotnet build --no-restore` succeeded with 0 warnings and 0 errors. No tests were run. Rider file inspection still reports unresolved-symbol diagnostics in the newly created files, although the compiler resolves them successfully; this appears to be an IDE index issue rather than a build error.
