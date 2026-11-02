@@ -49,7 +49,7 @@ public sealed class InternshipCandidacy
 
     public bool Accept(bool hasAvailableSlot)
     {
-        if (!CanBeDecided())
+        if (!IsOpenForTransition())
             return false;
 
         Status = hasAvailableSlot
@@ -60,7 +60,7 @@ public sealed class InternshipCandidacy
 
     public bool Reject()
     {
-        if (!CanBeDecided())
+        if (!IsOpenForTransition())
             return false;
 
         Status = InternshipCandidacyStatus.Rejected;
@@ -69,13 +69,13 @@ public sealed class InternshipCandidacy
 
     public bool Withdraw()
     {
-        if (!CanBeDecided())
+        if (!IsOpenForTransition())
             return false;
 
         Status = InternshipCandidacyStatus.Withdrawn;
         return true;
     }
 
-    private bool CanBeDecided() =>
+    private bool IsOpenForTransition() =>
         Status is InternshipCandidacyStatus.Submitted or InternshipCandidacyStatus.Shortlisted;
 }

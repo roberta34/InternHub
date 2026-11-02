@@ -322,6 +322,10 @@ Add:
 | `Reject()` | `Submitted`, `Shortlisted` | `Rejected` |
 | `Withdraw()` | `Submitted`, `Shortlisted` | `Withdrawn` |
 
+If a private helper is used for the Submitted/Shortlisted check shared by Accept, Reject
+and Withdraw, name it `IsOpenForTransition()` (Withdraw is not a decision, so names like
+`CanBeDecided` are misleading).
+
 `Accepted`, `Rejected`, `Waitlisted`, `Withdrawn` are final in Sprint 3 (no waitlist promotion).
 The Domain decides Accepted vs Waitlisted; it receives only whether a slot is available.
 Do not add new persisted properties (e.g. `DecidedAt`); EF configuration is owned by Person 3.
@@ -354,13 +358,16 @@ public bool Shortlist()
 - `DecideInternshipCandidacyRequest(string? Action)`; `DecideInternshipCandidacyCommand(Guid CandidacyId, string? Action)`.
 - `CandidacyDecision` enum in the slice folder: `Shortlist`, `Accept`, `Reject`.
 - Handler order:
-  1. Parse `Action` case-insensitively into `CandidacyDecision`. Null, empty, unknown or numeric
-     values (check `Enum.IsDefined` after `TryParse`) -> `Validation`.
+  1. Parse `Action` by exact name match only: it is valid only if it equals one of
+     `Enum.GetNames<CandidacyDecision>()` ignoring case (`StringComparison.OrdinalIgnoreCase`).
+     Do NOT use `Enum.TryParse` alone: it accepts numeric strings ("1") and comma lists
+     ("Shortlist,Accept"). Null, empty, whitespace, numeric, comma-separated or unknown
+     values -> `Validation("Action '{action}' is not valid. Allowed values: Shortlist, Accept, Reject.")`.
   2. `candidacies.GetById(id)` is null -> `NotFound("Candidacy {id} not found.")`.
   3. For `Accept` only: load the offer with `offers.GetById(candidacy.OfferId)`; null -> `NotFound`.
      `hasAvailableSlot = candidacies.CountAcceptedForOffer(offer.Id) < offer.MaximumAvailableSlots`.
-  4. Call the Domain method. `false` -> `Conflict("Candidacy {id} cannot be {action} from status {status}.")`
-     and do NOT call `Update`.
+  4. Call the Domain method. `false` -> `Conflict("Candidacy {id} cannot be {verb} from status {status}.")`
+     where {verb} is `shortlisted`, `accepted` or `rejected`, and do NOT call `Update`.
   5. `candidacies.Update(candidacy)`; `false` -> `NotFound`.
   6. `Success(new DecideInternshipCandidacyResponse(candidacy.Id, candidacy.Status))`.
 - A closed offer does not block decisions (existing candidacies keep moving through evaluation).
