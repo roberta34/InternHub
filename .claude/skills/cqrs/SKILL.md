@@ -297,3 +297,90 @@ End with a short report:
   candidacy id, offer id, offer title, company name, application date and status; ordered by
   `ApplicationDate` descending, then `Id`.
 - `Features/Shared` already exists: reuse it, never regenerate it.
+
+
+
+## 12. Sprint 3 — InternshipCandidacy status transitions and decision slices (Person 4)
+
+### 12.1 Domain: `Domain/InternshipCandidacies/InternshipCandidacy.cs`
+
+Extend the existing entity; never rewrite it. Keep the existing constructor, properties and
+private setters unchanged (P1's handler, P3's EF mapping and existing tests depend on them).
+The Domain must not reference `Features.Shared` or `Result<T>`.
+
+Add:
+- `public bool IsActive => IsActiveStatus(Status);` (expression-bodied, no setter, so EF does not map it)
+- `public static bool IsActiveStatus(InternshipCandidacyStatus status)`: true only for
+  `Submitted`, `Shortlisted`, `Accepted`, `Waitlisted`. This is the single definition of "active".
+- Transition methods that return `bool`: `true` if the status changed, `false` if the transition
+  is not allowed (status stays unchanged). They never throw for a forbidden transition.
+
+| Method | Allowed from | Result |
+|---|---|---|
+| `Shortlist()` | `Submitted` | `Shortlisted` |
+| `Accept(bool hasAvailableSlot)` | `Submitted`, `Shortlisted` | `Accepted` if `hasAvailableSlot`, otherwise `Waitlisted` |
+| `Reject()` | `Submitted`, `Shortlisted` | `Rejected` |
+| `Withdraw()` | `Submitted`, `Shortlisted` | `Withdrawn` |
+
+`Accepted`, `Rejected`, `Waitlisted`, `Withdrawn` are final in Sprint 3 (no waitlist promotion).
+The Domain decides Accepted vs Waitlisted; it receives only whether a slot is available.
+Do not add new persisted properties (e.g. `DecidedAt`); EF configuration is owned by Person 3.
+
+Example of expected output:
+
+```csharp
+public bool IsActive => IsActiveStatus(Status);
+
+public static bool IsActiveStatus(InternshipCandidacyStatus status) =>
+    status is InternshipCandidacyStatus.Submitted
+        or InternshipCandidacyStatus.Shortlisted
+        or InternshipCandidacyStatus.Accepted
+        or InternshipCandidacyStatus.Waitlisted;
+
+public bool Shortlist()
+{
+    if (Status != InternshipCandidacyStatus.Submitted)
+        return false;
+
+    Status = InternshipCandidacyStatus.Shortlisted;
+    return true;
+}
+```
+
+### 12.2 Slice `DecideInternshipCandidacy` (Command)
+
+- Folder `Features/InternshipCandidacies/DecideInternshipCandidacy/`.
+- Route: `POST /candidacies/{id:guid}/decision` (relative to the shared group). Id comes from the route.
+- `DecideInternshipCandidacyRequest(string? Action)`; `DecideInternshipCandidacyCommand(Guid CandidacyId, string? Action)`.
+- `CandidacyDecision` enum in the slice folder: `Shortlist`, `Accept`, `Reject`.
+- Handler order:
+  1. Parse `Action` case-insensitively into `CandidacyDecision`. Null, empty, unknown or numeric
+     values (check `Enum.IsDefined` after `TryParse`) -> `Validation`.
+  2. `candidacies.GetById(id)` is null -> `NotFound("Candidacy {id} not found.")`.
+  3. For `Accept` only: load the offer with `offers.GetById(candidacy.OfferId)`; null -> `NotFound`.
+     `hasAvailableSlot = candidacies.CountAcceptedForOffer(offer.Id) < offer.MaximumAvailableSlots`.
+  4. Call the Domain method. `false` -> `Conflict("Candidacy {id} cannot be {action} from status {status}.")`
+     and do NOT call `Update`.
+  5. `candidacies.Update(candidacy)`; `false` -> `NotFound`.
+  6. `Success(new DecideInternshipCandidacyResponse(candidacy.Id, candidacy.Status))`.
+- A closed offer does not block decisions (existing candidacies keep moving through evaluation).
+- Endpoint: success -> `200 OK` with the response body; failures via `ToFailure()`.
+- Sequential capacity check only; concurrent last-slot acceptance is out of Sprint 3 scope.
+- The decision is always a human HTTP request; never call any AI service.
+
+### 12.3 Slice `GetOfferCandidacies` (Query)
+
+- Folder `Features/InternshipCandidacies/GetOfferCandidacies/`.
+- Route: `GET /offers/{offerId:guid}/candidacies`. `GetOfferCandidaciesQuery(Guid OfferId)`.
+- Offer missing -> `NotFound("Offer {offerId} not found.")`.
+- Items: `GetOfferCandidaciesResponse(Guid Id, Guid StudentId, string StudentFullName, DateTime ApplicationDate, InternshipCandidacyStatus Status)`.
+  Read the student name through `IStudentRepository` (verify the real property name on `Student`).
+  Follow the same broken-reference convention as `GetStudentCandidaciesHandler`.
+- Ordered by `ApplicationDate` descending, then `Id` (in the handler, do not rely on the repository order).
+- Read-only: never call `Add` or `Update`. Success -> `200 OK` (empty list when there are no candidacies).
+
+### 12.4 Registration
+
+One module: `Features/InternshipCandidacies/CandidacyDecisionModule.cs`, public sealed, parameterless,
+implementing `IFeatureModule`; registers both handlers with `AddScoped` and maps both endpoints.
+Do not edit `Program.cs`, `CandidacyApplicationModule` or other people's slices.
