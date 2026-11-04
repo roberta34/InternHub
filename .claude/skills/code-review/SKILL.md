@@ -24,6 +24,17 @@ Before reporting findings, inspect the real implementation and its surrounding c
 
 The review must distinguish requested scope from unrelated pre-existing code. Do not report a problem solely because code differs from a preferred style unless it violates an established project convention or creates a concrete defect.
 
+### Evidence and finding discipline
+
+- Report only findings supported by concrete evidence in the current implementation and its reachable contracts.
+- Before reporting a potential defect, verify existing validation, database constraints/indexes, transaction boundaries, concurrency tokens, exception translation, and relevant tests. Do not infer that a safeguard is absent from one file without checking the persistence configuration and repository implementation.
+- Distinguish an observed/reproduced failure from a risk inferred from the implementation. If a concurrency or failure-mode risk has not been reproduced by a test or execution, label it explicitly as an unreproduced risk and do not describe it as an observed incident.
+- Group findings that share one underlying root cause **and the same remediation approach** into exactly one finding. A grouped finding must name every affected business invariant or behavior, include every relevant file and exact line reference, and provide the shared actionable remediation. Do not emit separate rows merely because the same defect affects different rules, endpoints, or checks.
+- Keep findings separate when their root causes or remediation approaches differ, even if they occur in the same feature or handler.
+- Preserve important, evidence-backed defects even when existing tests do not cover them. Lack of test coverage is not evidence that the defect is absent.
+- Do not report speculative findings, stylistic preferences, naming-only observations, or low-impact issues without a demonstrable consequence.
+- Before finalizing, perform a duplicate review: merge rows with the same root cause, and remove any row whose impact cannot be demonstrated from the inspected code or behavior.
+
 ## 2. Sprint 3 architecture rules
 
 Review against the actual code and these project conventions:
@@ -101,9 +112,13 @@ Severity must reflect impact and evidence, not the size of the diff. If evidence
 5. Check that domain invariants are enforced once in the Domain and are not bypassed by persistence or endpoints.
 6. Check repository calls for unintended writes in queries, missing concurrency handling, and accidental direct EF access from handlers.
 7. Check tests for independent state, real public behavior, exact status/response assertions, fresh database verification, and meaningful branch coverage.
-8. Verify every finding against the current file content and record an exact 1-based line number. A finding without an existing file and exact line is invalid.
-9. Sort findings by severity in this order: Critical, Major, Minor; then by file and line.
-10. Do not propose speculative fixes, unrelated refactors, or changes outside the reviewed scope.
+8. For each candidate finding, verify all relevant safeguards across the full path: handler, repository contract, repository implementation, EF configuration, database constraints, transaction/concurrency handling, and tests.
+9. Classify the evidence as observed/reproduced or unreproduced risk. Keep only candidates with a concrete consequence supported by the implementation.
+10. Group candidates only when both their root cause and remediation approach match; in each grouped finding, enumerate every affected business invariant and all relevant exact file/line references.
+11. Keep candidates separate when either the root cause or remediation differs; do not suppress a valid finding to reduce the count.
+12. Verify every final finding against the current file content and record an exact 1-based line number. A finding without an existing file and exact line is invalid.
+13. Sort findings by severity in this order: Critical, Major, Minor; then by file and line.
+14. Do not propose speculative fixes, unrelated refactors, or changes outside the reviewed scope.
 
 ## 6. Required output
 
