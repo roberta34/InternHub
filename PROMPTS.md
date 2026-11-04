@@ -499,6 +499,16 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 
 **Verification:** Skill structure and YAML frontmatter inspected. The final code review has not been executed yet.
 
+### Final Sprint 3 Code Review Execution
+
+**Skill:** `.claude/skills/code-review/SKILL.md`
+
+**Prompt summary:** Perform a strictly read-only review of the complete Sprint 3 implementation, including CQRS slices, feature modules, domain rules, EF Core/SQLite persistence, Result-to-HTTP mapping, and unit/integration tests.
+
+**Reported findings:** 0 Critical, 3 Major and 1 Minor. The Major findings cover non-atomic duplicate-candidacy prevention, the five-active-candidacy limit, and accepted-slot enforcement under concurrency. The Minor finding covers missing validation for undefined `InternshipCandidacyStatus` enum values in the domain constructor. Exact file paths, lines, categories and proposed fixes are recorded in `REVIEW.md`.
+
+**Verified result:** The solution build succeeded. The complete test suite passed **314/314** tests with 0 failures and 0 skips. No production code, tests, configuration, skills or other documentation were modified by the review.
+
 ---
 
 ## Sprint 3 — Person 3: Offer Management
