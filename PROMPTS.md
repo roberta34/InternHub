@@ -612,3 +612,18 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 **Prompt summary:** Requests for Decide and Get Offer Candidacies, with setup (2 students, 1 offer with 1 slot, 2 candidacies) and the demo flow Shortlist → Accept → Waitlisted.
 
 **Verified result:** Collection Runner 19/19 tests passed against the running API.
+
+
+### Final Sprint 3 — Postman Collection Validation
+
+**Scope:** Consolidated shared Postman collection covering Sprint 2 and Sprint 3 functionality, including contributions from Persons 1, 2, 3 and 4.
+
+**Work completed:** Integrated the Sprint 3 candidacy requests and added automated setup and variable handling to make the complete collection self-contained and repeatable.
+
+**Verified result:**
+- Full Collection Runner: 173/173 assertions passed.
+- Failed: 0.
+- Errors: 0.
+- Iterations: 1 per execution.
+- The complete collection was executed twice consecutively against the running API, with all assertions passing on both runs.
+- No manual GUID configuration was required for the complete run.
