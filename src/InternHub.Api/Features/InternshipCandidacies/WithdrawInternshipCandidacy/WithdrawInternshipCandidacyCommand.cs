@@ -1,0 +1,3 @@
+namespace InternHub.Api.Features.InternshipCandidacies.WithdrawInternshipCandidacy;
+
+public sealed record WithdrawInternshipCandidacyCommand(Guid CandidacyId);

@@ -273,29 +273,261 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 
 **Skill iteration documented:** The `unit-testing` skill was improved following an actual brittle `ArgumentException` assertion; the updated rule avoids runtime-generated parameter-name suffixes. Subsequent scoped tests passed. Skill use and tool attribution are separated above so that the development log remains auditable.
 
+## Sprint 3 — Person 1: Candidacy Application
+
+### Apply to Offer / Get My Candidacies — Code Generation
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Generate the `CreateInternshipCandidacy` and `GetStudentCandidacies` slices (command/query, handler + interface, endpoint) and the `CandidacyApplicationModule` IFeatureModule, using `IInternshipCandidacyRepository`, `TimeProvider` and `Result<T>`.
+
+**Verified result:** Pending confirmation from Person 1.
+
+### Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Generate xUnit + FluentAssertions tests with `FakeInternshipCandidacyRepository`, covering successful application, missing student/offer, closed offer, expired deadline, duplicate candidacies, the limit of 5 active candidacies, and result ordering.
+
+**Verified result:** Pending confirmation from Person 1.
+
+### Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate HTTP tests using isolated SQLite (`InternHubSqliteFactory`) and a controllable `TimeProvider`. Seed data directly through the DbContext. Verify HTTP 201/400/404/409, persisted database state and descending ordering.
+
+**Verified result:** Pending confirmation from Person 1.
+
+### Postman
+
+**Skill:** Not applicable (Postman collection maintenance).
+
+**Prompt summary:** Create Postman requests for Apply to Offer and Get My Candidacies, including setup requests for creating a student and an offer.
+
+**Result:** Person 1 supplied a separate Postman collection for consolidation into the shared collection. Execution results for the consolidated requests are pending verification.
+
+---
+
+## Sprint 3 — Person 2: Withdraw Candidacy / Get Candidacy Details / Code Review
+
+### CQRS Skill Update
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Review the existing CQRS skill against the Sprint 3 modular feature registration architecture without modifying production code or implementing new features.
+
+**Work completed:**
+
+- Inspected `Program.cs`, `IFeatureModule`, `ApiRoutes` and the existing `OfferManagementModule`.
+- Updated the skill to distinguish legacy feature registration from the modular Sprint 3 approach.
+- Documented that new slices use a public parameterless `IFeatureModule`, register handlers through `RegisterServices`, map endpoints through `MapEndpoints`, and rely on automatic module discovery.
+- Preserved existing CQRS, Result, route and handler conventions.
+
+### GetInternshipCandidacyById — CQRS Implementation
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Generate the `GetInternshipCandidacyById` query, handler interface, handler, response DTO, endpoint and `InternshipCandidacyFeatureModule`, using the existing repository and `Result<T>` pattern.
+
+**Endpoint:** `GET /api/v1/candidacies/{id}`
+
+**Behavior:** Return 200 with Id, StudentId, OfferId, ApplicationDate and Status when the candidacy exists, or 404 when it does not. The query does not modify state.
+
+**Generated files:**
+
+- `GetInternshipCandidacyByIdQuery.cs`
+- `GetInternshipCandidacyByIdResponse.cs`
+- `IGetInternshipCandidacyByIdHandler.cs`
+- `GetInternshipCandidacyByIdHandler.cs`
+- `Endpoint.cs`
+- `InternshipCandidacyFeatureModule.cs`
+
+**Verification:** `dotnet build --no-restore` succeeded with 0 warnings and 0 errors. Initial Rider unresolved-symbol diagnostics were not reproduced by the compiler.
+
+### GetInternshipCandidacyById — Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Generate isolated unit tests for `GetInternshipCandidacyByIdHandler` using xUnit, FluentAssertions 7.x and `FakeInternshipCandidacyRepository`.
+
+**Scenarios covered:**
+
+- Existing candidacy returns Success and correct response fields.
+- Missing candidacy returns NotFound.
+- Query does not modify the candidacy or invoke repository updates.
+
+**Generated files:**
+
+- `GetInternshipCandidacyByIdHandlerTests.cs`
+- `FakeInternshipCandidacyRepository.cs`
+
+**Skill change:** None.
+
+**Verified result:** 3/3 scoped tests passed. Full suite passed 179/179. Handler achieved 100% line and branch coverage.
+
+### GetInternshipCandidacyById — Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate HTTP integration tests using the existing `InternHubSqliteFactory`, isolated SQLite databases and direct seeding of Student, Offer and InternshipCandidacy entities.
+
+**Scenarios covered:**
+
+- Existing candidacy returns 200 with correct response fields.
+- Missing candidacy returns 404.
+- GET does not modify persisted data.
+
+**Generated file:** `GetInternshipCandidacyByIdEndpointTests.cs`
+
+**Skill change:** None.
+
+**Verified result:** 3/3 integration tests passed. Full suite passed 182/182. Build succeeded with 0 warnings and 0 errors.
+
+### GetInternshipCandidacyById — Postman
+
+**Skill:** Not applicable (Postman collection maintenance).
+
+**Prompt summary:** Add requests for an existing candidacy and a missing candidacy to the existing shared collection.
+
+**Requests:**
+
+- `GET /api/v1/candidacies/{{candidacyId}}` — 200.
+- Missing candidacy request — 404.
+
+**Verification:** Postman Collection v2.1 JSON structure and request placement validated. HTTP assertions were not executed during this task because they require a running API and seeded data.
+
+### WithdrawInternshipCandidacy — CQRS Implementation
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Generate the Withdraw command, handler interface, handler and endpoint using the existing `InternshipCandidacy.Withdraw()` Domain method delivered by Person 4.
+
+**Endpoint:** `POST /api/v1/candidacies/{id}/withdraw`
+
+**Generated files:**
+
+- `WithdrawInternshipCandidacyCommand.cs`
+- `IWithdrawInternshipCandidacyHandler.cs`
+- `WithdrawInternshipCandidacyHandler.cs`
+- `Endpoint.cs`
+
+**Modified files:**
+
+- `InternshipCandidacyFeatureModule.cs`
+- `PROMPTS.md`
+
+**Behavior:**
+
+- Missing candidacy returns 404.
+- Submitted/Shortlisted can transition to Withdrawn.
+- Invalid transitions return 409 without repository Update.
+- Successful transitions are persisted through `IInternshipCandidacyRepository.Update()`.
+- Successful HTTP requests return 204 No Content.
+- Repository update failure returns NotFound, following existing project conventions.
+
+**Verification:** `dotnet build` passed with 0 warnings and 0 errors. Tests were generated separately.
+
+### WithdrawInternshipCandidacy — Unit Testing
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Generate unit tests for `WithdrawInternshipCandidacyHandler`, reusing the shared Fake Repository and testing successful withdrawals, forbidden transitions, missing candidacies and repository update failure.
+
+**Generated file:** `WithdrawInternshipCandidacyHandlerTests.cs`
+
+**Observed problem:** The initial full-suite execution overlapped with a coverage command, causing a temporary `FileNotFoundException` during test discovery. Running the suite sequentially resolved the issue.
+
+**Skill change:** None.
+
+**Verified result:** 8/8 scoped tests passed. Full suite passed 307/307 with 0 failed and 0 skipped. Handler achieved 100% line and branch coverage.
+
+### WithdrawInternshipCandidacy — Integration Testing
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate HTTP integration tests using `InternHubSqliteFactory`, isolated SQLite databases, direct domain seeding and fresh DbContext verification.
+
+**Scenarios covered:**
+
+- Submitted → Withdrawn returns 204 and persists status.
+- Shortlisted → Withdrawn returns 204 and persists status.
+- Accepted, Rejected, Waitlisted and Withdrawn return 409, with unchanged state.
+- Missing candidacy returns 404, with unchanged database.
+
+**Generated file:** `WithdrawInternshipCandidacyEndpointTests.cs`
+
+**Skill change:** None.
+
+**Verified result:** 7/7 scoped integration tests passed. Full suite passed 314/314. Build succeeded with 0 warnings and 0 errors.
+
+### WithdrawInternshipCandidacy — Postman
+
+**Skill:** Not applicable (Postman collection maintenance).
+
+**Prompt summary:** Add Postman requests for successful withdrawals from Submitted and Shortlisted, invalid withdrawal from a final status, and missing candidacy.
+
+**Requests:**
+
+- Withdraw Submitted — 204.
+- Withdraw Shortlisted — 204.
+- Withdraw final-state candidacy — 409.
+- Withdraw missing candidacy — 404.
+
+**Preparation:** Configure the relevant candidacy IDs and initial statuses before execution. Successful withdrawals are state-changing and must not be repeated using the same candidacy data.
+
+**Verification:** Collection JSON structure, request names, variable uniqueness and expected assertions were validated. Actual HTTP execution remained pending.
+
+### Code Review Skill
+
+**Skill:** `.claude/skills/code-review/SKILL.md`
+
+**Prompt summary:** Create a strictly read-only code-review skill supporting the InternHub repository and a classmate's repository.
+
+**Created file:** `.claude/skills/code-review/SKILL.md`
+
+**Rules included:**
+
+- Review CQRS architecture, vertical slice boundaries, Domain invariants, repositories, DI, error handling, naming and test quality.
+- Use YAML-based review rules.
+- Define Critical, Major and Minor severities.
+- Report exact File:Line references.
+- Provide actionable proposed fixes.
+- Sort findings by severity.
+- Return a one-line summary followed by one Markdown table.
+- Never modify reviewed source files.
+
+**Verification:** Skill structure and YAML frontmatter inspected. The final code review has not been executed yet.
+
+---
+
 ## Sprint 3 — Person 3: Offer Management
 
 ### CloseOffer — Unit Testing
 
 **Skill:** `.claude/skills/unit-testing/SKILL.md`
 
-**Prompt summary:** Generate xUnit and FluentAssertions tests for `Offer.Close()`, covering successful closure, version increment, repeated closure (idempotency), and preservation of existing Offer properties.
+**Prompt summary:** Generate xUnit and FluentAssertions tests for `Offer.Close()`, covering successful closure, version increment, repeated closure (idempotency) and preservation of existing Offer properties.
 
-**Verified result:** Generated unit tests passed. The complete test suite was also executed successfully.
+**Verified result:** Generated unit tests and the complete test suite passed.
 
 ### CloseOffer — Integration Testing
 
 **Skill:** `.claude/skills/integration-testing/SKILL.md`
 
-**Prompt summary:** Generate HTTP integration tests for `POST /api/v1/offers/{id}/close`, using WebApplicationFactory and isolated SQLite in-memory databases. Verify successful closure (204), missing offers (404), idempotency, persisted `IsClosed` and `Version` values.
+**Prompt summary:** Generate HTTP integration tests for `POST /api/v1/offers/{id}/close`, using WebApplicationFactory and isolated SQLite in-memory databases.
 
-**Verified result:** The generated integration tests and the complete test suite passed.
+**Scenarios covered:** Successful closure (204), missing offers (404), idempotency, persisted `IsClosed` and `Version` values.
+
+**Verified result:** Generated integration tests and the complete test suite passed.
 
 ### Browse Active Offers — Unit Testing
 
 **Skill:** `.claude/skills/unit-testing/SKILL.md`
 
-**Prompt summary:** Extend `GetOffersHandlerTests` to verify `ActiveOnly` filtering with a deterministic TimeProvider. Cover open future offers, closed offers, expired offers, deadline equality, unfiltered queries, and empty results.
+**Prompt summary:** Extend `GetOffersHandlerTests` to verify `ActiveOnly` filtering with a deterministic TimeProvider.
+
+**Scenarios covered:** Open future offers, closed offers, expired offers, deadline equality, unfiltered queries and empty results.
 
 **Verified result:** Generated tests passed after adapting existing tests to the new TimeProvider constructor dependency.
 
@@ -303,14 +535,95 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 
 **Skill:** `.claude/skills/integration-testing/SKILL.md`
 
-**Prompt summary:** Generate HTTP integration tests for `GET /api/v1/offers?activeOnly=true`, using WebApplicationFactory, isolated SQLite databases and a controllable TimeProvider. Verify filtering, backward compatibility and empty results.
+**Prompt summary:** Generate HTTP integration tests for `GET /api/v1/offers?activeOnly=true`, using WebApplicationFactory, isolated SQLite databases and a controllable TimeProvider.
 
-**Verified result:** The generated integration tests and the complete test suite passed.
+**Scenarios covered:** Active-offer filtering, backward compatibility and empty results.
+
+**Verified result:** Generated integration tests and the complete test suite passed.
 
 ### Postman Verification
 
 **Collection:** `postman/InternHub.postman_collection.json`
 
-The shared collection was extended with CloseOffer and Browse Active Offers scenarios.
+**Prompt summary:** Extend the shared collection with CloseOffer and Browse Active Offers scenarios.
 
-**Verified result:** Manual Postman tests passed for both features. A single shared collection is retained instead of separate person-specific collections.
+**Verified result:** Manual Postman tests passed for both features. A single shared collection was retained instead of separate person-specific collections.
+
+
+## Sprint 3 — Person 4: Candidacy Decisions
+
+### Domain Status Transitions
+
+**Skill:** `.claude/skills/cqrs/SKILL.md` (section 12.1, added by Person 4)
+
+**Prompt summary:** Extend `InternshipCandidacy` with `IsActive`, `IsActiveStatus`, `Shortlist`, `Accept(bool hasAvailableSlot)`, `Reject`, and `Withdraw`; forbidden transitions return `false`, no exceptions, no dependency on `Result<T>`.
+
+**Verified result:** Generated correctly on first run; `dotnet build` succeeded.
+
+**Follow-up skill change:** The shared private helper was generated as `CanBeDecided()`, misleading because `Withdraw` is not a decision. Added a naming rule (`IsOpenForTransition()`) to section 12.1 and regenerated; behavior unchanged, all tests pass.
+
+### Domain Unit Tests — Skill Improvement (Before/After)
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Before:** The generated `IsActiveStatus` test merged sections into `// Arrange & Act`, violating the required visible Arrange / Act / Assert structure.
+
+**Skill change:** Section 2 — "Never merge sections (`// Arrange & Act` is forbidden); the Arrange section still declares the input as a local variable".
+
+**Reason:** The sprint requires separate AAA blocks; the skill did not cover tests with nothing to prepare.
+
+**After:** Separate AAA sections; 250/250 tests pass; `InternshipCandidacy` 100% line and branch coverage.
+
+### Decide / Get Offer Candidacies Slices — Skill Improvement (Before/After)
+
+**Skill:** `.claude/skills/cqrs/SKILL.md` (sections 12.2–12.4)
+
+**Before:** The guidance "`TryParse` + `IsDefined`" accepted `"1"` and `"Shortlist,Accept"`; the generator patched this with extra logic not described in the skill, and the 409 message read "cannot be Reject".
+
+**Skill change:** Step 1 now requires an exact, case-insensitive match against `Enum.GetNames<CandidacyDecision>()`; step 4 uses past-tense verbs (`shortlisted`/`accepted`/`rejected`) in the Conflict message.
+
+**Reason:** Generated code must come entirely from the skill; otherwise regeneration would reintroduce the bug.
+
+**After:** Handler regenerated with no improvised logic.
+
+**Verified HTTP behavior:**
+- `"1"` and `"Shortlist,Accept"` → 400
+- `"shortlist"` → 200
+- 409 says "cannot be shortlisted/accepted/rejected".
+
+### Handler Unit Tests
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Tests for `DecideInternshipCandidacyHandler` and `GetOfferCandidaciesHandler` with existing fakes (added `UpdateResult` to `FakeInternshipCandidacyRepository`, default `true`).
+
+**Verified result:** 33 new cases, 283/283 pass, 100% line and branch coverage on both handlers.
+
+### Integration Tests
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md` (section 6a added by Person 4)
+
+**Prompt summary:** HTTP tests on isolated SQLite, data seeded directly in `InternHubDbContext`: shortlist, accept, waitlist when full, closed offer still decidable (BR-11), 400/404/409 with unchanged DB, offer candidacies ordering and 404.
+
+**Verified result:** 10 new tests, 293/293 pass.
+
+### Postman
+
+**Prompt summary:** Requests for Decide and Get Offer Candidacies, with setup (2 students, 1 offer with 1 slot, 2 candidacies) and the demo flow Shortlist → Accept → Waitlisted.
+
+**Verified result:** Collection Runner 19/19 tests passed against the running API.
+
+
+### Final Sprint 3 — Postman Collection Validation
+
+**Scope:** Consolidated shared Postman collection covering Sprint 2 and Sprint 3 functionality, including contributions from Persons 1, 2, 3 and 4.
+
+**Work completed:** Integrated the Sprint 3 candidacy requests and added automated setup and variable handling to make the complete collection self-contained and repeatable.
+
+**Verified result:**
+- Full Collection Runner: 173/173 assertions passed.
+- Failed: 0.
+- Errors: 0.
+- Iterations: 1 per execution.
+- The complete collection was executed twice consecutively against the running API, with all assertions passing on both runs.
+- No manual GUID configuration was required for the complete run.

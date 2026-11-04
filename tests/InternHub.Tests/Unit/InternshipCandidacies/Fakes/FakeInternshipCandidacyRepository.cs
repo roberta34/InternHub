@@ -10,7 +10,7 @@ internal sealed class FakeInternshipCandidacyRepository : IInternshipCandidacyRe
     public bool UpdateResult { get; set; } = true;
     public int AddCallCount { get; private set; }
     public int UpdateCallCount { get; private set; }
-    public IReadOnlyList<InternshipCandidacy> Candidacies => _candidacies;
+    public List<InternshipCandidacy> Candidacies => _candidacies;
 
     public void Seed(InternshipCandidacy candidacy) =>
         _candidacies.Add(candidacy);
