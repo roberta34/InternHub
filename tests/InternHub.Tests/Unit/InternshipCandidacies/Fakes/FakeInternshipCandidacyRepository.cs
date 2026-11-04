@@ -1,52 +1,70 @@
-﻿using InternHub.Api.Domain.InternshipCandidacies;
+using InternHub.Api.Domain.InternshipCandidacies;
 
 namespace InternHub.Tests.Unit.InternshipCandidacies.Fakes;
 
 internal sealed class FakeInternshipCandidacyRepository : IInternshipCandidacyRepository
 {
-    public List<InternshipCandidacy> Candidacies { get; } = [];
+    private readonly List<InternshipCandidacy> _candidacies = [];
+
+    public bool AddResult { get; set; } = true;
+    public int AddCallCount { get; private set; }
     public int UpdateCallCount { get; private set; }
+    public IReadOnlyList<InternshipCandidacy> Candidacies => _candidacies;
+
+    public void Seed(InternshipCandidacy candidacy) =>
+        _candidacies.Add(candidacy);
 
     public bool Add(InternshipCandidacy candidacy)
     {
-        Candidacies.Add(candidacy);
+        AddCallCount++;
+
+        if (!AddResult || _candidacies.Any(existing => existing.Id == candidacy.Id))
+            return false;
+
+        _candidacies.Add(candidacy);
         return true;
     }
 
     public InternshipCandidacy? GetById(Guid id) =>
-        Candidacies.SingleOrDefault(candidacy => candidacy.Id == id);
+        _candidacies.SingleOrDefault(candidacy => candidacy.Id == id);
 
     public IReadOnlyList<InternshipCandidacy> GetByStudent(Guid studentId) =>
-        Candidacies.Where(candidacy => candidacy.StudentId == studentId).ToArray();
+        _candidacies.Where(candidacy => candidacy.StudentId == studentId).ToArray();
 
     public IReadOnlyList<InternshipCandidacy> GetByOffer(Guid offerId) =>
-        Candidacies.Where(candidacy => candidacy.OfferId == offerId).ToArray();
+        _candidacies.Where(candidacy => candidacy.OfferId == offerId).ToArray();
 
     public bool HasActiveForStudentAndOffer(Guid studentId, Guid offerId) =>
-        Candidacies.Any(candidacy =>
+        _candidacies.Any(candidacy =>
             candidacy.StudentId == studentId &&
             candidacy.OfferId == offerId &&
-            candidacy.Status is InternshipCandidacyStatus.Submitted
-                or InternshipCandidacyStatus.Shortlisted
-                or InternshipCandidacyStatus.Accepted
-                or InternshipCandidacyStatus.Waitlisted);
+            IsActive(candidacy.Status));
 
     public int CountActiveForStudent(Guid studentId) =>
-        Candidacies.Count(candidacy =>
+        _candidacies.Count(candidacy =>
             candidacy.StudentId == studentId &&
-            candidacy.Status is InternshipCandidacyStatus.Submitted
-                or InternshipCandidacyStatus.Shortlisted
-                or InternshipCandidacyStatus.Accepted
-                or InternshipCandidacyStatus.Waitlisted);
+            IsActive(candidacy.Status));
 
     public int CountAcceptedForOffer(Guid offerId) =>
-        Candidacies.Count(candidacy =>
+        _candidacies.Count(candidacy =>
             candidacy.OfferId == offerId &&
             candidacy.Status == InternshipCandidacyStatus.Accepted);
 
     public bool Update(InternshipCandidacy candidacy)
     {
         UpdateCallCount++;
-        return Candidacies.Any(existing => existing.Id == candidacy.Id);
+
+        var index = _candidacies.FindIndex(existing => existing.Id == candidacy.Id);
+        if (index < 0)
+            return false;
+
+        _candidacies[index] = candidacy;
+        return true;
     }
+
+    private static bool IsActive(InternshipCandidacyStatus status) =>
+        status is InternshipCandidacyStatus.Submitted
+            or InternshipCandidacyStatus.Shortlisted
+            or InternshipCandidacyStatus.Accepted
+            or InternshipCandidacyStatus.Waitlisted;
 }
