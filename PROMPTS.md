@@ -457,6 +457,18 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 
 **Verification:** The scoped withdraw handler tests passed: 8 passed, 0 failed. Filtered XPlat coverage passed and reported 100% line and branch coverage for `WithdrawInternshipCandidacyHandler`. The sequential full test suite passed: 307 passed, 0 failed, 0 skipped. No production files or other test files were modified.
 
+### WithdrawInternshipCandidacy HTTP integration tests
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Generate only HTTP integration tests for `POST /api/v1/candidacies/{id}/withdraw`, using the existing isolated SQLite `InternHubSqliteFactory`, direct domain seeding and fresh DbContext verification. Cover Submitted and Shortlisted success, final-status conflicts, and missing candidacies.
+
+**Created file:**
+
+- `tests/InternHub.Tests/Integration/InternshipCandidacies/WithdrawInternshipCandidacy/WithdrawInternshipCandidacyEndpointTests.cs`
+
+**Verification:** Scoped integration tests passed: 7 passed, 0 failed, 0 skipped. The full test suite passed: 314 passed, 0 failed, 0 skipped. `dotnet build --no-restore` passed with 0 warnings and 0 errors. Each test creates its own factory and in-memory SQLite connection; no production, Domain, persistence, repository, or existing test files were modified.
+
 **Prompt summary:** xUnit + FluentAssertions tests with `FakeInternshipCandidacyRepository`: success, missing student/offer, closed offer, expired deadline, duplicate, limit of 5, ordering.
 
 **Verified result:** Pending confirmation from Person 1.
