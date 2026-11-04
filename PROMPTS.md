@@ -549,21 +549,66 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 
 **Verified result:** Manual Postman tests passed for both features. A single shared collection was retained instead of separate person-specific collections.
 
-Sprint 3 — Person 4: Candidacy decisions
-Domain status transitions
-Skill: .claude/skills/cqrs/SKILL.md (section 12.1, added by Person 4) Prompt summary: Extend InternshipCandidacy with IsActive, IsActiveStatus, Shortlist, Accept(bool hasAvailableSlot), Reject, Withdraw; forbidden transitions return false, no exceptions, no dependency on Result<T>. Verified result: generated correctly on first run; dotnet build succeeded. Follow-up skill change: the shared private helper was generated as CanBeDecided(), misleading because Withdraw is not a decision. Added a naming rule (IsOpenForTransition()) to §12.1 and regenerated; behavior unchanged, all tests pass.
 
-Domain unit tests — skill improvement (before/after)
-Skill: .claude/skills/unit-testing/SKILL.md Before: the generated IsActiveStatus test merged sections into // Arrange & Act, violating the required visible Arrange / Act / Assert structure. Skill change: section 2 — "Never merge sections (// Arrange & Act is forbidden); the Arrange section still declares the input as a local variable". Reason: the sprint requires separate AAA blocks; the skill did not cover tests with nothing to prepare. After: separate AAA sections; 250/250 tests pass; InternshipCandidacy 100% line and branch coverage.
+## Sprint 3 — Person 4: Candidacy Decisions
 
-Decide / Get Offer Candidacies slices — skill improvement (before/after)
-Skill: .claude/skills/cqrs/SKILL.md (sections 12.2–12.4) Before: the guidance "TryParse + IsDefined" accepted "1" and "Shortlist,Accept"; the generator patched this with extra logic not described in the skill, and the 409 message read "cannot be Reject". Skill change: step 1 now requires an exact, case-insensitive match against Enum.GetNames<CandidacyDecision>(); step 4 uses past-tense verbs (shortlisted/accepted/rejected) in the Conflict message. Reason: generated code must come entirely from the skill; otherwise regeneration would reintroduce the bug. After: handler regenerated with no improvised logic; HTTP check: "1" and "Shortlist,Accept" → 400, "shortlist" → 200, 409 says "cannot be shortlisted/accepted/rejected".
+### Domain Status Transitions
 
-Handler unit tests
-Skill: .claude/skills/unit-testing/SKILL.md Prompt summary: tests for DecideInternshipCandidacyHandler and GetOfferCandidaciesHandler with existing fakes (added UpdateResult to FakeInternshipCandidacyRepository, default true). Verified result: 33 new cases, 283/283 pass, 100% line and branch coverage on both handlers.
+**Skill:** `.claude/skills/cqrs/SKILL.md` (section 12.1, added by Person 4)
 
-Integration tests
-Skill: .claude/skills/integration-testing/SKILL.md (section 6a added by Person 4) Prompt summary: HTTP tests on isolated SQLite, data seeded directly in InternHubDbContext: shortlist, accept, waitlist when full, closed offer still decidable (BR-11), 400/404/409 with unchanged DB, offer candidacies ordering and 404. Verified result: 10 new tests, 293/293 pass.
+**Prompt summary:** Extend `InternshipCandidacy` with `IsActive`, `IsActiveStatus`, `Shortlist`, `Accept(bool hasAvailableSlot)`, `Reject`, and `Withdraw`; forbidden transitions return `false`, no exceptions, no dependency on `Result<T>`.
 
-Postman
-Prompt summary: requests for Decide and Get Offer Candidacies, with setup (2 students, 1 offer with 1 slot, 2 candidacies) and the demo flow Shortlist → Accept → Waitlisted. Verified result: Collection Runner 19/19 tests passed against the running API.
+**Verified result:** Generated correctly on first run; `dotnet build` succeeded.
+
+**Follow-up skill change:** The shared private helper was generated as `CanBeDecided()`, misleading because `Withdraw` is not a decision. Added a naming rule (`IsOpenForTransition()`) to section 12.1 and regenerated; behavior unchanged, all tests pass.
+
+### Domain Unit Tests — Skill Improvement (Before/After)
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Before:** The generated `IsActiveStatus` test merged sections into `// Arrange & Act`, violating the required visible Arrange / Act / Assert structure.
+
+**Skill change:** Section 2 — "Never merge sections (`// Arrange & Act` is forbidden); the Arrange section still declares the input as a local variable".
+
+**Reason:** The sprint requires separate AAA blocks; the skill did not cover tests with nothing to prepare.
+
+**After:** Separate AAA sections; 250/250 tests pass; `InternshipCandidacy` 100% line and branch coverage.
+
+### Decide / Get Offer Candidacies Slices — Skill Improvement (Before/After)
+
+**Skill:** `.claude/skills/cqrs/SKILL.md` (sections 12.2–12.4)
+
+**Before:** The guidance "`TryParse` + `IsDefined`" accepted `"1"` and `"Shortlist,Accept"`; the generator patched this with extra logic not described in the skill, and the 409 message read "cannot be Reject".
+
+**Skill change:** Step 1 now requires an exact, case-insensitive match against `Enum.GetNames<CandidacyDecision>()`; step 4 uses past-tense verbs (`shortlisted`/`accepted`/`rejected`) in the Conflict message.
+
+**Reason:** Generated code must come entirely from the skill; otherwise regeneration would reintroduce the bug.
+
+**After:** Handler regenerated with no improvised logic.
+
+**Verified HTTP behavior:**
+- `"1"` and `"Shortlist,Accept"` → 400
+- `"shortlist"` → 200
+- 409 says "cannot be shortlisted/accepted/rejected".
+
+### Handler Unit Tests
+
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Tests for `DecideInternshipCandidacyHandler` and `GetOfferCandidaciesHandler` with existing fakes (added `UpdateResult` to `FakeInternshipCandidacyRepository`, default `true`).
+
+**Verified result:** 33 new cases, 283/283 pass, 100% line and branch coverage on both handlers.
+
+### Integration Tests
+
+**Skill:** `.claude/skills/integration-testing/SKILL.md` (section 6a added by Person 4)
+
+**Prompt summary:** HTTP tests on isolated SQLite, data seeded directly in `InternHubDbContext`: shortlist, accept, waitlist when full, closed offer still decidable (BR-11), 400/404/409 with unchanged DB, offer candidacies ordering and 404.
+
+**Verified result:** 10 new tests, 293/293 pass.
+
+### Postman
+
+**Prompt summary:** Requests for Decide and Get Offer Candidacies, with setup (2 students, 1 offer with 1 slot, 2 candidacies) and the demo flow Shortlist → Accept → Waitlisted.
+
+**Verified result:** Collection Runner 19/19 tests passed against the running API.
