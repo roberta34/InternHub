@@ -7,6 +7,7 @@ public sealed class InternshipCandidacy
     public Guid OfferId { get; private set; }
     public DateTime ApplicationDate { get; private set; }
     public InternshipCandidacyStatus Status { get; private set; }
+    public bool IsActive => IsActiveStatus(Status);
 
     public InternshipCandidacy(
         Guid id,
@@ -30,4 +31,51 @@ public sealed class InternshipCandidacy
         ApplicationDate = applicationDate;
         Status = status;
     }
+
+    public static bool IsActiveStatus(InternshipCandidacyStatus status) =>
+        status is InternshipCandidacyStatus.Submitted
+            or InternshipCandidacyStatus.Shortlisted
+            or InternshipCandidacyStatus.Accepted
+            or InternshipCandidacyStatus.Waitlisted;
+
+    public bool Shortlist()
+    {
+        if (Status != InternshipCandidacyStatus.Submitted)
+            return false;
+
+        Status = InternshipCandidacyStatus.Shortlisted;
+        return true;
+    }
+
+    public bool Accept(bool hasAvailableSlot)
+    {
+        if (!IsOpenForTransition())
+            return false;
+
+        Status = hasAvailableSlot
+            ? InternshipCandidacyStatus.Accepted
+            : InternshipCandidacyStatus.Waitlisted;
+        return true;
+    }
+
+    public bool Reject()
+    {
+        if (!IsOpenForTransition())
+            return false;
+
+        Status = InternshipCandidacyStatus.Rejected;
+        return true;
+    }
+
+    public bool Withdraw()
+    {
+        if (!IsOpenForTransition())
+            return false;
+
+        Status = InternshipCandidacyStatus.Withdrawn;
+        return true;
+    }
+
+    private bool IsOpenForTransition() =>
+        Status is InternshipCandidacyStatus.Submitted or InternshipCandidacyStatus.Shortlisted;
 }

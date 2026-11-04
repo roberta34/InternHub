@@ -7,6 +7,7 @@ internal sealed class FakeInternshipCandidacyRepository : IInternshipCandidacyRe
     private readonly List<InternshipCandidacy> _candidacies = [];
 
     public bool AddResult { get; set; } = true;
+    public bool UpdateResult { get; set; } = true;
     public int AddCallCount { get; private set; }
     public int UpdateCallCount { get; private set; }
     public List<InternshipCandidacy> Candidacies => _candidacies;
@@ -54,7 +55,10 @@ internal sealed class FakeInternshipCandidacyRepository : IInternshipCandidacyRe
     {
         UpdateCallCount++;
 
-        var index = _candidacies.FindIndex(existing => existing.Id == candidacy.Id);
+        if (!UpdateResult)
+            return false;
+
+        var index =_candidacies.FindIndex(existing => existing.Id == candidacy.Id);
         if (index < 0)
             return false;
 

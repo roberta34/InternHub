@@ -33,6 +33,7 @@ Before generating any code, open and verify:
 - Methods: `Given_<state>_When_<action>_Then_<expected>`.
 - Use `[Fact]` for a single scenario; `[Theory]` plus `[InlineData]` for variations of the same behavior.
 - Every test explicitly separates `// Arrange`, `// Act`, `// Assert` with a **blank line** between these sections.
+- Never merge sections (`// Arrange & Act` is forbidden). When there is nothing to prepare, the Arrange section still declares the input as a local variable (e.g. `var status = InternshipCandidacyStatus.Submitted;`) and Act only calls the member under test.
 - Cover one observable behavior per test; multiple assertions may support that same behavior.
 - Do not use `if`, `for`, `foreach`, `while`, or `switch` within test methods.
 - Prefer public behavior and resulting state over private implementation details.
