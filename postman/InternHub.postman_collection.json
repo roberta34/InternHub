@@ -30,6 +30,22 @@
       "value": "00000000-0000-0000-0000-000000000003"
     },
     {
+      "key": "withdrawSubmittedCandidacyId",
+      "value": ""
+    },
+    {
+      "key": "withdrawShortlistedCandidacyId",
+      "value": ""
+    },
+    {
+      "key": "withdrawFinalCandidacyId",
+      "value": ""
+    },
+    {
+      "key": "withdrawFinalCandidacyStatus",
+      "value": ""
+    },
+    {
       "key": "offerVersion",
       "value": "0"
     },
@@ -1591,6 +1607,93 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{missingCandidacyId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "WithdrawInternshipCandidacy",
+      "description": "Independent requests for POST /api/v1/candidacies/{id}/withdraw. Before running a request, set the referenced collection variable to an existing candidacy ID. Prepare the Submitted and Shortlisted cases by creating a candidacy through Apply or seeding SQLite, and prepare the final-status case by using an existing candidacy whose status is Accepted, Rejected, Waitlisted or Withdrawn. Do not run these requests against the same candidacy more than once: successful withdrawal changes its status to Withdrawn. The missing-candidacy request uses missingCandidacyId and requires no setup.",
+      "item": [
+        {
+          "name": "Withdraw Submitted candidacy (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{withdrawSubmittedCandidacyId}}/withdraw"
+          }
+        },
+        {
+          "name": "Withdraw Shortlisted candidacy (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{withdrawShortlistedCandidacyId}}/withdraw"
+          }
+        },
+        {
+          "name": "Withdraw final-status candidacy (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('Error identifies the candidacy and final status', () => {",
+                  "  const id = pm.collectionVariables.get('withdrawFinalCandidacyId');",
+                  "  const status = pm.collectionVariables.get('withdrawFinalCandidacyStatus');",
+                  "  pm.expect(pm.response.text()).to.contain(id);",
+                  "  if (status) pm.expect(pm.response.text()).to.contain(status);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{withdrawFinalCandidacyId}}/withdraw"
+          }
+        },
+        {
+          "name": "Withdraw missing candidacy (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "pm.test('Error identifies missing candidacy', () => pm.expect(pm.response.text()).to.contain(pm.collectionVariables.get('missingCandidacyId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{missingCandidacyId}}/withdraw"
           }
         }
       ]

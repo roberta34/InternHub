@@ -469,6 +469,20 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 
 **Verification:** Scoped integration tests passed: 7 passed, 0 failed, 0 skipped. The full test suite passed: 314 passed, 0 failed, 0 skipped. `dotnet build --no-restore` passed with 0 warnings and 0 errors. Each test creates its own factory and in-memory SQLite connection; no production, Domain, persistence, repository, or existing test files were modified.
 
+### Withdraw Candidacy Postman requests
+
+**Skill:** Not applicable; this task adds collection requests only.
+
+**Prompt summary:** Add independent Postman requests for Submitted and Shortlisted successful withdrawals (`204`), final-status withdrawal conflicts (`409`), and missing candidacies (`404`) using the existing collection variables and endpoint conventions.
+
+**Modified file:**
+
+- `postman/InternHub.postman_collection.json`
+
+**Preparation:** Set `withdrawSubmittedCandidacyId` and `withdrawShortlistedCandidacyId` to existing candidacy IDs in those statuses. Set `withdrawFinalCandidacyId` to an existing `Accepted`, `Rejected`, `Waitlisted`, or `Withdrawn` candidacy and optionally set `withdrawFinalCandidacyStatus` to assert the exact status text. `missingCandidacyId` remains a non-existent ID. Successful requests are state-changing and should not be repeated for the same candidacy.
+
+**Verification:** The collection JSON was structurally parsed, request names and collection variable keys were checked for duplicates, and the four new requests were confirmed to use `POST /api/{{apiVersion}}/candidacies/{{...}}/withdraw` with `204`, `409`, and `404` assertions. No API requests were executed; response assertions and actual status persistence still require a running API and prepared database data.
+
 **Prompt summary:** xUnit + FluentAssertions tests with `FakeInternshipCandidacyRepository`: success, missing student/offer, closed offer, expired deadline, duplicate, limit of 5, ordering.
 
 **Verified result:** Pending confirmation from Person 1.
