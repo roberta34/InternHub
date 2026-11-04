@@ -445,6 +445,18 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 
 **Skill:** `.claude/skills/unit-testing/SKILL.md`
 
+### WithdrawInternshipCandidacy handler tests
+
+**Prompt summary:** Generate only unit tests for `WithdrawInternshipCandidacyHandler`, using the existing fake repository and covering successful Submitted/Shortlisted withdrawals, final-state conflicts, missing candidacies and repository update failure. Do not modify production code, Domain, persistence, repository interfaces, teammate tests or `Program.cs`.
+
+**Created file:**
+
+- `tests/InternHub.Tests/Unit/InternshipCandidacies/WithdrawInternshipCandidacy/WithdrawInternshipCandidacyHandlerTests.cs`
+
+**Observed problem:** The first full-suite command was run concurrently with the coverage command and encountered a transient `FileNotFoundException` for `InternHub.Api` during test discovery. The full suite was rerun sequentially and passed.
+
+**Verification:** The scoped withdraw handler tests passed: 8 passed, 0 failed. Filtered XPlat coverage passed and reported 100% line and branch coverage for `WithdrawInternshipCandidacyHandler`. The sequential full test suite passed: 307 passed, 0 failed, 0 skipped. No production files or other test files were modified.
+
 **Prompt summary:** xUnit + FluentAssertions tests with `FakeInternshipCandidacyRepository`: success, missing student/offer, closed offer, expired deadline, duplicate, limit of 5, ordering.
 
 **Verified result:** Pending confirmation from Person 1.
