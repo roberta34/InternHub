@@ -1,4 +1,5 @@
 ﻿using InternHub.Api.Features.InternshipCandidacies.GetInternshipCandidacyById;
+using InternHub.Api.Features.InternshipCandidacies.WithdrawInternshipCandidacy;
 using InternHub.Api.Features.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,10 +11,12 @@ public sealed class InternshipCandidacyFeatureModule : IFeatureModule
     public void RegisterServices(IServiceCollection services)
     {
         services.AddScoped<IGetInternshipCandidacyByIdHandler, GetInternshipCandidacyByIdHandler>();
+        services.AddScoped<IWithdrawInternshipCandidacyHandler, WithdrawInternshipCandidacyHandler>();
     }
 
     public void MapEndpoints(RouteGroupBuilder group)
     {
         GetInternshipCandidacyById.Endpoint.Map(group);
+        WithdrawInternshipCandidacy.Endpoint.Map(group);
     }
 }

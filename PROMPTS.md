@@ -417,6 +417,30 @@ The shared collection was extended with CloseOffer and Browse Active Offers scen
 
 **Verified result:** Pending confirmation from Person 1.
 
+## Sprint 3 — Person 2: Withdraw Internship Candidacy
+
+### CQRS implementation
+
+**Skill:** `.claude/skills/cqrs/SKILL.md`
+
+**Prompt summary:** Implement only the `WithdrawInternshipCandidacy` command for `POST /api/v1/candidacies/{id}/withdraw`, using the existing `IInternshipCandidacyRepository`, `InternshipCandidacy.Withdraw()` domain method, `Result<T>` pattern and `InternshipCandidacyFeatureModule`. Do not modify Domain, persistence, repository interfaces, `Program.cs`, teammate features or tests.
+
+**Generated files:**
+
+- `src/InternHub.Api/Features/InternshipCandidacies/WithdrawInternshipCandidacy/WithdrawInternshipCandidacyCommand.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/WithdrawInternshipCandidacy/IWithdrawInternshipCandidacyHandler.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/WithdrawInternshipCandidacy/WithdrawInternshipCandidacyHandler.cs`
+- `src/InternHub.Api/Features/InternshipCandidacies/WithdrawInternshipCandidacy/Endpoint.cs`
+
+**Modified files:**
+
+- `src/InternHub.Api/Features/InternshipCandidacies/InternshipCandidacyFeatureModule.cs`
+- `PROMPTS.md`
+
+**Behavior:** The handler returns `NotFound` when the candidacy is missing, calls `candidacy.Withdraw()`, returns `Conflict` when the domain transition is rejected without calling `Update`, and persists successful transitions through `Update()`. A failed update returns `NotFound`; successful requests map to `204 No Content`.
+
+**Validation:** `dotnet build` succeeded with 0 warnings and 0 errors. No tests were run.
+
 ### Unit Testing
 
 **Skill:** `.claude/skills/unit-testing/SKILL.md`
