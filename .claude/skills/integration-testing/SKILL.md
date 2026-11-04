@@ -134,6 +134,28 @@ Also test a true persistence-level conflict if the code supports a deterministic
 
 The handler should map a stale version or a caught Offer concurrency failure to a Conflict Result; the endpoint maps it to `409`. Test the observable contract, not internal implementation calls.
 
+## 6a. InternHub Sprint 3 Person 4 scenarios (Decide / Get Offer Candidacies)
+
+Seed Students, Offers and InternshipCandidacies directly through `InternHubDbContext` (never by
+calling Apply or other new endpoints). Use the real constructors; a candidacy in any status is
+created with `new InternshipCandidacy(id, studentId, offerId, applicationDate, status)`.
+Put the tests in `Integration/InternshipCandidacies/<UseCase>/<UseCase>EndpointTests.cs`,
+mark the classes `[Collection("Integration")]`, and read bodies with the real response records
+(`DecideInternshipCandidacyResponse`, `GetOfferCandidaciesResponse`).
+
+| Slice | Scenario | HTTP | Required SQLite assertion |
+|---|---|---|---|
+| Decide | Submitted + `Shortlist` | `200`, body status `Shortlisted` | status `Shortlisted` |
+| Decide | Submitted + `Accept`, free slot | `200`, `Accepted` | status `Accepted` |
+| Decide | `Accept` when accepted count = `MaximumAvailableSlots` | `200`, `Waitlisted` | status `Waitlisted`; accepted count unchanged |
+| Decide | Closed offer + `Accept` (BR-11) | `200`, `Accepted` | status `Accepted` |
+| Decide | Invalid action (e.g. `"1"`) | `400` + error text | status unchanged |
+| Decide | Missing candidacy | `404` + error text | no candidacy created |
+| Decide | Final status (e.g. `Rejected`) + `Accept` | `409` + "cannot be accepted" | status unchanged |
+| GetOfferCandidacies | Offer with candidacies (2 students, different dates, plus one candidacy of another offer) | `200`, only that offer's items, newest first, student names | candidacy count unchanged |
+| GetOfferCandidacies | Offer without candidacies | `200`, empty list | — |
+| GetOfferCandidacies | Missing offer | `404` + error text | no rows created |
+
 ## 7. Example of expected output
 
 Example fixture pattern (adapt registration details and namespaces to **actual** project files):
