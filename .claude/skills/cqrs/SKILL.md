@@ -315,6 +315,10 @@ Extend the existing entity; never rewrite it. Keep the existing constructor, pro
 private setters unchanged (P1's handler, P3's EF mapping and existing tests depend on them).
 The Domain must not reference `Features.Shared` or `Result<T>`.
 
+The `InternshipCandidacy` constructor must reject any `InternshipCandidacyStatus` value that
+is not defined in the enum by using `Enum.IsDefined` and throwing
+`ArgumentOutOfRangeException` with `nameof(status)` as the parameter name.
+
 Add:
 - `public bool IsActive => IsActiveStatus(Status);` (expression-bodied, no setter, so EF does not map it)
 - `public static bool IsActiveStatus(InternshipCandidacyStatus status)`: true only for

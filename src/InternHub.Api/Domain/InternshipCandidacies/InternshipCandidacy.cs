@@ -25,6 +25,12 @@ public sealed class InternshipCandidacy
         if (offerId == Guid.Empty)
             throw new ArgumentException("OfferId must not be empty.", nameof(offerId));
 
+        if (!Enum.IsDefined(status))
+            throw new ArgumentOutOfRangeException(
+                nameof(status),
+                status,
+                "Status must be a defined InternshipCandidacyStatus value.");
+
         Id = id;
         StudentId = studentId;
         OfferId = offerId;
