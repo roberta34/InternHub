@@ -2976,6 +2976,30 @@
                 }
                         },
                         {
+                "name": "Summary - Submitted candidacy (200)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                        "const body = pm.response.json();",
+                        "pm.test('Student ID is Student A', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentAId')));",
+                        "pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));",
+                        "pm.test('Active count is 1', () => pm.expect(body.activeCount).to.eql(1));",
+                        "pm.test('Submitted count is 1', () => pm.expect(body.submittedCount).to.eql(1));",
+                        "pm.test('Other status counts are zero', () => pm.expect([body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0]));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
+                }
+                        },
+                        {
                 "name": "Withdraw Submitted candidacy (204)",
                 "event": [
                   {
@@ -2992,6 +3016,29 @@
                 "request": {
                   "method": "POST",
                   "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}/withdraw"
+                }
+                        },
+                        {
+                "name": "Summary - After Withdraw (200)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                        "const body = pm.response.json();",
+                        "pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));",
+                        "pm.test('Active count is 0', () => pm.expect(body.activeCount).to.eql(0));",
+                        "pm.test('Withdrawn count is 1', () => pm.expect(body.withdrawnCount).to.eql(1));",
+                        "pm.test('Other status counts are zero', () => pm.expect([body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount]).to.eql([0, 0, 0, 0, 0]));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
                 }
                         },
                         {
@@ -3068,6 +3115,45 @@
                     "raw": "{ \"fullName\": \"P2 Demo Student B\", \"email\": \"{{p2DemoStudentBEmail}}\" }"
                   },
                   "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+                }
+                        },
+                        {
+                "name": "Summary - Student without candidacies (200)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                        "const body = pm.response.json();",
+                        "pm.test('Student ID is Student B', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentBId')));",
+                        "pm.test('All counts are zero', () => pm.expect([body.totalCount, body.activeCount, body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0, 0, 0, 0]));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentBId}}/candidacies/summary"
+                }
+                        },
+                        {
+                "name": "Summary - Missing student (404)",
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                      ]
+                    }
+                  }
+                ],
+                "request": {
+                  "method": "GET",
+                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000000/candidacies/summary"
                 }
                         },
                         {

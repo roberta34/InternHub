@@ -637,3 +637,77 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 - Iterations: 1 per execution.
 - The complete collection was executed twice consecutively against the running API, with all assertions passing on both runs.
 - No manual GUID configuration was required for the complete run.
+
+---
+
+## Sprint 4 — Person 2: Domain Validation, Candidacy Summary & AI Baseline
+
+**Tool:** GitHub Copilot Agent (Rider)
+
+**Objective:** Fix the Minor issue identified during Sprint 3 code review, implement a CQRS endpoint for student candidacy statistics, and create a deterministic CV evaluation baseline.
+
+### P2.1 — Domain Enum Validation
+
+**Skills:** `cqrs`, `unit-testing`
+
+**Prompt summary:** Update the CQRS skill and generate validation in the `InternshipCandidacy` constructor using `Enum.IsDefined(status)` and `ArgumentOutOfRangeException`. Preserve existing domain behavior and generate unit tests for all six valid statuses and invalid values `999` and `-1`.
+
+**Result:**
+- Updated `.claude/skills/cqrs/SKILL.md`.
+- Fixed invalid enum validation in Domain.
+- Added regression tests.
+- All 322 tests passed after this task.
+
+**Commit:** `c0ff0e9`
+
+### P2.2 — Get Student Candidacy Summary
+
+**Skills:** `cqrs`, `unit-testing`, `integration-testing`
+
+**Prompt summary:** Generate a new CQRS Vertical Slice for `GET /api/v1/students/{studentId}/candidacies/summary`, including Query, Response DTO, Handler, Endpoint and `CandidacySummaryModule`. Calculate total, active and per-status candidacy counts using existing repositories and `IsActive`.
+
+**Result:**
+- Implemented a read-only endpoint returning `200 OK` or `404 Not Found`.
+- Added 6 unit tests and 4 HTTP integration tests using SQLite.
+- All 332 tests passed after this task.
+
+### P2.2 — Postman Collection
+
+**Skill:** `collection-schema-v3`
+
+**Prompt summary:** Add four Summary scenarios to the existing shared Postman collection: submitted candidacy, after withdrawal, student without candidacies, and missing student.
+
+**Result:** Updated `postman/InternHub.postman_collection.json`, preserved existing requests, and executed the P2 folder manually.
+
+### P2.3 — Deterministic CV Evaluation Baseline
+
+**Skills:** `ai-baseline` (new), `unit-testing`
+
+**Prompt summary:** Create a reusable `ai-baseline` skill and generate `KeywordRecruiterEvaluationService`, implementing `IRecruiterEvaluationService`. Compare CV skills with internship requirements using Regex, case-insensitive matching and a predefined technical vocabulary. Generate unit tests for matching, missing skills, duplicates, invalid inputs, word boundaries, determinism and cancellation.
+
+**Result:**
+- Created `.claude/skills/ai-baseline/SKILL.md`.
+- Implemented `KeywordRecruiterEvaluationService`.
+- Returns `MatchedSkills`, `MissingSkills`, `Suggestions` and `Summary`.
+- No Ollama, external APIs or CV storage.
+- Added 17 unit tests.
+- Achieved 100% line and branch coverage for the baseline.
+- Full test suite: **349/349 passed**, build successful.
+
+### P2.1 — Code Review Verification
+
+**Skill:** `code-review`
+
+**Prompt summary:** Re-evaluate the Minor finding from Sprint 3 using the code-review skill. Verify the updated constructor, domain tests and relevant contracts without modifying production code.
+
+**Result:**
+- Minor issue: **RESOLVED**.
+- No remaining findings in P2.1 scope.
+- Confirmed validation and regression tests.
+- Updated `REVIEW.md` with Sprint 4 remediation status.
+- Preserved the original Sprint 3 findings and historical test results.
+- Three Major concurrency findings remain pending verification.
+
+### Final Summary
+
+All three P2 tasks were implemented independently, using skill-guided code generation. The latest complete test suite reported **349/349 passing tests**, with 0 failures and a successful build. The CV baseline is ready for integration with the configurable AI Feedback endpoint developed by P1 and for comparison with P3's Ollama provider.

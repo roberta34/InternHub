@@ -6,6 +6,60 @@ using InternHub.Domain.Students;
 namespace InternHub.Tests.Unit.InternshipCandidacies;
 public class InternshipCandidacyTests
 {
+    [Theory]
+    [InlineData(InternshipCandidacyStatus.Submitted)]
+    [InlineData(InternshipCandidacyStatus.Shortlisted)]
+    [InlineData(InternshipCandidacyStatus.Accepted)]
+    [InlineData(InternshipCandidacyStatus.Rejected)]
+    [InlineData(InternshipCandidacyStatus.Waitlisted)]
+    [InlineData(InternshipCandidacyStatus.Withdrawn)]
+    public void Given_AnyDefinedStatus_When_CreatingCandidacy_Then_StatusIsPreserved(
+        InternshipCandidacyStatus status)
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var offerId = Guid.NewGuid();
+        var applicationDate = new DateTime(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        var candidacy = new InternshipCandidacy(
+            id,
+            studentId,
+            offerId,
+            applicationDate,
+            status);
+
+        // Assert
+        candidacy.Status.Should().Be(status);
+    }
+
+    [Theory]
+    [InlineData((InternshipCandidacyStatus)999)]
+    [InlineData((InternshipCandidacyStatus)(-1))]
+    public void Given_UndefinedStatus_When_CreatingCandidacy_Then_ThrowsArgumentOutOfRangeException(
+        InternshipCandidacyStatus status)
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var offerId = Guid.NewGuid();
+        var applicationDate = new DateTime(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        Action act = () => new InternshipCandidacy(
+            id,
+            studentId,
+            offerId,
+            applicationDate,
+            status);
+
+        // Assert
+        act.Should()
+            .Throw<ArgumentOutOfRangeException>()
+            .Which.ParamName.Should().Be("status");
+    }
+
     [Fact]
     public void Constructor_WithValidData_CreatesInternshipCandidacy()
     {
