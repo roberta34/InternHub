@@ -29,5 +29,10 @@ public sealed class InternshipCandidacyConfiguration
         builder.Property(c => c.Status)
             .HasConversion<string>()
             .IsRequired();
+
+        builder.HasIndex(c => new { c.StudentId, c.OfferId })
+            .IsUnique()
+            .HasFilter(
+                "[Status] IN ('Submitted', 'Shortlisted', 'Accepted', 'Waitlisted')");
     }
 }
