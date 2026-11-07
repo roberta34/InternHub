@@ -711,3 +711,34 @@ A previously generated Cobertura report showed **100% line and branch coverage**
 ### Final Summary
 
 All three P2 tasks were implemented independently, using skill-guided code generation. The latest complete test suite reported **349/349 passing tests**, with 0 failures and a successful build. The CV baseline is ready for integration with the configurable AI Feedback endpoint developed by P1 and for comparison with P3's Ollama provider.
+
+---
+
+## Sprint 4 — Person 3: Ollama Recruiter Evaluation Provider
+
+### P3.2 — Ollama Provider Implementation
+
+**Recorded tool:** GitHub Copilot Agent  
+**Skills:** `.claude/skills/ai-baseline/SKILL.md`, `.claude/skills/unit-testing/SKILL.md`, `.claude/skills/integration-testing/SKILL.md`
+
+**Prompt summary:** Implement `OllamaRecruiterEvaluationService` under `Infrastructure/AI/Ollama/` using the existing `IRecruiterEvaluationService` and `RecruiterEvaluationResult` contracts. Use an injected `HttpClient`, configurable Ollama endpoint and model, `/api/generate`, structured JSON, a versioned prompt, strict response validation and one retry for invalid evaluation JSON, without changing the baseline provider or final DI selection.
+
+**Result:** The provider was created without changing the existing contracts, baseline service, or application provider selection. It sends the configured model and versioned prompt with `stream: false`, JSON output and low temperature; validates all four result fields; retries malformed evaluation JSON once; and propagates HTTP failures, timeout and cancellation.
+
+### P3.2 — Fake-HTTP Unit Tests
+
+**Recorded tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Add fake-`HttpMessageHandler` unit tests for valid structured responses, request payloads, JSON validation, the single retry, HTTP failures, timeout and cancellation without requiring an Ollama server.
+
+**Result:** Ten provider tests were added and verified. The focused tests passed **10/10**; the complete suite subsequently passed **380/380** with 0 failures and 0 skips.
+
+### P3.2 — Read-Only Code Review
+
+**Recorded tool:** GitHub Copilot Agent  
+**Skill:** `.claude/skills/code-review/SKILL.md`
+
+**Prompt summary:** Perform a thorough read-only review of the untracked Ollama provider and its fake-HTTP tests against the existing recruiter-evaluation contracts, request protocol, JSON validation, retry behavior, cancellation, error handling and P3 ownership boundaries.
+
+**Result:** The review identified no actionable findings. The implementation was assessed as ready for commit, with final provider selection and application integration remaining for Person 1.
