@@ -1,4 +1,5 @@
 using FluentAssertions;
+using System.Data.Common;
 using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Domain.Offers;
 using InternHub.Api.Features.InternshipCandidacies.AtomicSubmission;
@@ -7,6 +8,7 @@ using InternHub.Api.Infrastructure.Persistence.AtomicSubmission;
 using InternHub.Domain.Students;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace InternHub.Tests.Integration.Persistence.AtomicSubmission;
 
@@ -24,21 +26,23 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
         var student = CreateStudent();
         var offer = CreateOffer();
         Seed(databasePath, [student], [offer], []);
-        var gate = new TaskCompletionSource(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var writeLock = AcquireWriteLock(databasePath);
 
         // Act
-        var firstSubmission = SubmitWhenOpenAsync(
+        var firstObserver = new SubmissionAttemptObserver();
+        var secondObserver = new SubmissionAttemptObserver();
+        var firstSubmission = SubmitAsync(
             databasePath,
             student.Id,
             offer.Id,
-            gate);
-        var secondSubmission = SubmitWhenOpenAsync(
+            firstObserver);
+        var secondSubmission = SubmitAsync(
             databasePath,
             student.Id,
             offer.Id,
-            gate);
-        gate.TrySetResult();
+            secondObserver);
+        await AwaitTransactionAttemptsAsync(firstObserver, secondObserver);
+        writeLock.Dispose();
         var results = await Task.WhenAll(firstSubmission, secondSubmission);
 
         // Assert
@@ -75,21 +79,23 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
             [student],
             [.. existingOffers, .. newOffers],
             existing);
-        var gate = new TaskCompletionSource(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var writeLock = AcquireWriteLock(databasePath);
 
         // Act
-        var firstSubmission = SubmitWhenOpenAsync(
+        var firstObserver = new SubmissionAttemptObserver();
+        var secondObserver = new SubmissionAttemptObserver();
+        var firstSubmission = SubmitAsync(
             databasePath,
             student.Id,
             newOffers[0].Id,
-            gate);
-        var secondSubmission = SubmitWhenOpenAsync(
+            firstObserver);
+        var secondSubmission = SubmitAsync(
             databasePath,
             student.Id,
             newOffers[1].Id,
-            gate);
-        gate.TrySetResult();
+            secondObserver);
+        await AwaitTransactionAttemptsAsync(firstObserver, secondObserver);
+        writeLock.Dispose();
         var results = await Task.WhenAll(firstSubmission, secondSubmission);
 
         // Assert
@@ -113,21 +119,23 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
         var student = CreateStudent();
         var offer = CreateOffer();
         Seed(databasePath, [student], [offer], []);
-        var gate = new TaskCompletionSource(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        using var writeLock = AcquireWriteLock(databasePath);
 
         // Act
-        var firstSubmission = SubmitWhenOpenAsync(
+        var firstObserver = new SubmissionAttemptObserver();
+        var secondObserver = new SubmissionAttemptObserver();
+        var firstSubmission = SubmitAsync(
             databasePath,
             student.Id,
             offer.Id,
-            gate);
-        var secondSubmission = SubmitWhenOpenAsync(
+            firstObserver);
+        var secondSubmission = SubmitAsync(
             databasePath,
             student.Id,
             offer.Id,
-            gate);
-        gate.TrySetResult();
+            secondObserver);
+        await AwaitTransactionAttemptsAsync(firstObserver, secondObserver);
+        writeLock.Dispose();
         await Task.WhenAll(firstSubmission, secondSubmission);
 
         // Assert
@@ -240,30 +248,38 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
         definition.Should().Contain("Waitlisted");
     }
 
-    private static async Task<AtomicCandidacySubmissionResult> SubmitWhenOpenAsync(
+    private static async Task<AtomicCandidacySubmissionResult> SubmitAsync(
         string databasePath,
         Guid studentId,
         Guid offerId,
-        TaskCompletionSource gate)
+        SubmissionAttemptObserver? observer = null)
     {
-        await gate.Task;
-        await using var db = CreateContext(databasePath);
+        await using var db = CreateContext(databasePath, observer);
         var submission = new EfCoreAtomicCandidacySubmission(
             db,
             new FixedTimeProvider(Now));
         return await submission.SubmitAsync(studentId, offerId);
     }
 
-    private static async Task<AtomicCandidacySubmissionResult> SubmitAsync(
-        string databasePath,
-        Guid studentId,
-        Guid offerId)
+    private static async Task AwaitTransactionAttemptsAsync(
+        params SubmissionAttemptObserver[] observers)
     {
-        await using var db = CreateContext(databasePath);
-        var submission = new EfCoreAtomicCandidacySubmission(
-            db,
-            new FixedTimeProvider(Now));
-        return await submission.SubmitAsync(studentId, offerId);
+        await Task.WhenAll(
+            observers.Select(observer =>
+                observer.TransactionAttempt.Task.WaitAsync(TimeSpan.FromSeconds(5))));
+    }
+
+    private static IDisposable AcquireWriteLock(string databasePath)
+    {
+        var connection = new SqliteConnection(ConnectionString(databasePath));
+        connection.Open();
+        var transaction = connection.BeginTransaction(
+            System.Data.IsolationLevel.Serializable);
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "UPDATE Students SET Email = Email;";
+        command.ExecuteNonQuery();
+        return new OwnedSqliteWriteLock(connection, transaction);
     }
 
     private static TemporarySqliteDatabase CreateDatabase()
@@ -285,16 +301,22 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
         }
     }
 
-    private static InternHubDbContext CreateContext(string databasePath)
+    private static InternHubDbContext CreateContext(
+        string databasePath,
+        SubmissionAttemptObserver? observer = null)
     {
-        var options = new DbContextOptionsBuilder<InternHubDbContext>()
-            .UseSqlite(ConnectionString(databasePath))
-            .Options;
+        var optionsBuilder = new DbContextOptionsBuilder<InternHubDbContext>()
+            .UseSqlite(ConnectionString(databasePath));
+
+        if (observer is not null)
+            optionsBuilder.AddInterceptors(observer.Transaction);
+
+        var options = optionsBuilder.Options;
         return new InternHubDbContext(options);
     }
 
     private static string ConnectionString(string databasePath) =>
-        $"Data Source={databasePath};Default Timeout=5;Pooling=False";
+        $"Data Source={databasePath};Default Timeout=1;Pooling=False";
 
     private static void Seed(
         string databasePath,
@@ -334,6 +356,49 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
         public override DateTimeOffset GetUtcNow() => new(utcNow);
     }
 
+    private sealed class SubmissionAttemptObserver
+    {
+        public SubmissionAttemptObserver()
+        {
+            Transaction = new SubmissionTransactionInterceptor(TransactionAttempt);
+        }
+
+        public SubmissionTransactionInterceptor Transaction { get; }
+
+        public TaskCompletionSource<bool> TransactionAttempt { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    private sealed class SubmissionTransactionInterceptor(
+        TaskCompletionSource<bool> transactionAttempt) : DbTransactionInterceptor
+    {
+        private readonly TaskCompletionSource<bool> _transactionAttempt =
+            transactionAttempt;
+
+        public override InterceptionResult<DbTransaction> TransactionStarting(
+            DbConnection connection,
+            TransactionStartingEventData eventData,
+            InterceptionResult<DbTransaction> result)
+        {
+            _transactionAttempt.TrySetResult(true);
+            return base.TransactionStarting(connection, eventData, result);
+        }
+
+        public override ValueTask<InterceptionResult<DbTransaction>> TransactionStartingAsync(
+            DbConnection connection,
+            TransactionStartingEventData eventData,
+            InterceptionResult<DbTransaction> result,
+            CancellationToken cancellationToken = default)
+        {
+            _transactionAttempt.TrySetResult(true);
+            return base.TransactionStartingAsync(
+                connection,
+                eventData,
+                result,
+                cancellationToken);
+        }
+    }
+
     private sealed class TemporarySqliteDatabase : IDisposable
     {
         public TemporarySqliteDatabase(string path)
@@ -354,6 +419,20 @@ public sealed class EfCoreAtomicCandidacySubmissionConcurrencyTests
             File.Delete(Path);
             File.Delete($"{Path}-wal");
             File.Delete($"{Path}-shm");
+        }
+    }
+
+    private sealed class OwnedSqliteWriteLock(
+        SqliteConnection connection,
+        SqliteTransaction transaction) : IDisposable
+    {
+        private readonly SqliteConnection _connection = connection;
+        private readonly SqliteTransaction _transaction = transaction;
+
+        public void Dispose()
+        {
+            _transaction.Dispose();
+            _connection.Dispose();
         }
     }
 }

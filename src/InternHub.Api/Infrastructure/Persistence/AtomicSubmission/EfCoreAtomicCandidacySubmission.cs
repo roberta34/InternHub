@@ -35,13 +35,27 @@ public sealed class EfCoreAtomicCandidacySubmission(
                 when (IsSqliteUniqueConstraint(exception))
             {
                 db.ChangeTracker.Clear();
-                if (await HasActiveCandidacyAsync(
-                        studentId,
-                        offerId,
-                        cancellationToken))
+                try
                 {
-                    return AtomicCandidacySubmissionResult.Failure(
-                        AtomicCandidacySubmissionStatus.DuplicateActive);
+                    if (await HasActiveCandidacyAsync(
+                            studentId,
+                            offerId,
+                            cancellationToken))
+                    {
+                        return AtomicCandidacySubmissionResult.Failure(
+                            AtomicCandidacySubmissionStatus.DuplicateActive);
+                    }
+                }
+                catch (Exception verificationException)
+                    when (IsSqliteContention(verificationException))
+                {
+                    if (attempt == MaximumAttempts)
+                    {
+                        throw CreateContentionException(verificationException);
+                    }
+
+                    await DelayBeforeRetryAsync(cancellationToken);
+                    continue;
                 }
 
                 throw;
