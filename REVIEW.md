@@ -28,3 +28,6 @@ Summary: 0 Critical, 3 Major, 1 Minor findings.
   - Existing regression tests continue to pass without modification.
   - Confirmed by live Sprint 4 test execution (`dotnet test`): **349/349** tests passed (0 failures, 0 skips), preserving the historical Sprint 3 baseline of **314/314** tests above.
 - **Read-only `code-review` verification:** A read-only verification following `.claude/skills/code-review/SKILL.md` was executed across `InternshipCandidacy`, `InternshipCandidacyTests`, handlers, and EF Core/SQLite persistence contracts, confirming that the Minor `InternshipCandidacyStatus` domain-invariant finding is resolved (0 remaining findings in P2.1 scope) while the three Major concurrency findings remain `Pending` with no verifiable remediation in persistence or handlers yet.
+
+
+

@@ -75,4 +75,9 @@ public class Offer
         IsClosed = true;
         Version++;
     }
+
+    public void RegisterAcceptedSlot()
+    {
+        Version++;
+    }
 }

@@ -432,8 +432,11 @@ Existing reference: `Features/InternshipCandidacies/AtomicSubmission/` (Apply).
 - **Domain method** on the shared aggregate when the rule depends on its state (§13.4).
 - **Handler**: `HandleAsync(command, cancellationToken)`; depends only on the contract;
   validates input before calling it; maps every status to exactly one `Result` category
-  (§5) with one `switch` expression; an unknown status throws `InvalidOperationException`.
-  The handler never counts, retries, or calls repositories.
+  (§5) through a `private static readonly IReadOnlyDictionary<TStatus, Func<..., Result<T>>>`
+  lookup table (one entry per status). Do not use `switch` statements or `switch`
+  expressions for this mapping, and do not add a fallback arm: a missing key is a programming
+  error and surfaces as `KeyNotFoundException`. Small fixed text mappings (e.g. action verbs)
+  use the same lookup-table pattern. The handler never counts, retries, or calls repositories.
 - **Endpoint**: async lambda that binds `CancellationToken` and keeps the existing route,
   request, response and HTTP mapping.
 - **Module**: registers the handler only. The contract implementation is registered in
@@ -442,18 +445,20 @@ Existing reference: `Features/InternshipCandidacies/AtomicSubmission/` (Apply).
 After this skill runs, `dotnet build` must succeed even though the contract has no
 implementation yet.
 
-### 13.3 Example of expected output (mapping only)
+### 13.3 Example of expected output (lookup table only)
 
 ```csharp
-return outcome.Status switch
-{
-    AtomicCandidacyDecisionStatus.Decided => Result<DecideInternshipCandidacyResponse>.Success(
-        new DecideInternshipCandidacyResponse(outcome.Candidacy!.Id, outcome.Candidacy.Status)),
-    AtomicCandidacyDecisionStatus.CandidacyNotFound => Result<DecideInternshipCandidacyResponse>.NotFound(
-        $"Candidacy {command.CandidacyId} not found."),
-    // ... one arm per status ...
-    _ => throw new InvalidOperationException($"Unexpected status {outcome.Status}.")
-};
+private static readonly IReadOnlyDictionary<AtomicCandidacyDecisionStatus,
+    Func<Guid, CandidacyDecision, AtomicCandidacyDecisionResult, Result<DecideInternshipCandidacyResponse>>> Outcomes =
+    new Dictionary<AtomicCandidacyDecisionStatus,
+        Func<Guid, CandidacyDecision, AtomicCandidacyDecisionResult, Result<DecideInternshipCandidacyResponse>>>
+    {
+        [AtomicCandidacyDecisionStatus.CandidacyNotFound] = (id, _, _) =>
+            Result<DecideInternshipCandidacyResponse>.NotFound($"Candidacy {id} not found."),
+        // ... one entry per status ...
+    };
+
+return Outcomes[outcome.Status](command.CandidacyId, decision, outcome);
 ```
 
 ### 13.4 `Offer.Version` rule

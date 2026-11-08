@@ -228,4 +228,47 @@ public sealed class OfferTests
         collection.Should().BeAssignableTo<ICollection<InternshipCandidacy>>();
         ((ICollection<InternshipCandidacy>)collection).IsReadOnly.Should().BeTrue();
     }
+
+    [Fact]
+    public void Given_OfferWithNonZeroVersion_When_RegisteringAcceptedSlot_Then_IncrementsVersionByExactlyOne()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 2);
+        offer.Update("Title", "Company", "Requirements", Deadline, 2);
+        var versionBefore = offer.Version;
+
+        // Act
+        offer.RegisterAcceptedSlot();
+
+        // Assert
+        offer.Version.Should().Be(versionBefore + 1);
+    }
+
+    [Fact]
+    public void Given_ClosedOffer_When_RegisteringAcceptedSlot_Then_PreservesOtherProperties()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 2);
+        offer.Close();
+        var id = offer.Id;
+        var title = offer.Title;
+        var companyName = offer.CompanyName;
+        var requirements = offer.Requirements;
+        var deadline = offer.Deadline;
+        var maximumAvailableSlots = offer.MaximumAvailableSlots;
+        var internshipCandidacies = offer.InternshipCandidacies.ToArray();
+
+        // Act
+        offer.RegisterAcceptedSlot();
+
+        // Assert
+        offer.Id.Should().Be(id);
+        offer.Title.Should().Be(title);
+        offer.CompanyName.Should().Be(companyName);
+        offer.Requirements.Should().Be(requirements);
+        offer.Deadline.Should().Be(deadline);
+        offer.MaximumAvailableSlots.Should().Be(maximumAvailableSlots);
+        offer.IsClosed.Should().BeTrue();
+        offer.InternshipCandidacies.Should().BeEquivalentTo(internshipCandidacies);
+    }
 }

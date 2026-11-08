@@ -106,6 +106,8 @@ The reference implementation is
 `tests/InternHub.Tests/Integration/Persistence/AtomicSubmission/EfCoreAtomicCandidacySubmissionConcurrencyTests.cs`.
 Read it first and follow the same helpers and structure. Do not modify it.
 
+
+
 ### Database
 
 1. One temporary **file-based** SQLite database per test:
@@ -127,6 +129,9 @@ Read it first and follow the same helpers and structure. Do not modify it.
    that completes a `TaskCompletionSource` in `TransactionStarting(Async)`.
 3. Await all signals with `WaitAsync(TimeSpan.FromSeconds(5))`, then release the write lock.
 4. `await Task.WhenAll(...)` and assert.
+5. Start each concurrent operation with `Task.Run`. Microsoft.Data.Sqlite's async APIs block
+   synchronously, so without `Task.Run` the operations start one after another while the
+   write lock is held and may exhaust their busy retries before it is released.
 
 Waiting on these signals is the only allowed wait. No `Thread.Sleep`, `Task.Delay` or retry loops
 in test code (retries belong to production code).
