@@ -1,270 +1,133 @@
 using FluentAssertions;
 using InternHub.Api.Domain.InternshipCandidacies;
-using InternHub.Api.Domain.Offers;
+using InternHub.Api.Features.InternshipCandidacies.AtomicSubmission;
 using InternHub.Api.Features.InternshipCandidacies.CreateInternshipCandidacy;
 using InternHub.Api.Features.Shared;
-using InternHub.Domain.Students;
-using InternHub.Tests.Unit.InternshipCandidacies.Fakes;
-using InternHub.Tests.Unit.Offers.Fakes;
-using InternHub.Tests.Unit.Students.Fakes;
 
 namespace InternHub.Tests.Unit.InternshipCandidacies;
 
 public sealed class CreateInternshipCandidacyHandlerTests
 {
-    private static readonly DateTime Now = new(2027, 1, 15, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime ApplicationDate =
+        new(2027, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void Given_EligibleStudentAndOpenOffer_When_Applying_Then_CreatesSubmittedCandidacy()
+    public async Task Given_AtomicSubmissionSucceeds_When_Applying_Then_ReturnsCreatedCandidacy()
     {
         // Arrange
-        var context = CreateContext();
+        var studentId = Guid.NewGuid();
+        var offerId = Guid.NewGuid();
+        var candidacy = CreateCandidacy(studentId, offerId);
+        var submission = new FakeAtomicCandidacySubmission
+        {
+            Result = AtomicCandidacySubmissionResult.Success(candidacy)
+        };
+        var handler = new CreateInternshipCandidacyHandler(submission);
+        using var cancellationSource = new CancellationTokenSource();
 
         // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
+        var result = await handler.HandleAsync(
+            new CreateInternshipCandidacyCommand(studentId, offerId),
+            cancellationSource.Token);
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
-        result.Value.Should().NotBeNull();
-        result.Value!.Id.Should().NotBeEmpty();
-        result.Value.StudentId.Should().Be(context.Student.Id);
-        result.Value.OfferId.Should().Be(context.Offer.Id);
-        result.Value.ApplicationDate.Should().Be(Now);
-        result.Value.Status.Should().Be(InternshipCandidacyStatus.Submitted);
-        context.Candidacies.Candidacies.Should().ContainSingle()
-            .Which.Id.Should().Be(result.Value.Id);
+        result.Value.Should().Be(new CreateInternshipCandidacyResponse(
+            candidacy.Id,
+            studentId,
+            offerId,
+            ApplicationDate,
+            InternshipCandidacyStatus.Submitted));
+        submission.StudentId.Should().Be(studentId);
+        submission.OfferId.Should().Be(offerId);
+        submission.CancellationToken.Should().Be(cancellationSource.Token);
+        submission.CallCount.Should().Be(1);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Given_AnEmptyStudentOrOfferId_When_Applying_Then_ReturnsValidation(bool emptyStudentId)
+    public async Task Given_EmptyIdentifier_When_Applying_Then_ReturnsValidationWithoutAtomicSubmit(
+        bool emptyStudentId)
     {
         // Arrange
-        var context = CreateContext();
-        var studentId = emptyStudentId ? Guid.Empty : context.Student.Id;
-        var offerId = emptyStudentId ? context.Offer.Id : Guid.Empty;
+        var studentId = emptyStudentId ? Guid.Empty : Guid.NewGuid();
+        var offerId = emptyStudentId ? Guid.NewGuid() : Guid.Empty;
+        var submission = new FakeAtomicCandidacySubmission();
+        var handler = new CreateInternshipCandidacyHandler(submission);
 
         // Act
-        var result = context.Handler.Handle(new CreateInternshipCandidacyCommand(studentId, offerId));
+        var result = await handler.HandleAsync(
+            new CreateInternshipCandidacyCommand(studentId, offerId),
+            CancellationToken.None);
 
         // Assert
         result.Status.Should().Be(ResultStatus.Validation);
-        context.Candidacies.AddCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Given_MissingStudent_When_Applying_Then_ReturnsNotFound()
-    {
-        // Arrange
-        var context = CreateContext();
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(Guid.NewGuid(), context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.NotFound);
-        context.Candidacies.AddCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Given_MissingOffer_When_Applying_Then_ReturnsNotFound()
-    {
-        // Arrange
-        var context = CreateContext();
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, Guid.NewGuid()));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.NotFound);
-        context.Candidacies.AddCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Given_ClosedOffer_When_Applying_Then_ReturnsConflict()
-    {
-        // Arrange
-        var context = CreateContext();
-        context.Offer.Close();
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.Conflict);
-        context.Candidacies.AddCallCount.Should().Be(0);
+        result.Error.Should().Contain("must not be empty");
+        submission.CallCount.Should().Be(0);
     }
 
     [Theory]
-    [InlineData(-1)]
-    [InlineData(0)]
-    public void Given_DeadlineAtOrBeforeNow_When_Applying_Then_ReturnsConflict(int deadlineOffsetMinutes)
+    [InlineData(AtomicCandidacySubmissionStatus.StudentNotFound, ResultStatus.NotFound, "Student")]
+    [InlineData(AtomicCandidacySubmissionStatus.OfferNotFound, ResultStatus.NotFound, "Offer")]
+    [InlineData(AtomicCandidacySubmissionStatus.OfferClosed, ResultStatus.Conflict, "closed")]
+    [InlineData(AtomicCandidacySubmissionStatus.DeadlineExpired, ResultStatus.Conflict, "deadline")]
+    [InlineData(AtomicCandidacySubmissionStatus.DuplicateActive, ResultStatus.Conflict, "active candidacy")]
+    [InlineData(AtomicCandidacySubmissionStatus.ActiveLimitReached, ResultStatus.Conflict, "maximum of 5")]
+    public async Task Given_AtomicSubmissionBusinessFailure_When_Applying_Then_MapsFailureToResult(
+        AtomicCandidacySubmissionStatus submissionStatus,
+        ResultStatus expectedResultStatus,
+        string expectedMessage)
     {
         // Arrange
-        var context = CreateContext(Now.AddMinutes(deadlineOffsetMinutes));
+        var studentId = Guid.NewGuid();
+        var offerId = Guid.NewGuid();
+        var submission = new FakeAtomicCandidacySubmission
+        {
+            Result = AtomicCandidacySubmissionResult.Failure(submissionStatus)
+        };
+        var handler = new CreateInternshipCandidacyHandler(submission);
 
         // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
+        var result = await handler.HandleAsync(
+            new CreateInternshipCandidacyCommand(studentId, offerId),
+            CancellationToken.None);
 
         // Assert
-        result.Status.Should().Be(ResultStatus.Conflict);
-        context.Candidacies.AddCallCount.Should().Be(0);
+        result.Status.Should().Be(expectedResultStatus);
+        result.Error.Should().Contain(expectedMessage);
+        submission.CallCount.Should().Be(1);
     }
 
-    [Fact]
-    public void Given_ActiveCandidacyForSameOffer_When_Applying_Then_ReturnsConflict()
-    {
-        // Arrange
-        var context = CreateContext();
-        SeedCandidacy(
-            context.Candidacies,
-            context.Student.Id,
-            context.Offer.Id,
-            Now.AddDays(-1),
-            InternshipCandidacyStatus.Submitted);
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.Conflict);
-        context.Candidacies.AddCallCount.Should().Be(0);
-    }
-
-    [Theory]
-    [InlineData(InternshipCandidacyStatus.Withdrawn)]
-    [InlineData(InternshipCandidacyStatus.Rejected)]
-    public void Given_WithdrawnOrRejectedCandidacy_When_ApplyingAgain_Then_CandidacyIsNotActive(
-        InternshipCandidacyStatus previousStatus)
-    {
-        // Arrange
-        var context = CreateContext();
-        SeedCandidacy(
-            context.Candidacies,
-            context.Student.Id,
-            context.Offer.Id,
-            Now.AddDays(-1),
-            previousStatus);
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.Success);
-        context.Candidacies.Candidacies.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public void Given_FourActiveCandidacies_When_Applying_Then_Succeeds()
-    {
-        // Arrange
-        var context = CreateContext();
-        SeedActiveCandidacies(context, 4);
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.Success);
-        context.Candidacies.Candidacies.Should().HaveCount(5);
-    }
-
-    [Fact]
-    public void Given_FiveActiveCandidacies_When_Applying_Then_ReturnsConflict()
-    {
-        // Arrange
-        var context = CreateContext();
-        SeedActiveCandidacies(context, 5);
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.Conflict);
-        context.Candidacies.Candidacies.Should().HaveCount(5);
-        context.Candidacies.AddCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void Given_RepositoryRejectsAdd_When_Applying_Then_ReturnsConflict()
-    {
-        // Arrange
-        var context = CreateContext();
-        context.Candidacies.AddResult = false;
-
-        // Act
-        var result = context.Handler.Handle(
-            new CreateInternshipCandidacyCommand(context.Student.Id, context.Offer.Id));
-
-        // Assert
-        result.Status.Should().Be(ResultStatus.Conflict);
-        context.Candidacies.Candidacies.Should().BeEmpty();
-        context.Candidacies.AddCallCount.Should().Be(1);
-    }
-
-    private static HandlerContext CreateContext(DateTime? deadline = null)
-    {
-        var students = new FakeStudentRepository();
-        var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
-        students.Add(student);
-
-        var offers = new FakeOfferRepository();
-        var offer = CreateOffer(deadline ?? Now.AddDays(1));
-        offers.Add(offer);
-
-        var candidacies = new FakeInternshipCandidacyRepository();
-        var handler = new CreateInternshipCandidacyHandler(
-            candidacies,
-            students,
-            offers,
-            new FixedTimeProvider(Now));
-
-        return new HandlerContext(handler, candidacies, student, offer);
-    }
-
-    private static Offer CreateOffer(DateTime deadline) =>
-        new("Software Intern", "Example Co", ".NET", deadline, 1);
-
-    private static void SeedActiveCandidacies(HandlerContext context, int count) =>
-        Enumerable.Range(0, count).ToList().ForEach(index =>
-            SeedCandidacy(
-                context.Candidacies,
-                context.Student.Id,
-                Guid.NewGuid(),
-                Now.AddDays(-index - 1),
-                InternshipCandidacyStatus.Submitted));
-
-    private static void SeedCandidacy(
-        FakeInternshipCandidacyRepository repository,
-        Guid studentId,
-        Guid offerId,
-        DateTime applicationDate,
-        InternshipCandidacyStatus status) =>
-        repository.Seed(new InternshipCandidacy(
+    private static InternshipCandidacy CreateCandidacy(Guid studentId, Guid offerId) =>
+        new(
             Guid.NewGuid(),
             studentId,
             offerId,
-            applicationDate,
-            status));
+            ApplicationDate,
+            InternshipCandidacyStatus.Submitted);
 
-    private sealed record HandlerContext(
-        CreateInternshipCandidacyHandler Handler,
-        FakeInternshipCandidacyRepository Candidacies,
-        Student Student,
-        Offer Offer);
-
-    private sealed class FixedTimeProvider(DateTime utcNow) : TimeProvider
+    private sealed class FakeAtomicCandidacySubmission : IAtomicCandidacySubmission
     {
-        public override DateTimeOffset GetUtcNow() => new(utcNow);
+        public AtomicCandidacySubmissionResult? Result { get; init; }
+        public int CallCount { get; private set; }
+        public Guid StudentId { get; private set; }
+        public Guid OfferId { get; private set; }
+        public CancellationToken CancellationToken { get; private set; }
+
+        public Task<AtomicCandidacySubmissionResult> SubmitAsync(
+            Guid studentId,
+            Guid offerId,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            StudentId = studentId;
+            OfferId = offerId;
+            CancellationToken = cancellationToken;
+
+            return Task.FromResult(
+                Result ?? AtomicCandidacySubmissionResult.Failure(
+                    AtomicCandidacySubmissionStatus.StudentNotFound));
+        }
     }
 }

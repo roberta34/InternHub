@@ -742,3 +742,63 @@ All three P2 tasks were implemented independently, using skill-guided code gener
 **Prompt summary:** Perform a thorough read-only review of the untracked Ollama provider and its fake-HTTP tests against the existing recruiter-evaluation contracts, request protocol, JSON validation, retry behavior, cancellation, error handling and P3 ownership boundaries.
 
 **Result:** The review identified no actionable findings. The implementation was assessed as ready for commit, with final provider selection and application integration remaining for Person 1.
+
+---
+
+## Sprint 4 — Person 1: CV Feedback Slice
+
+**Recorded tool:** GitHub Copilot Agent
+**Skills:** `.claude/skills/cqrs/SKILL.md`, `.claude/skills/ai-baseline/SKILL.md`
+
+**Prompt summary:** Implement the advisory `POST /api/v1/offers/{offerId:guid}/cv-feedback` slice using the existing offer repository and recruiter-evaluation contract. Validate CV input and its size, propagate cancellation, avoid storing/logging CV content, and expose the endpoint through automatic feature-module discovery without adding tests in this stage.
+
+**Observed architecture issue:** The AI contract is asynchronous while the CQRS skill restricted asynchronous handlers to asynchronous repositories. Blocking on the AI call is prohibited, and `Result<T>` had no outcome for an unavailable provider.
+
+**Decisions and changes:** Updated the CQRS skill to permit an asynchronous handler when any injected dependency is asynchronous. Added a `ServiceUnavailable` result mapped to HTTP 503 with a generic, CV-free problem detail. The handler maps known provider/network, response/configuration and provider-timeout failures to that result; caller-requested cancellation propagates. CV feedback is capped at 20,000 characters. Provider selection is configured through `Ai:Provider`, with Baseline as the checked-in default and Ollama as an explicit alternative.
+
+**Files added:** The CV Feedback request, command, response, handler interface, handler, endpoint and feature module; AI provider service-registration extension.
+
+**Files changed:** `Features/Shared/Result.cs`, `Features/Shared/ResultHttpMapping.cs`, `appsettings.json`, `.claude/skills/cqrs/SKILL.md`, and this log.
+
+**Verified result:** `dotnet build src/InternHub.Api/InternHub.Api.csproj --no-restore` succeeded with 0 warnings and 0 errors. Tests were not run as requested; unit and HTTP integration tests remain for separate stages.
+
+### CV Feedback Handler — Unit Testing
+
+**Recorded tool:** GitHub Copilot Agent
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Add isolated xUnit and FluentAssertions tests for `CvFeedbackHandler`, using hand-written in-memory fakes and covering success, offer not found, nullable/empty/whitespace and oversized CV input, response mapping, cancellation-token forwarding, and provider failures.
+
+**Observed problem:** None. The existing `IOfferRepository`, evaluator, and Result contracts provided the required seams; no production changes or shared fake changes were needed.
+
+**Skill change:** None.
+
+**Verified result:** `dotnet test tests/InternHub.Tests/InternHub.Tests.csproj` passed **390/390** tests (0 failed, 0 skipped). A follow-up run for this request reconfirmed **390/390** passing tests. The filtered CV Feedback handler coverage run passed **10/10** cases; Cobertura reported **100% line and branch coverage** for `CvFeedbackHandler`. No integration tests were authored in this stage.
+
+### P1.1 — Atomic Apply Integration
+
+**Recorded tool:** GitHub Copilot Agent
+**Skills:** `.claude/skills/cqrs/SKILL.md`, `.claude/skills/unit-testing/SKILL.md`, `.claude/skills/integration-testing/SKILL.md`, `.claude/skills/efcore-sqlite-repositories/SKILL.md`, `.claude/skills/code-review/SKILL.md`
+
+**Prompt summary:** Integrate the existing Apply handler with P3's `IAtomicCandidacySubmission.SubmitAsync(studentId, offerId, cancellationToken)` without changing that contract. Preserve the HTTP route/request, validation and Result-to-HTTP behavior; first add unit tests using an atomic fake, then verify HTTP/SQLite behavior including two concurrent submissions at the five-active-candidacy limit.
+
+**Observed issue:** Apply previously performed student/offer/deadline/duplicate/count checks and inserted candidacies separately, bypassing P3's atomic transaction. The P3 operation already uses the registered `TimeProvider` for the application timestamp; the handler therefore delegates time-dependent rules to that operation instead of duplicating time checks.
+
+**Changes:** The handler/interface and endpoint now use asynchronous `HandleAsync`, pass the request cancellation token to P3 and map every atomic status to the existing Validation, NotFound, Conflict or Success result. Empty IDs remain Validation. Updated the owned handler unit tests to use a hand-written atomic fake. Added an HTTP test that launches two requests concurrently with four active candidacies already persisted and verifies exactly one 201, one 409, and exactly five active rows. The shared SQLite test factory gained an opt-in named in-memory shared-cache mode for per-request EF connections; its default isolated-connection behavior remains unchanged. `Program.cs` and P3's contract/implementation were not changed.
+
+**Test iteration:** The initial integration run exposed an unsupported FluentAssertions `BeOneOf` call, replaced with a supported collection membership assertion. The next run exposed that the computed `InternshipCandidacy.IsActive` property is not translatable in an EF query; the test now loads rows via a fresh `AsNoTracking()` context and filters in memory.
+
+**Verified result:** Apply handler unit tests passed **9/9**. Apply HTTP/SQLite tests passed **9/9**. The concurrent HTTP scenario passed three additional repeated runs (**1/1 each**). The complete test project passed **386/386** (0 failed, 0 skipped). `dotnet build src/InternHub.Api/InternHub.Api.csproj --no-restore` succeeded with 0 warnings and 0 errors. No skill changes were needed.
+
+### P1.2 — CV Feedback HTTP Integration Tests
+
+**Recorded tool:** GitHub Copilot Agent
+**Skills:** `.claude/skills/integration-testing/SKILL.md`, `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Add real HTTP/SQLite integration tests for the CV Feedback route, with an isolated in-memory SQLite connection and factory per test, a local evaluator fake provided through DI override, and coverage for success, missing offer, invalid/oversized CV input, provider failure, route discovery, database isolation, and CV privacy.
+
+**Changes:** Added `CvFeedbackEndpointTests.cs` for the successful response contract, missing offer, null/empty/whitespace input, oversized CV input, and controlled provider failure. Tests seed/read using real `InternHubDbContext` scopes and verify no CV-related persistence. Success and provider-failure cases capture application logs and assert that the CV content is absent. Extended `InternHubSqliteFactory` with an optional test-service configuration callback; its existing default behavior is unchanged. No production code, external services, Ollama, or network dependency was added.
+
+**Test iteration:** The first test build exposed a missing import for the actual `CvFeedbackResponse` namespace. Added the correct test-only using directive; no contract or production change was required.
+
+**Verified result:** `dotnet test tests\InternHub.Tests\InternHub.Tests.csproj` passed **393/393** tests (0 failed, 0 skipped). `git diff --check` completed without errors. No skill changes were needed.
