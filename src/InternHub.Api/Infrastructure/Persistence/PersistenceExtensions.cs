@@ -4,6 +4,8 @@ using InternHub.Domain.Students;
 using Microsoft.EntityFrameworkCore;
 using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Infrastructure.Persistence.AtomicSubmission;
+using InternHub.Api.Features.InternshipCandidacies.AtomicDecision;
+using InternHub.Api.Infrastructure.Persistence.AtomicDecision;
 
 namespace InternHub.Api.Infrastructure.Persistence;
 
@@ -23,6 +25,7 @@ public static class PersistenceExtensions
         services.AddScoped<IOfferRepository, EfCoreOfferRepository>();
         services.AddScoped<IInternshipCandidacyRepository, EfCoreInternshipCandidacyRepository>();
         services.AddScoped<IAtomicCandidacySubmission, EfCoreAtomicCandidacySubmission>();
+        services.AddScoped<IAtomicCandidacyDecision, EfCoreAtomicCandidacyDecision>();
         return services;
     }
 }

@@ -383,7 +383,7 @@ public bool Shortlist()
   6. `Success(new DecideInternshipCandidacyResponse(candidacy.Id, candidacy.Status))`.
 - A closed offer does not block decisions (existing candidacies keep moving through evaluation).
 - Endpoint: success -> `200 OK` with the response body; failures via `ToFailure()`.
-- Sequential capacity check only; concurrent last-slot acceptance is out of Sprint 3 scope.
+- Sequential capacity check in Sprint 3; superseded in Sprint 4 by Section 13 (atomic decision).
 - The decision is always a human HTTP request; never call any AI service.
 
 ### 12.3 Slice `GetOfferCandidacies` (Query)
@@ -402,3 +402,103 @@ public bool Shortlist()
 One module: `Features/InternshipCandidacies/CandidacyDecisionModule.cs`, public sealed, parameterless,
 implementing `IFeatureModule`; registers both handlers with `AddScoped` and maps both endpoints.
 Do not edit `Program.cs`, `CandidacyApplicationModule` or other people's slices.
+
+## 13. Atomic persistence contracts (Sprint 4)
+
+For slices that consume an atomic contract, this section overrides rule 5 (the handler
+depends on the contract instead of repositories) and the `Handle` naming of §3 (the
+handler becomes `HandleAsync`, because the contract is asynchronous).
+
+### 13.1 When to use
+
+A use case whose business rule depends on several rows that concurrent requests can change
+(for example: one active candidacy per student and offer, at most five active candidacies,
+accepted candidacies not exceeding the offer's slots) must not check and write through
+separate repository calls. The handler delegates the whole decision to an **atomic
+persistence contract**. This skill generates the contract and the consuming slice; the
+efcore-sqlite-repositories skill generates the implementation and its DI registration.
+
+Existing reference: `Features/InternshipCandidacies/AtomicSubmission/` (Apply).
+
+### 13.2 What this skill generates
+
+- **Contract folder** `Features/<Aggregate>/Atomic<Operation>/`, namespace = folder path:
+    - `IAtomic<Subject><Operation>.cs`: one async method that receives ids (never entities)
+      and a `CancellationToken cancellationToken = default`, and returns a typed result.
+    - `Atomic<Subject><Operation>Result.cs`: an enum with one success status and one status per
+      expected failure, plus a sealed class with a private constructor, get-only `Status` and
+      payload, `Success(...)` (null-guarded) and `Failure(status)` (rejects undefined values and
+      the success value). Same shape as `AtomicCandidacySubmissionResult`.
+- **Domain method** on the shared aggregate when the rule depends on its state (§13.4).
+- **Handler**: `HandleAsync(command, cancellationToken)`; depends only on the contract;
+  validates input before calling it; maps every status to exactly one `Result` category
+  (§5) through a `private static readonly IReadOnlyDictionary<TStatus, Func<..., Result<T>>>`
+  lookup table (one entry per status). Do not use `switch` statements or `switch`
+  expressions for this mapping, and do not add a fallback arm: a missing key is a programming
+  error and surfaces as `KeyNotFoundException`. Small fixed text mappings (e.g. action verbs)
+  use the same lookup-table pattern. The handler never counts, retries, or calls repositories.
+- **Endpoint**: async lambda that binds `CancellationToken` and keeps the existing route,
+  request, response and HTTP mapping.
+- **Module**: registers the handler only. The contract implementation is registered in
+  `PersistenceExtensions` by the efcore skill, never in a feature module.
+
+After this skill runs, `dotnet build` must succeed even though the contract has no
+implementation yet.
+
+### 13.3 Example of expected output (lookup table only)
+
+```csharp
+private static readonly IReadOnlyDictionary<AtomicCandidacyDecisionStatus,
+    Func<Guid, CandidacyDecision, AtomicCandidacyDecisionResult, Result<DecideInternshipCandidacyResponse>>> Outcomes =
+    new Dictionary<AtomicCandidacyDecisionStatus,
+        Func<Guid, CandidacyDecision, AtomicCandidacyDecisionResult, Result<DecideInternshipCandidacyResponse>>>
+    {
+        [AtomicCandidacyDecisionStatus.CandidacyNotFound] = (id, _, _) =>
+            Result<DecideInternshipCandidacyResponse>.NotFound($"Candidacy {id} not found."),
+        // ... one entry per status ...
+    };
+
+return Outcomes[outcome.Status](command.CandidacyId, decision, outcome);
+```
+
+### 13.4 `Offer.Version` rule
+
+`Offer.Version` is the optimistic-concurrency token of the offer. Any Domain operation that
+changes offer-level state used by concurrent decisions increments `Version` and nothing else
+about it is set by hand. Existing: `Update(...)`, `Close()`. Extend `Offer`; never rewrite it,
+and never add persisted properties for this purpose.
+
+### 13.5 Sprint 4 instance: `DecideInternshipCandidacy`
+
+Fixes the REVIEW.md Major finding at `DecideInternshipCandidacyHandler.cs:38` (US5 AC3, BR-09,
+BR-10). It supersedes §12.2 steps 3–5.
+
+| Item | Value |
+|---|---|
+| Contract | `Features/InternshipCandidacies/AtomicDecision/IAtomicCandidacyDecision.cs`: `DecideAsync(Guid candidacyId, CandidacyDecision decision, CancellationToken cancellationToken = default)` |
+| Result | `AtomicCandidacyDecisionResult`, statuses `Decided`, `CandidacyNotFound`, `OfferNotFound`, `InvalidTransition`, `ConcurrencyConflict`; payload `InternshipCandidacy? Candidacy` |
+| Domain | `Offer.RegisterAcceptedSlot()`: increments `Version` by 1; no checks of `IsClosed` or `Deadline` (BR-11) |
+| Handler | `DecideInternshipCandidacyHandler(IAtomicCandidacyDecision decisions)`; keeps the action parsing of §12.2 step 1 |
+
+| Status | Result | Message |
+|---|---|---|
+| `Decided` | `Success` (200) | — |
+| `CandidacyNotFound` | `NotFound` (404) | `Candidacy {id} not found.` |
+| `OfferNotFound` | `NotFound` (404) | `Offer of candidacy {id} not found.` |
+| `InvalidTransition` | `Conflict` (409) | `Candidacy {id} cannot be {verb} from its current status.` (`shortlisted` / `accepted` / `rejected`) |
+| `ConcurrencyConflict` | `Conflict` (409) | `Candidacy {id} could not be decided because the offer was modified concurrently. Retry the request.` |
+
+Unchanged: route, `DecideInternshipCandidacyRequest`, `DecideInternshipCandidacyCommand`,
+`DecideInternshipCandidacyResponse`, `CandidacyDecision`. Do not modify `InternshipCandidacy.cs`,
+`GetOfferCandidacies`, `CandidacyApplicationModule`, `AtomicSubmission/*`, repositories or
+`Program.cs`.
+
+### 13.6 Self-check
+
+- [ ] Contract and result follow the shape of §13.2 and mirror `AtomicSubmission`.
+- [ ] The handler depends only on the contract and maps every status exactly once.
+- [ ] Invalid input is rejected before the contract is called.
+- [ ] Domain changes only add a method that increments `Version`.
+- [ ] Routes, requests, commands and responses are unchanged.
+- [ ] The contract implementation is not registered in a feature module.
+- [ ] `dotnet build` succeeds.

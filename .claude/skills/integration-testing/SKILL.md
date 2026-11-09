@@ -1,6 +1,6 @@
 ---
 name: integration-testing
-description: "Generates and regenerates InternHub integration tests: HTTP endpoints via xUnit and WebApplicationFactory<Program>, or direct EF Core repositories via xUnit and a fresh real SQLite in-memory database per test. Use after the relevant production contracts and persistence exist. Do not use for production CQRS/persistence changes, unit tests, or code review."
+description: "Generates and regenerates InternHub integration tests: HTTP endpoints via xUnit and WebApplicationFactory<Program>, or direct EF Core repositories via xUnit and a fresh real SQLite in-memory database per test. Also generates concurrency tests for atomic persistence services against a temporary file-based SQLite database (Section 4b). Use after the relevant production contracts and persistence exist. Do not use for production CQRS/persistence changes, unit tests, or code review."
 ---
 
 # Integration-testing skill — InternHub
@@ -94,6 +94,69 @@ Use this mode only when the task explicitly requests testing an EF Core reposito
 7. Do not create HTTP endpoints, call `WebApplicationFactory`, alter production files, or create a duplicate general SQLite fixture merely to satisfy HTTP-specific rules. Keep Arrange / Act / Assert and Given_When_Then conventions.
 8. Run the repository-specific tests and then the full test suite. Report exact pass/fail counts, any blocked cases, and whether SQLite isolation was actually verified.
 
+## 4b. Concurrency tests for atomic persistence services (concurrency mode)
+
+Use this mode when the task asks to prove that an atomic persistence service
+(`EfCoreAtomicCandidacySubmission`, `EfCoreAtomicCandidacyDecision`, or a future
+`EfCoreAtomic*`) keeps a business invariant under concurrent requests. It overrides the
+in-memory rule of §4/§4a for these tests only: one shared in-memory connection cannot
+represent two independent requests.
+
+The reference implementation is
+`tests/InternHub.Tests/Integration/Persistence/AtomicSubmission/EfCoreAtomicCandidacySubmissionConcurrencyTests.cs`.
+Read it first and follow the same helpers and structure. Do not modify it.
+
+
+
+### Database
+
+1. One temporary **file-based** SQLite database per test:
+   `Path.Combine(Path.GetTempPath(), $"internhub-<area>-{Guid.NewGuid():N}.db")`.
+2. Connection string: `Data Source={path};Default Timeout=1;Pooling=False`
+   (`Default Timeout=1` makes SQLite contention surface quickly, so production retries are exercised).
+3. A keep-alive connection is opened for the database lifetime; on dispose, close it and delete
+   the `.db`, `-wal` and `-shm` files.
+4. `EnsureCreated()` once through a context, then seed through a separate context.
+5. Every concurrent operation gets its **own `InternHubDbContext` and connection**, and constructs
+   the real service directly (`new EfCoreAtomicCandidacyDecision(context)`).
+6. Assert final state through a **new** context with `AsNoTracking()`.
+
+### Deterministic overlap (no timing luck)
+
+1. Acquire an external write lock: open a connection, begin a transaction, execute a no-op write
+   (e.g. `UPDATE Students SET Email = Email;`).
+2. Start all operations without awaiting them. Each context has a `DbTransactionInterceptor`
+   that completes a `TaskCompletionSource` in `TransactionStarting(Async)`.
+3. Await all signals with `WaitAsync(TimeSpan.FromSeconds(5))`, then release the write lock.
+4. `await Task.WhenAll(...)` and assert.
+5. Start each concurrent operation with `Task.Run`. Microsoft.Data.Sqlite's async APIs block
+   synchronously, so without `Task.Run` the operations start one after another while the
+   write lock is held and may exhaust their busy retries before it is released.
+
+Waiting on these signals is the only allowed wait. No `Thread.Sleep`, `Task.Delay` or retry loops
+in test code (retries belong to production code).
+
+### Proving the `Offer.Version` path deterministically
+
+In SQLite the service's transaction already serialises writers, so concurrent calls alone may never
+reach the `DbUpdateConcurrencyException` branch. Prove that branch separately with a
+`SaveChangesInterceptor` on the deciding context that, in `SavingChangesAsync`, bumps the stored
+version of the offer inside the same transaction:
+
+```csharp
+await eventData.Context!.Set<Offer>()
+    .Where(o => o.Id == offerId)
+    .ExecuteUpdateAsync(s => s.SetProperty(o => o.Version, o => o.Version + 1), cancellationToken);
+```
+
+EF then emits `UPDATE Offers ... WHERE Version = @original`, matches 0 rows and throws
+`DbUpdateConcurrencyException`, which the service must handle. Use a one-shot interceptor to prove
+"retry, then succeed" and an always-on interceptor to prove "retries exhausted → `ConcurrencyConflict`".
+Verify that the interceptor compiles and runs against the project's EF Core version; if EF rejects it,
+report the limitation instead of weakening the assertions.
+
+Do not claim that a sequential test proves the concurrency branch.
+
 ## 5. What every HTTP integration test asserts
 
 Every test must assert all applicable parts of the complete behavior:
@@ -134,7 +197,7 @@ Also test a true persistence-level conflict if the code supports a deterministic
 
 The handler should map a stale version or a caught Offer concurrency failure to a Conflict Result; the endpoint maps it to `409`. Test the observable contract, not internal implementation calls.
 
-## 6a. InternHub Sprint 3 Person 4 scenarios (Decide / Get Offer Candidacies)
+## 6a. Decide / Get Offer Candidacies
 
 Seed Students, Offers and InternshipCandidacies directly through `InternHubDbContext` (never by
 calling Apply or other new endpoints). Use the real constructors; a candidacy in any status is
@@ -155,6 +218,38 @@ mark the classes `[Collection("Integration")]`, and read bodies with the real re
 | GetOfferCandidacies | Offer with candidacies (2 students, different dates, plus one candidacy of another offer) | `200`, only that offer's items, newest first, student names | candidacy count unchanged |
 | GetOfferCandidacies | Offer without candidacies | `200`, empty list | — |
 | GetOfferCandidacies | Missing offer | `404` + error text | no rows created |
+
+## 6b. AtomicDecision
+
+Files:
+- `tests/InternHub.Tests/Integration/Persistence/AtomicDecision/EfCoreAtomicCandidacyDecisionTests.cs` (sequential, file-based or in-memory per §4a)
+- `tests/InternHub.Tests/Integration/Persistence/AtomicDecision/EfCoreAtomicCandidacyDecisionConcurrencyTests.cs` (§4b)
+
+Seed with real constructors: `new Offer(title, company, requirements, deadline, maximumAvailableSlots)`,
+`new Student(...)`, `new InternshipCandidacy(id, studentId, offerId, applicationDate, status)`.
+Use a fixed date for `ApplicationDate` and deadlines. Use distinct students for several candidacies
+of one offer (partial unique index).
+
+| Scenario | Expected result | Required SQLite assertion |
+|---|---|---|
+| Submitted + Accept, free slot | `Decided`, status `Accepted` | candidacy `Accepted`; offer `Version` = before + 1 |
+| Submitted + Accept, no free slot | `Decided`, status `Waitlisted` | candidacy `Waitlisted`; offer `Version` unchanged |
+| Submitted + Shortlist | `Decided`, `Shortlisted` | offer `Version` unchanged |
+| Submitted + Reject | `Decided`, `Rejected` | offer `Version` unchanged |
+| Final status (e.g. `Rejected`) + Accept | `InvalidTransition` | candidacy and offer unchanged |
+| Missing candidacy | `CandidacyNotFound` | no rows changed |
+| Closed offer + Accept with free slot (BR-11) | `Decided`, `Accepted` | candidacy `Accepted` |
+| Two concurrent accepts, one slot left (§4b overlap) | one `Accepted` and one `Waitlisted` (both `Decided`) | exactly one `Accepted` for the offer |
+| Five concurrent accepts, one slot left | at most one result has status `Accepted` | accepted count = `MaximumAvailableSlots`; never more |
+| One injected `Version` conflict, then Accept | `Decided`, `Accepted` | candidacy `Accepted`; offer `Version` = before + 1 |
+| Injected `Version` conflict on every attempt | `ConcurrencyConflict` | candidacy still `Submitted`; offer `Version` unchanged |
+
+Assert the invariant (`Accepted` count ≤ `MaximumAvailableSlots`) rather than a specific winner;
+which request wins is not deterministic and must not be asserted.
+
+The existing HTTP tests in `Integration/InternshipCandidacies/DecideInternshipCandidacy/` must keep
+passing unchanged in behaviour (status codes and persisted state). Update only assertions on error
+texts that §13 of the cqrs skill changed (`... from its current status.`), and report each change.
 
 ## 7. Example of expected output
 
@@ -246,7 +341,7 @@ The example is a pattern, not authorization to invent DTO names, packages, or pr
 - [ ] For **HTTP mode**, tests use actual request/response records and `/api/v1` routes.
 - [ ] For **HTTP mode**, `WebApplicationFactory<Program>` uses real HTTP and the application's actual DI setup.
 - [ ] For **repository mode**, the real EF repository is invoked directly, with valid relational seed data and a fresh verification context.
-- [ ] Every test owns a fresh, open in-memory SQLite connection and disposes it.
+- [ ] Every test owns a fresh, open in-memory SQLite connection and disposes it (file-based temporary database for §4b concurrency tests).
 - [ ] No test connects to on-disk development/production SQLite.
 - [ ] Real relational constraints and concurrency are exercised (not EF InMemory provider).
 - [ ] For HTTP mode, status and response body are asserted; for both modes, fresh-context SQLite state is asserted.
