@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
+    <Folder Include="Features\Offers\CvFeedback\" />
     <Folder Include="Features\Shared\" />
   </ItemGroup>
 
