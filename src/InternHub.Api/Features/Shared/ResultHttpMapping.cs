@@ -7,6 +7,9 @@ public static class ResultHttpMapping
         ResultStatus.Validation => Results.BadRequest(result.Error),
         ResultStatus.NotFound => Results.NotFound(result.Error),
         ResultStatus.Conflict => Results.Conflict(result.Error),
+        ResultStatus.ServiceUnavailable => Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            detail: result.Error),
         _ => throw new InvalidOperationException("Success is not a failure.")
     };
 }

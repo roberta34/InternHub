@@ -12,12 +12,32 @@ namespace InternHub.Tests.Integration.Infrastructure;
 
 public sealed class InternHubSqliteFactory : WebApplicationFactory<Program>
 {
-    private readonly SqliteConnection _connection = new("Data Source=:memory:");
+    private readonly SqliteConnection _connection;
     private readonly TimeProvider _timeProvider;
+    private readonly bool _useSeparateConnections;
+    private readonly string? _sharedMemoryConnectionString;
+    private readonly Action<IServiceCollection>? _configureTestServices;
 
-    public InternHubSqliteFactory(TimeProvider? timeProvider = null)
+    public InternHubSqliteFactory(
+        TimeProvider? timeProvider = null,
+        bool useSeparateConnections = false,
+        Action<IServiceCollection>? configureTestServices = null)
     {
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _useSeparateConnections = useSeparateConnections;
+        _configureTestServices = configureTestServices;
+        _sharedMemoryConnectionString = useSeparateConnections
+            ? new SqliteConnectionStringBuilder
+            {
+                DataSource = $"InternHub-{Guid.NewGuid():N}",
+                Mode = SqliteOpenMode.Memory,
+                Cache = SqliteCacheMode.Shared,
+                DefaultTimeout = 1,
+                Pooling = false
+            }.ToString()
+            : null;
+        _connection = new SqliteConnection(
+            _sharedMemoryConnectionString ?? "Data Source=:memory:");
         _connection.Open();
     }
 
@@ -28,9 +48,16 @@ public sealed class InternHubSqliteFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<DbContextOptions<InternHubDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<InternHubDbContext>>();
-            services.AddDbContext<InternHubDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<InternHubDbContext>(options =>
+            {
+                if (_useSeparateConnections)
+                    options.UseSqlite(_sharedMemoryConnectionString!);
+                else
+                    options.UseSqlite(_connection);
+            });
             services.RemoveAll<TimeProvider>();
             services.AddSingleton(_timeProvider);
+            _configureTestServices?.Invoke(services);
         });
     }
 

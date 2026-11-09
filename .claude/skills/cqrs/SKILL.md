@@ -67,7 +67,7 @@ Names:
 - Queries: `GetStudentByIdQuery`, `GetStudentsQuery`, `GetOffersQuery`
 - Handlers: `CreateStudentHandler` with interface `ICreateStudentHandler`
 - Namespace = folder path, e.g. `InternHub.Api.Features.Students.CreateStudent`
-- Each handler has one public method, `Handle`, returning `Result<T>` (use `Task<Result<T>> HandleAsync` only if the repository interface is async).
+- Each handler has one public method returning `Result<T>` for synchronous work. Use `Task<Result<T>> HandleAsync` when the repository or another handler dependency exposes asynchronous operations; never block on asynchronous work.
 - Commands and queries are immutable `sealed record`s; classes are `sealed`.
 
 ## 4. Rules

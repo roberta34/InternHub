@@ -241,6 +241,84 @@ public sealed class CreateInternshipCandidacyEndpointTests
             .Should().BeEquivalentTo(activeCandidacies.Select(item => item.Id));
     }
 
+    [Fact]
+    public async Task Given_FourActiveCandidaciesAndTwoConcurrentApplications_When_Applying_Then_OnlyOneReachesTheFiveActiveLimit()
+    {
+        // Arrange
+        using var factory = new InternHubSqliteFactory(
+            new FixedTimeProvider(Now),
+            useSeparateConnections: true);
+        using var client = factory.CreateClient();
+        var student = CreateStudent();
+        var existingOffers = Enumerable.Range(0, 4)
+            .Select(_ => CreateOffer(Now.AddDays(1)))
+            .ToArray();
+        var requestedOffers = Enumerable.Range(0, 2)
+            .Select(_ => CreateOffer(Now.AddDays(1)))
+            .ToArray();
+        var existingCandidacies = existingOffers
+            .Select((offer, index) => CreateCandidacy(
+                student.Id,
+                offer.Id,
+                Now.AddDays(-index - 1),
+                InternshipCandidacyStatus.Submitted))
+            .ToArray();
+        await SeedAsync(
+            factory,
+            [student],
+            [.. existingOffers, .. requestedOffers],
+            existingCandidacies);
+        var firstRequest = client.PostAsJsonAsync(
+            "/api/v1/candidacies",
+            new CreateInternshipCandidacyRequest(student.Id, requestedOffers[0].Id));
+        var secondRequest = client.PostAsJsonAsync(
+            "/api/v1/candidacies",
+            new CreateInternshipCandidacyRequest(student.Id, requestedOffers[1].Id));
+
+        // Act
+        var responses = await Task.WhenAll(firstRequest, secondRequest);
+        using var firstResponse = responses[0];
+        using var secondResponse = responses[1];
+
+        // Assert
+        responses.Select(response => response.StatusCode)
+            .Should().BeEquivalentTo(
+                [HttpStatusCode.Created, HttpStatusCode.Conflict]);
+        var createdResponse = responses.Single(
+            response => response.StatusCode == HttpStatusCode.Created);
+        var conflictResponse = responses.Single(
+            response => response.StatusCode == HttpStatusCode.Conflict);
+        (await conflictResponse.Content.ReadAsStringAsync())
+            .Should().Contain("maximum of 5 active candidacies");
+        var created = await createdResponse.Content
+            .ReadFromJsonAsync<CreateInternshipCandidacyResponse>();
+        created.Should().NotBeNull();
+        created!.StudentId.Should().Be(student.Id);
+        requestedOffers.Select(offer => offer.Id).Should().Contain(created.OfferId);
+        created.Status.Should().Be(InternshipCandidacyStatus.Submitted);
+        createdResponse.Headers.Location.Should().NotBeNull();
+        createdResponse.Headers.Location!.ToString()
+            .Should().Be($"/api/v1/candidacies/{created.Id}");
+
+        using var verificationScope = factory.Services.CreateScope();
+        var verificationDb =
+            verificationScope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var studentCandidacies = await verificationDb.InternshipCandidacies
+            .AsNoTracking()
+            .Where(item => item.StudentId == student.Id)
+            .ToArrayAsync();
+        var activeCandidacies = studentCandidacies
+            .Where(item => item.IsActive)
+            .ToArray();
+        activeCandidacies.Should().HaveCount(5);
+        activeCandidacies.Select(item => item.Id)
+            .Should().Contain(existingCandidacies.Select(item => item.Id));
+        activeCandidacies.Where(item =>
+                requestedOffers.Select(offer => offer.Id).Contains(item.OfferId))
+            .Should().ContainSingle()
+            .Which.Id.Should().Be(created.Id);
+    }
+
     private static Student CreateStudent() =>
         new(Guid.NewGuid(), "Integration Student", $"student-{Guid.NewGuid():N}@example.test");
 
