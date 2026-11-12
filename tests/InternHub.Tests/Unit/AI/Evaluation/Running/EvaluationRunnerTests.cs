@@ -2,10 +2,13 @@ using FluentAssertions;
 using InternHub.Api.Features.RecruiterEvaluation;
 using InternHub.Tests.AI.Evaluation.Dataset;
 using InternHub.Tests.AI.Evaluation.Running;
-using InternHub.Tests.Unit.AI.Evaluation.Metrics;
+using InternHub.Tests.AI.Evaluation.Running.Outcomes;
+using InternHub.Tests.AI.Evaluation.Running.Reporting;
+using InternHub.Tests.Unit.AI.Evaluation.TestDoubles;
 
 namespace InternHub.Tests.Unit.AI.Evaluation.Running;
 
+/// <summary>Unit tests for EvaluationRunner.</summary>
 public sealed class EvaluationRunnerTests
 {
     private static readonly IReadOnlyDictionary<string, string?> NoSettings = new Dictionary<string, string?>();

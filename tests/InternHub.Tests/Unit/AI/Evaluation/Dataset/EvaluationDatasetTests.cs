@@ -1,10 +1,11 @@
 using System.Text.RegularExpressions;
 using FluentAssertions;
 using InternHub.Tests.AI.Evaluation.Dataset;
-using InternHub.Tests.AI.Evaluation.Metrics;
+using InternHub.Tests.AI.Evaluation.Metrics.Core;
 
 namespace InternHub.Tests.Unit.AI.Evaluation.Dataset;
 
+/// <summary>Unit tests for EvaluationDataset.</summary>
 public sealed class EvaluationDatasetTests
 {
     private static readonly EvaluationDataset Dataset = EvaluationDatasetLoader.Load();

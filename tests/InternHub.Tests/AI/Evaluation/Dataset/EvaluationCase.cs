@@ -1,5 +1,6 @@
 namespace InternHub.Tests.AI.Evaluation.Dataset;
 
+/// <summary>Value Object: one labeled dataset case (CV, requirements, required skills, expected matched and missing skills).</summary>
 public sealed record EvaluationCase(
     string Id,
     EvaluationCategory Category,

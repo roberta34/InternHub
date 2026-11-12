@@ -1,8 +1,9 @@
 # AI Evaluation Metrics
 
 This document defines how the evaluator measures a provider. It contains no results. The code
-is in `tests/InternHub.Tests/AI/Evaluation/Metrics/` and
-`tests/InternHub.Tests/AI/Evaluation/Running/`; the dataset is described in `dataset.md`.
+is in `tests/InternHub.Tests/AI/Evaluation/Metrics/` (`Core/`, `Strategies/`, `Aggregation/`,
+`Stability/`) and `tests/InternHub.Tests/AI/Evaluation/Running/` (`EvaluationRunner` at the root,
+with `Outcomes/`, `Reporting/` and `Manual/`); the dataset is described in `dataset.md`.
 
 ## Scope
 
@@ -31,9 +32,9 @@ so each empty-set value is explicit.
 
 | Metric | Formula | When the denominator is 0 | Class |
 |---|---|---|---|
-| Matched / Missing precision | TP / (TP + FP) = TP / \|pred\| | 1 if `exp` is also empty, else 0 | `PrecisionMetric` |
-| Matched / Missing recall | TP / (TP + FN) = TP / \|exp\| | 1 if `pred` is also empty, else 0 | `RecallMetric` |
-| Matched / Missing F1 | 2PR / (P + R) | 0 when P + R = 0 | `F1Metric` |
+| Matched / Missing precision | TP / (TP + FP) = TP / \|pred\| | 1 if `exp` is also empty, else 0 | `ConfusionMetric.Precision` |
+| Matched / Missing recall | TP / (TP + FN) = TP / \|exp\| | 1 if `pred` is also empty, else 0 | `ConfusionMetric.Recall` |
+| Matched / Missing F1 | 2PR / (P + R) | 0 when P + R = 0 | `ConfusionMetric.F1` |
 | Hallucination rate | predicted skills not in `required` / \|predicted\| | 0 (nothing predicted) | `HallucinationRateMetric` |
 | Contradiction | 1 if a skill is in both matched and missing, else 0 | - | `ContradictionMetric` |
 | Coverage | skills of `required` present in `predicted` / \|required\| | 1 (nothing required) | `CoverageMetric` |
@@ -45,9 +46,12 @@ Consequences of the empty-set values:
 - Empty prediction with a non-empty label set: precision 0, recall 0, F1 0.
 - Non-empty prediction with an empty label set: precision 0, recall 0, F1 0.
 
-Each metric is a strategy implementing `ICaseMetric`. Precision, recall and F1 are each one
-class, registered twice (for `SkillList.Matched` and `SkillList.Missing`). All registered
-metrics are listed in `CaseMetrics.Default`; adding a metric means adding a class to that list.
+Each metric is a strategy implementing `ICaseMetric` (in `Metrics/Strategies/`). Precision,
+recall and F1 are one class, `ConfusionMetric`, created through its factory methods
+`ConfusionMetric.Precision(list)`, `ConfusionMetric.Recall(list)` and `ConfusionMetric.F1(list)`,
+each registered twice (for `SkillList.Matched` and `SkillList.Missing`); the metric names stay
+`"<List> precision"`, `"<List> recall"` and `"<List> F1"`. `CaseMetrics.Default` is the only
+place where metrics are listed; adding a metric means adding one class and one line there.
 
 ## Micro vs macro aggregation
 

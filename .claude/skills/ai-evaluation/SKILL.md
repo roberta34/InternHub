@@ -45,21 +45,31 @@ Tests mirror the evaluator's folder structure:
 ```text
 tests/InternHub.Tests/
 ├── AI/Evaluation/
-│   ├── Dataset/        cv-evaluation-dataset.json, EvaluationDataset, EvaluationCase,
-│   │                   EvaluationCategory, EvaluationDatasetLoader
-│   ├── Metrics/        SkillNormalizer, ICaseMetric, <Name>Metric classes,
-│   │                   MetricAggregator, StabilityCalculator
-│   └── Running/        OutcomeKind, ProviderRunOutcome, OutcomeClassifier,
-│                       EvaluationRunner, MarkdownReportWriter,
-│                       ManualEvaluationFactAttribute, ManualEvaluationTests
+│   ├── Dataset/            cv-evaluation-dataset.json, EvaluationDataset, EvaluationCase,
+│   │                       EvaluationCategory, EvaluationDatasetLoader
+│   ├── Metrics/
+│   │   ├── Core/           SkillNormalizer, SkillList, ConfusionCounts, Ratio
+│   │   ├── Strategies/     ICaseMetric, CaseMetrics, ConfusionMetric, CoverageMetric,
+│   │   │                   HallucinationRateMetric, ContradictionMetric, FieldCompletenessMetric
+│   │   ├── Aggregation/    MetricAggregator, CategoryBreakdown, AggregateScores
+│   │   └── Stability/      StabilityCalculator, StabilityScores
+│   └── Running/            EvaluationRunner, EvaluationSetupException
+│       ├── Outcomes/       OutcomeKind, ProviderRunOutcome, OutcomeClassifier
+│       ├── Reporting/      EvaluationRunContext, EvaluationRunReport, MarkdownReportWriter
+│       └── Manual/         ManualEvaluationFactAttribute, ManualEvaluationSettings,
+│                           ManualEvaluationTests
 └── Unit/AI/Evaluation/
-    ├── Dataset/        EvaluationDatasetTests, EvaluationDatasetLoaderTests
-    ├── Metrics/        SkillNormalizerTests, <Name>MetricTests, ...
-    └── Running/        OutcomeClassifierTests, EvaluationRunnerTests, ...
+    ├── TestDoubles/        StubRecruiterEvaluationService, EvaluationCaseBuilder
+    └── Dataset/, Metrics/<same subfolders>/, Running/<same subfolders>/
+                            one <ClassUnderTest>Tests class per class under test
 ```
 
-- Namespaces follow folders: `InternHub.Tests.AI.Evaluation.<Folder>` and `InternHub.Tests.Unit.AI.Evaluation.<Folder>`.
-- Test classes: `<ClassUnderTest>Tests`. Stub providers and builders live next to the tests that use them.
+- Folders are grouped by responsibility and read top-down. Metrics: Core (building blocks) → Strategies (one score per case) → Aggregation (scores over all cases) → Stability (repeated runs of one case). Running: Outcomes → Reporting → EvaluationRunner; Manual holds only the opt-in real run.
+- Dependency direction: a folder may use only folders listed before it in that order. Core uses nothing else from Metrics. Nothing in Metrics uses Running.
+- Namespaces follow folders, e.g. `InternHub.Tests.AI.Evaluation.Metrics.Core`.
+- Test doubles used by more than one test folder live in `Unit/AI/Evaluation/TestDoubles/`.
+- Every type has a one-line `/// <summary>` stating its role, naming the pattern when there is one (Strategy, Factory Method, Registry, Value Object, Lookup table). No other comments except the existing ones that explain a non-obvious rule (e.g. empty-set conventions).
+- Test classes: `<ClassUnderTest>Tests`. A test double used by only one test folder lives next to the tests that use it.
 - Records are immutable; collections are exposed as `IReadOnlyList<string>`.
 - Do not create a separate type for something used by only one class and without behavior tested on its own; make it a private member or parameters instead. Keep a type separate only if it has its own tested behavior, is a result shared between classes, or is required by xUnit.
 - The names above are the expected design; use them unless the inspected repository already has an equivalent type.
@@ -110,6 +120,12 @@ tests/InternHub.Tests/
 **Normalization:** trim, `ToLowerInvariant`, then replace through the dataset alias map. Apply identically to predictions and labels; compare as sets (duplicates removed).
 
 **Metrics are strategies.** Each per-case metric is its own class implementing `ICaseMetric` (a `Name` and a compute method that takes the case, the provider result and the normalizer). The evaluator iterates a list of metrics. Never select metrics with `switch` or `if` chains; a new metric is a new class registered in the list.
+
+**One class for confusion-based scores.** Precision, recall and F1 are a single strategy, `ConfusionMetric(SkillList list, string scoreName, Func<ConfusionCounts, double> score)`, with a private constructor and three static factory methods: `ConfusionMetric.Precision(list)`, `ConfusionMetric.Recall(list)`, `ConfusionMetric.F1(list)`. Metric names stay exactly `"<List> precision"`, `"<List> recall"`, `"<List> F1"`, because reports and thresholds use them. Do not create one class per score.
+
+**No duplicate score records.** Micro aggregation stores the summed `ConfusionCounts` per `SkillList` (`AggregateScores.Micro` is `IReadOnlyDictionary<string, ConfusionCounts>`); precision, recall and F1 are read from it. Do not create a record that only copies them.
+
+**Registry.** `CaseMetrics.Default` is the only place where metrics are listed. Adding a metric means adding one class and one line there; the aggregator never changes.
 
 **Empty-set values are explicit.** One helper computes ratios and receives the value to return when the denominator is zero:
 
@@ -238,6 +254,9 @@ public void Given_SkillInBothListsWithDifferentCase_When_ComputingContradiction_
 - [ ] The `.csproj` change, if any, was shown and approved first.
 - [ ] Contract types, configuration keys and exception types match the inspected code.
 - [ ] No `switch`; metrics and outcome mapping use strategies / lookup tables.
+- [ ] Folder layout, dependency direction and namespaces match section 3.
+- [ ] Precision, recall and F1 exist only as ConfusionMetric factories; no record duplicates ConfusionCounts.
+- [ ] Every type has its one-line role summary.
 - [ ] Tests follow the unit-testing style, use stubs and hand-computed literals, no external services, no current-time calls.
 - [ ] No CV or generated text is logged or written anywhere.
 - [ ] `dotnet build` and `dotnet test tests/InternHub.Tests/InternHub.Tests.csproj` pass; the manual test shows as skipped.

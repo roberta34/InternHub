@@ -1,6 +1,11 @@
 using InternHub.Api.Features.RecruiterEvaluation;
 using InternHub.Tests.AI.Evaluation.Dataset;
-using InternHub.Tests.AI.Evaluation.Metrics;
+using InternHub.Tests.AI.Evaluation.Metrics.Aggregation;
+using InternHub.Tests.AI.Evaluation.Metrics.Core;
+using InternHub.Tests.AI.Evaluation.Metrics.Stability;
+using InternHub.Tests.AI.Evaluation.Metrics.Strategies;
+using InternHub.Tests.AI.Evaluation.Running.Outcomes;
+using InternHub.Tests.AI.Evaluation.Running.Reporting;
 
 namespace InternHub.Tests.AI.Evaluation.Running;
 
@@ -11,7 +16,6 @@ public sealed class EvaluationRunner
     public EvaluationRunner(OutcomeClassifier classifier)
     {
         ArgumentNullException.ThrowIfNull(classifier);
-
         _classifier = classifier;
     }
 
