@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace InternHub.Tests.AI.Evaluation.Dataset;
 
+/// <summary>Loads and validates the dataset JSON from a file or from a JSON string.</summary>
 public static class EvaluationDatasetLoader
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)

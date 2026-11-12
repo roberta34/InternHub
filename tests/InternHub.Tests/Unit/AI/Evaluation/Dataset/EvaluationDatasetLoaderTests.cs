@@ -4,6 +4,7 @@ using InternHub.Tests.AI.Evaluation.Dataset;
 
 namespace InternHub.Tests.Unit.AI.Evaluation.Dataset;
 
+/// <summary>Unit tests for EvaluationDatasetLoader.</summary>
 public sealed class EvaluationDatasetLoaderTests
 {
     private const string ValidJson = """
