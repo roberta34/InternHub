@@ -4,6 +4,7 @@ using InternHub.Api.Features.Students;
 using InternHub.Api.Features.Offers;
 using InternHub.Api.Features.Students.GetStudentById;
 using InternHub.Api.Features.Students.GetStudents;
+using InternHub.Api.Infrastructure.Auth;
 using InternHub.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,7 @@ var featureModules = typeof(IFeatureModule).Assembly
     .ToArray();
 
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddAuthFeatures();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 builder.Services.AddStudentFeatures();
 builder.Services.AddOfferFeatures();
@@ -37,6 +39,11 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
     db.Database.EnsureCreated();
 }
+
+await RecruiterSeeder.SeedAsync(app.Services, builder.Configuration, app.Environment);
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 var v1 = app.MapV1();
 

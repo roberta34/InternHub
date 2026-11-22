@@ -72,6 +72,10 @@ dotnet test ./tests/InternHub.Tests/InternHub.Tests.csproj --collect:"XPlat Code
 
 This creates a `coverage.cobertura.xml` report under a generated `TestResults/<GUID>/` folder. The same command is used in CI and the coverage file is uploaded as a workflow artifact.
 
+## Authentication
+
+Authentication uses opaque Identity bearer tokens, not JWT. A recruiter is seeded only in Development or Testing when `Seed:Recruiter:Email` and `Seed:Recruiter:Password` are configured.
+
 ## 2. Project Goals
 
 InternHub aims to:

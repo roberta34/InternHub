@@ -1,4 +1,5 @@
 using InternHub.Api.Features.Shared;
+using InternHub.Api.Infrastructure.AI.Fallback;
 
 namespace InternHub.Api.Features.Offers.CvFeedback;
 
@@ -11,14 +12,22 @@ public static class Endpoint
                 Guid offerId,
                 CvFeedbackRequest request,
                 ICvFeedbackHandler handler,
+                AiExecutionTrace executionTrace,
+                HttpContext httpContext,
                 CancellationToken cancellationToken) =>
             {
                 var result = await handler.HandleAsync(
                     new CvFeedbackCommand(offerId, request.CvText),
                     cancellationToken);
 
-                return result.Status == ResultStatus.Success
-                    ? Results.Ok(result.Value)
-                    : result.ToFailure();
+                if (result.Status != ResultStatus.Success)
+                    return result.ToFailure();
+
+                httpContext.Response.Headers["X-InternHub-AI-Provider"] =
+                    executionTrace.Provider;
+                httpContext.Response.Headers["X-InternHub-AI-Fallback"] =
+                    executionTrace.FallbackUsed ? "true" : "false";
+
+                return Results.Ok(result.Value);
             });
 }
