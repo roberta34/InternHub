@@ -25,7 +25,7 @@ public sealed class GetStudentCandidacySummaryEndpointTests
     public async Task Given_DefaultProductionRegistrationAndAnonymousRequest_When_GettingSummary_Then_ReturnsUnauthorizedWithoutServerError()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory();
+        using var factory = new InternHubSqliteFactory(authenticateRecruiter: false);
         using var client = factory.CreateClient();
         var student = CreateStudent();
         var offer = CreateOffer("Offer", "Company");

@@ -37,7 +37,7 @@ public sealed class GetRecruiterNotificationsEndpointTests
     public async Task Given_DefaultProductionRegistrationAndUnauthenticatedRequest_When_GettingNotifications_Then_ReturnsUnauthorizedWithoutServerError()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory();
+        using var factory = new InternHubSqliteFactory(authenticateRecruiter: false);
         using var client = factory.CreateClient();
         var notification = CreateNotification(Guid.NewGuid(), BaseTimestampUtc);
         await SeedNotificationsAsync(factory, notification);

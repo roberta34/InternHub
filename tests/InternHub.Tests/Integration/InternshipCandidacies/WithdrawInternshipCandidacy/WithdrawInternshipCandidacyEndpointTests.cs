@@ -24,7 +24,9 @@ public sealed class WithdrawInternshipCandidacyEndpointTests
     public async Task Given_DefaultProductionRegistrationAndAnonymousRequest_When_Withdrawing_Then_ReturnsUnauthorizedWithoutModifyingDatabase()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory(new FixedTimeProvider(WithdrawTimestampUtc));
+        using var factory = new InternHubSqliteFactory(
+            new FixedTimeProvider(WithdrawTimestampUtc),
+            authenticateRecruiter: false);
         using var client = factory.CreateClient();
         var student = CreateStudent();
         var offer = CreateOffer();
