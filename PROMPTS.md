@@ -802,3 +802,18 @@ All three P2 tasks were implemented independently, using skill-guided code gener
 **Test iteration:** The first test build exposed a missing import for the actual `CvFeedbackResponse` namespace. Added the correct test-only using directive; no contract or production change was required.
 
 **Verified result:** `dotnet test tests\InternHub.Tests\InternHub.Tests.csproj` passed **393/393** tests (0 failed, 0 skipped). `git diff --check` completed without errors. No skill changes were needed.
+
+### P1.3 — Auth and AI Fallback Unit Tests
+
+**Recorded tool:** GitHub Copilot SDK in VS Code
+**Skill:** `.claude/skills/unit-testing/SKILL.md`
+
+**Prompt summary:** Add unit tests for the three Auth handlers, `OllamaFallbackDecorator`, `ProviderTraceDecorator`, and only the Unauthorized-to-401 mapping. Use hand-written fakes; do not modify production or existing tests, use a database, or make HTTP calls.
+
+**Changes:** Added Auth handler tests and registration/authenticator fakes, fallback decorator tests and an evaluation-service fake, and one Unauthorized mapping test. Added whitespace input and malformed recruiter-claim cases. The mapping test supplies logging services to `DefaultHttpContext` so `UnauthorizedHttpResult` can execute without a host.
+
+**Observed issue:** The first scoped run exposed a missing `RequestServices` provider in the Unauthorized mapping test; the next run showed that the result also requires `ILoggerFactory`. The test context now provides `AddLogging()`. No production behavior was changed.
+
+**Skill change:** None. The skill was followed; the user’s standing instruction prohibits edits under `.claude/skills/`, and no skill change was needed.
+
+**Verified result:** The scoped tests passed **43/43** (0 failed, 0 skipped); `dotnet build InternHub.slnx --no-restore` succeeded with 0 warnings and 0 errors; the full test project passed **436/436** (0 failed, 0 skipped). Scoped Cobertura: RegisterStudentHandler 100% lines / 50% branches (the defensive missing-error throw from `GetError` is not covered); LoginHandler, GetCurrentUserHandler, and OllamaFallbackDecorator 100% lines / branches. ProviderTraceDecorator: 70% lines / 25% branches (Ollama and unsupported-service switch paths not exercised). ResultHttpMapping: only the requested Unauthorized arm was exercised; its other status mappings and default arm remain outside this scoped test. InternHubClaimsFactory was omitted because a pure unit test without a user/role store was not set up.
