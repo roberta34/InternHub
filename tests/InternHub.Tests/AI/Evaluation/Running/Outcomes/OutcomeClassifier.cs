@@ -1,4 +1,5 @@
 using InternHub.Api.Features.RecruiterEvaluation;
+using InternHub.Api.Features.StudentCvFeedback;
 
 namespace InternHub.Tests.AI.Evaluation.Running.Outcomes;
 
@@ -10,6 +11,14 @@ public sealed class OutcomeClassifier
             [typeof(InvalidOperationException)] = OutcomeKind.InvalidResponse,
             [typeof(HttpRequestException)] = OutcomeKind.InfrastructureUnavailable,
             [typeof(TaskCanceledException)] = OutcomeKind.InfrastructureUnavailable
+        };
+
+    private static readonly IReadOnlyDictionary<StudentCvFeedbackFailureKind, OutcomeKind> ProviderFailureKinds =
+        new Dictionary<StudentCvFeedbackFailureKind, OutcomeKind>
+        {
+            [StudentCvFeedbackFailureKind.ProviderUnavailable] = OutcomeKind.InfrastructureUnavailable,
+            [StudentCvFeedbackFailureKind.Timeout] = OutcomeKind.InfrastructureUnavailable,
+            [StudentCvFeedbackFailureKind.InvalidEvaluation] = OutcomeKind.InvalidResponse
         };
 
     public OutcomeKind ClassifyResult(RecruiterEvaluationResult? result)
@@ -31,6 +40,11 @@ public sealed class OutcomeClassifier
         kind = default;
         var cancelledByCaller = exception is OperationCanceledException && callerToken.IsCancellationRequested;
 
-        return !cancelledByCaller && ExceptionKinds.TryGetValue(exception.GetType(), out kind);
+        if (cancelledByCaller)
+            return false;
+
+        return exception is StudentCvFeedbackProviderException providerFailure
+            ? ProviderFailureKinds.TryGetValue(providerFailure.Kind, out kind)
+            : ExceptionKinds.TryGetValue(exception.GetType(), out kind);
     }
 }

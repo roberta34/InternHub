@@ -98,10 +98,28 @@ public sealed class MetricAggregatorTests
             "Missing recall",
             "Missing F1",
             "Field completeness",
+            "Suggestion coverage",
+            "Suggestion mismatch",
             "Hallucination rate",
             "Contradiction",
             "Coverage");
         scores.Micro.Keys.Should().BeEquivalentTo("Matched", "Missing");
+    }
+
+    [Fact]
+    public void Given_DefaultMetrics_When_Aggregating_Then_RecordsTheKindOfEveryMetric()
+    {
+        // Arrange
+        var aggregator = CreateAggregator();
+        var pairs = TwoCases();
+
+        // Act
+        var scores = aggregator.Aggregate(pairs);
+
+        // Assert
+        scores.Kinds.Keys.Should().BeEquivalentTo(scores.Macro.Keys);
+        scores.Kinds["Field completeness"].Should().Be(MetricKind.Structural);
+        scores.Kinds["Matched precision"].Should().Be(MetricKind.Semantic);
     }
 
     [Fact]

@@ -9,5 +9,8 @@ public enum EvaluationCategory
     Implicit,
     Noise,
     Minimal,
-    PromptInjection
+    PromptInjection,
+    AmbiguousTerms,
+    SuggestionMismatch,
+    UnsupportedEvidence
 }

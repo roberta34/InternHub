@@ -14,6 +14,8 @@ public static class CaseMetrics
         ConfusionMetric.Recall(SkillList.Missing),
         ConfusionMetric.F1(SkillList.Missing),
         new FieldCompletenessMetric(),
+        SuggestionAssociationMetric.Coverage(),
+        SuggestionAssociationMetric.Mismatch(),
         new HallucinationRateMetric(),
         new ContradictionMetric(),
         new CoverageMetric()

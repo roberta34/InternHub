@@ -81,6 +81,54 @@ public sealed class MarkdownReportWriterTests
     }
 
     [Fact]
+    public async Task Given_Report_When_Writing_Then_HasStructuralSectionBeforeSemanticSection()
+    {
+        // Arrange
+        var report = await RunAsync(new StubRecruiterEvaluationService(() => MarkerResult));
+
+        // Act
+        var markdown = MarkdownReportWriter.Write(report);
+
+        // Assert
+        var structural = markdown.IndexOf("## Structural metrics", StringComparison.Ordinal);
+        var semantic = markdown.IndexOf("## Semantic metrics", StringComparison.Ordinal);
+        structural.Should().BeGreaterThan(-1);
+        semantic.Should().BeGreaterThan(structural);
+        markdown.Should().NotContain("## Aggregate metrics");
+    }
+
+    [Theory]
+    [InlineData("| Field completeness |", true)]
+    [InlineData("| Suggestion coverage |", true)]
+    [InlineData("| Suggestion mismatch |", true)]
+    [InlineData("- Valid-response rate", true)]
+    [InlineData("| Matched precision |", false)]
+    [InlineData("| Hallucination rate |", false)]
+    [InlineData("| Contradiction |", false)]
+    [InlineData("| Coverage |", false)]
+    public async Task Given_Report_When_Writing_Then_EachMetricAppearsOnceInItsKindSection(
+        string metricRow,
+        bool structural)
+    {
+        // Arrange
+        var report = await RunAsync(new StubRecruiterEvaluationService(() => MarkerResult));
+        var markdown = MarkdownReportWriter.Write(report);
+        var structuralStart = markdown.IndexOf("## Structural metrics", StringComparison.Ordinal);
+        var semanticStart = markdown.IndexOf("## Semantic metrics", StringComparison.Ordinal);
+        var stabilityStart = markdown.IndexOf("## Stability", StringComparison.Ordinal);
+        var structuralSection = markdown[structuralStart..semanticStart];
+        var semanticSection = markdown[semanticStart..stabilityStart];
+
+        // Act
+        var inStructural = structuralSection.Split(metricRow).Length - 1;
+        var inSemantic = semanticSection.Split(metricRow).Length - 1;
+
+        // Assert
+        (inStructural + inSemantic).Should().Be(1);
+        (inStructural == 1).Should().Be(structural);
+    }
+
+    [Fact]
     public async Task Given_Report_When_Writing_Then_StatesThatProviderRetriesAreInvisible()
     {
         // Arrange

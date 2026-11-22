@@ -38,7 +38,8 @@ public static class MarkdownReportWriter
         var markdown = new StringBuilder();
         WriteContext(markdown, report.Context);
         WriteOutcomes(markdown, report);
-        WriteAggregate(markdown, report.Aggregate);
+        WriteStructural(markdown, report);
+        WriteSemantic(markdown, report.Aggregate);
         WriteStability(markdown, report);
         WriteCategories(markdown, report);
         WriteNonSuccessCalls(markdown, report);
@@ -83,7 +84,6 @@ public static class MarkdownReportWriter
 
         markdown.AppendLine($"| Total | {report.TotalCalls.ToString(CultureInfo.InvariantCulture)} |");
         markdown.AppendLine();
-        markdown.AppendLine($"- Valid-response rate (calls that reached the model): {Format(report.ValidResponseRate)}");
         markdown.AppendLine($"- Unavailability rate (all calls): {Format(report.UnavailabilityRate)}");
         markdown.AppendLine("- Provider-internal retries are invisible to the evaluator: all rates are measured after them.");
 
@@ -98,9 +98,30 @@ public static class MarkdownReportWriter
         markdown.AppendLine();
     }
 
-    private static void WriteAggregate(StringBuilder markdown, AggregateScores? aggregate)
+    private static void WriteStructural(StringBuilder markdown, EvaluationRunReport report)
     {
-        markdown.AppendLine("## Aggregate metrics");
+        markdown.AppendLine("## Structural metrics");
+        markdown.AppendLine();
+        markdown.AppendLine("Shape of the output; no dataset labels needed.");
+        markdown.AppendLine();
+        markdown.AppendLine($"- Valid-response rate (calls that reached the model): {Format(report.ValidResponseRate)}");
+        markdown.AppendLine();
+
+        if (report.Aggregate is null)
+        {
+            markdown.AppendLine("No successful outcomes; metrics were not computed.");
+            markdown.AppendLine();
+            return;
+        }
+
+        WriteMacroTable(markdown, report.Aggregate, MetricKind.Structural);
+    }
+
+    private static void WriteSemantic(StringBuilder markdown, AggregateScores? aggregate)
+    {
+        markdown.AppendLine("## Semantic metrics");
+        markdown.AppendLine();
+        markdown.AppendLine("Output compared with the dataset labels.");
         markdown.AppendLine();
 
         if (aggregate is null)
@@ -119,12 +140,16 @@ public static class MarkdownReportWriter
             markdown.AppendLine($"| {name} | {Format(MicroValues[name](aggregate))} | {Format(aggregate.Macro[name])} |");
 
         markdown.AppendLine();
-        markdown.AppendLine("### Extended metrics (macro)");
-        markdown.AppendLine();
+        WriteMacroTable(markdown, aggregate, MetricKind.Semantic);
+    }
+
+    private static void WriteMacroTable(StringBuilder markdown, AggregateScores aggregate, MetricKind kind)
+    {
         markdown.AppendLine("| Metric | Macro |");
         markdown.AppendLine("|---|---|");
 
-        foreach (var metric in aggregate.Macro.Where(metric => !MicroValues.ContainsKey(metric.Key)))
+        foreach (var metric in aggregate.Macro.Where(metric =>
+                     aggregate.Kinds[metric.Key] == kind && !MicroValues.ContainsKey(metric.Key)))
             markdown.AppendLine($"| {metric.Key} | {Format(metric.Value)} |");
 
         markdown.AppendLine();

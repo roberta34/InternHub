@@ -18,6 +18,8 @@ public sealed class ConfusionMetric : ICaseMetric
 
     public string Name { get; }
 
+    public MetricKind Kind => MetricKind.Semantic;
+
     public static ConfusionMetric Precision(SkillList list) => new(list, "precision", counts => counts.Precision);
 
     public static ConfusionMetric Recall(SkillList list) => new(list, "recall", counts => counts.Recall);

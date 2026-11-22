@@ -1,5 +1,6 @@
 using FluentAssertions;
 using InternHub.Api.Features.RecruiterEvaluation;
+using InternHub.Api.Features.StudentCvFeedback;
 using InternHub.Tests.AI.Evaluation.Running.Outcomes;
 
 namespace InternHub.Tests.Unit.AI.Evaluation.Running.Outcomes;
@@ -7,6 +8,56 @@ namespace InternHub.Tests.Unit.AI.Evaluation.Running.Outcomes;
 /// <summary>Unit tests for OutcomeClassifier.</summary>
 public sealed class OutcomeClassifierTests
 {
+    [Theory]
+    [InlineData(StudentCvFeedbackFailureKind.ProviderUnavailable, OutcomeKind.InfrastructureUnavailable)]
+    [InlineData(StudentCvFeedbackFailureKind.Timeout, OutcomeKind.InfrastructureUnavailable)]
+    [InlineData(StudentCvFeedbackFailureKind.InvalidEvaluation, OutcomeKind.InvalidResponse)]
+    public void Given_ProviderExceptionWithKind_When_Classifying_Then_MapsByKind(
+        StudentCvFeedbackFailureKind failureKind,
+        OutcomeKind expected)
+    {
+        // Arrange
+        var classifier = new OutcomeClassifier();
+        var exception = new StudentCvFeedbackProviderException(failureKind, "Provider failure.");
+
+        // Act
+        var classified = classifier.TryClassify(exception, CancellationToken.None, out var kind);
+
+        // Assert
+        classified.Should().BeTrue();
+        kind.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Given_ProviderExceptionWithUnknownKind_When_Classifying_Then_IsNotClassified()
+    {
+        // Arrange
+        var classifier = new OutcomeClassifier();
+        var exception = new StudentCvFeedbackProviderException((StudentCvFeedbackFailureKind)999, "Unknown.");
+
+        // Act
+        var classified = classifier.TryClassify(exception, CancellationToken.None, out _);
+
+        // Assert
+        classified.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Given_OperationCanceledRequestedByCaller_When_Classifying_Then_IsNotClassified()
+    {
+        // Arrange
+        var classifier = new OutcomeClassifier();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var exception = new OperationCanceledException(cancellation.Token);
+
+        // Act
+        var classified = classifier.TryClassify(exception, cancellation.Token, out _);
+
+        // Assert
+        classified.Should().BeFalse();
+    }
+
     [Fact]
     public void Given_InvalidOperationException_When_Classifying_Then_ReturnsInvalidResponse()
     {

@@ -39,6 +39,8 @@ so each empty-set value is explicit.
 | Contradiction | 1 if a skill is in both matched and missing, else 0 | - | `ContradictionMetric` |
 | Coverage | skills of `required` present in `predicted` / \|required\| | 1 (nothing required) | `CoverageMetric` |
 | Field completeness | 1 if complete (see below), else 0 | - | `FieldCompletenessMetric` |
+| Suggestion coverage | reported missing skills named in at least one suggestion / reported missing skills | 1 (nothing missing, nothing to cover) | `SuggestionAssociationMetric.Coverage` |
+| Suggestion mismatch | suggestions that name no reported missing skill / suggestions | 0 (no suggestions, nothing mismatched) | `SuggestionAssociationMetric.Mismatch` |
 
 Consequences of the empty-set values:
 
@@ -52,6 +54,43 @@ recall and F1 are one class, `ConfusionMetric`, created through its factory meth
 each registered twice (for `SkillList.Matched` and `SkillList.Missing`); the metric names stay
 `"<List> precision"`, `"<List> recall"` and `"<List> F1"`. `CaseMetrics.Default` is the only
 place where metrics are listed; adding a metric means adding one class and one line there.
+
+## Metric kinds: structural and semantic
+
+Every metric declares a `MetricKind`, and the report has one section per kind:
+
+| Kind | Meaning | Metrics |
+|---|---|---|
+| Structural | Checks the shape of the output; needs no dataset labels | valid-response rate (run level), field completeness, suggestion coverage, suggestion mismatch |
+| Semantic | Compares the output with the dataset labels | matched / missing precision, recall, F1; hallucination rate; contradiction; coverage |
+
+The report writer groups by the kind each metric declares, never by a list of names.
+
+## Suggestion association
+
+`Suggestions` is a plain list of strings with no link to a skill, so the association is found
+in the text. It is **structural**: it does not judge whether a suggestion is good, only whether
+it names a skill the provider itself reported as missing.
+
+- A suggestion names a skill when a whole term in it normalizes (trim, lowercase, dataset
+  aliases) to that skill. A term is not preceded or followed by a letter, digit, `+` or `#`;
+  a `.` counts as a boundary only when it is not followed by a letter or digit.
+- So "Deploy to a k8s cluster" names `kubernetes`, but "Build a page in JavaScript" does not
+  name `java`, and "Write a tool in C#" does not name `c`.
+- Both scores use the provider's own reported missing skills; the expected labels are not used.
+- If the contract ever gains an explicit skill association, it replaces the text search.
+
+## Unsupported evidence and hallucination
+
+A model may report a skill the CV does not support. Two different metrics catch it,
+depending on whether the offer requires that skill:
+
+- **Not required** (UnsupportedEvidence cases: the CV only wishes to learn Kubernetes, or says
+  the team used AWS): reporting that technology in either list is counted by
+  **`HallucinationRateMetric`**, because it is not in `requiredSkills`.
+- **Required**: reporting a required skill as matched without support in the CV is a **false
+  positive in matched precision** (and a false negative in missing recall), not a
+  hallucination.
 
 ## Micro vs macro aggregation
 
@@ -124,6 +163,17 @@ exceptions the inspected providers actually throw:
 | `HttpRequestException` | `InfrastructureUnavailable` | Ollama provider: HTTP error status or connection failure |
 | `TaskCanceledException` (not requested by the caller) | `InfrastructureUnavailable` | `HttpClient` timeout |
 
+`StudentCvFeedbackProviderException`, which the Ollama provider throws, carries a `Kind` and is
+classified through a second lookup table:
+
+| `StudentCvFeedbackFailureKind` | Outcome |
+|---|---|
+| `ProviderUnavailable` | `InfrastructureUnavailable` |
+| `Timeout` | `InfrastructureUnavailable` |
+| `InvalidEvaluation` | `InvalidResponse` |
+
+A kind that is not in this table is rethrown.
+
 - Any exception type not in the table is **rethrown**, never hidden.
 - A cancellation requested by the caller's own token is **rethrown**.
 - An invalid result is classified before it reaches any metric.
@@ -154,6 +204,29 @@ A provider may retry internally (the Ollama provider retries once after invalid 
 These retries are **invisible to the evaluator**: every rate is measured after them, and each
 report says so.
 
+## Offline scripted run (CI)
+
+`OfflineEvaluationRunTests` runs the whole pipeline (dataset, runner, metrics, aggregation,
+report) on every `dotnet test`, with no real provider. It uses `ScriptedEvaluationProvider`,
+which returns each case's own labels plus three documented perturbations:
+
+1. `negation-03`: the negated skill (Docker) is moved from missing to matched and its
+   suggestion removed;
+2. `suggestion-mismatch-01`: a suggestion that names no skill is appended;
+3. `minimal-01`: a blank summary, so the call is an `InvalidResponse`.
+
+The expected values in that test are computed by hand from the labels and these
+perturbations; the comments name the cases behind every number. The offline run **validates
+the evaluator only and produces no provider scores**. The keyword baseline and Ollama are
+measured only in the opt-in manual run (`INTERNHUB_AI_EVAL=1`). The same run also checks that
+the report contains no CV text and no suggestion or summary text.
+
+## Real runs
+
+No real provider run is recorded: `docs/ai-evaluation/results.md` does not exist yet, for any
+dataset version. In particular there are no Ollama scores for dataset 2.0.0. Results are
+written there by the owner only after an actual opt-in run.
+
 ## Run context and privacy
 
 Each report records the run context: provider, model, temperature, prompt version, K (runs per
@@ -166,8 +239,8 @@ provider-generated text (skills, suggestions, summaries) are never logged, print
 
 ## Limitations
 
-- **15 cases give indicative results only.** A single case changes a macro value by at most
-  about 0.07 (1/15), and a per-category value rests on 2 or 3 cases. Differences between
+- **26 cases give indicative results only.** A single case changes a macro value by at most
+  about 0.04 (1/26), and a per-category value rests on 2 to 4 cases. Differences between
   providers should be read as indications, not as statistically significant findings.
 - The cases are synthetic, short and in English only; real CVs are longer and more varied.
 - The labels were generated with Claude Code from the ai-evaluation skill and reviewed case by
@@ -200,5 +273,6 @@ Rationale:
 - **Valid-response rate >= 0.95**: at most one in twenty calls that reach the model may return
   an unusable answer.
 
-Coverage, field completeness and stability are reported without a threshold; they explain the
+Coverage, field completeness, suggestion coverage, suggestion mismatch and stability are
+reported without a threshold; they explain the
 results rather than decide them.

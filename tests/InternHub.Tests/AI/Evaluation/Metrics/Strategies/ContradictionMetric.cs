@@ -8,6 +8,8 @@ public sealed class ContradictionMetric : ICaseMetric
 {
     public string Name => "Contradiction";
 
+    public MetricKind Kind => MetricKind.Semantic;
+
     public double Compute(EvaluationCase evaluationCase, RecruiterEvaluationResult result, SkillNormalizer normalizer)
     {
         ArgumentNullException.ThrowIfNull(result);
