@@ -10,3 +10,6 @@
 internhub.db
 internhub.db-shm
 internhub.db-walinternhub_all.txt
+
+*.db-wal
+*.db-shm

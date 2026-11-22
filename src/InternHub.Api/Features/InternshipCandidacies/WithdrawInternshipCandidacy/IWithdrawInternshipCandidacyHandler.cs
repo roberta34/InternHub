@@ -4,5 +4,7 @@ namespace InternHub.Api.Features.InternshipCandidacies.WithdrawInternshipCandida
 
 public interface IWithdrawInternshipCandidacyHandler
 {
-    Result<bool> Handle(WithdrawInternshipCandidacyCommand command);
+    Task<Result<bool>> HandleAsync(
+        WithdrawInternshipCandidacyCommand command,
+        CancellationToken cancellationToken = default);
 }

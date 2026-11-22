@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using InternHub.Api.Features.Shared;
 
 namespace InternHub.Api.Features.InternshipCandidacies.WithdrawInternshipCandidacy;
@@ -5,11 +6,15 @@ namespace InternHub.Api.Features.InternshipCandidacies.WithdrawInternshipCandida
 public static class Endpoint
 {
     public static void Map(RouteGroupBuilder api) =>
-        api.MapPost("/candidacies/{id:guid}/withdraw", (
+        api.MapPost("/candidacies/{id:guid}/withdraw", async (
             Guid id,
-            IWithdrawInternshipCandidacyHandler handler) =>
+            ClaimsPrincipal user,
+            IWithdrawInternshipCandidacyHandler handler,
+            CancellationToken cancellationToken) =>
         {
-            var result = handler.Handle(new WithdrawInternshipCandidacyCommand(id));
+            var result = await handler.HandleAsync(
+                new WithdrawInternshipCandidacyCommand(id, user),
+                cancellationToken);
 
             return result.Status == ResultStatus.Success
                 ? Results.NoContent()

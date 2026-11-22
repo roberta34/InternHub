@@ -22,10 +22,124 @@ public sealed class GetStudentCandidacySummaryEndpointTests
         new(2027, 2, 15, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public async Task Given_StudentWithAllStatuses_When_GettingSummary_Then_ReturnsAllCounts()
+    public async Task Given_DefaultProductionRegistrationAndAnonymousRequest_When_GettingSummary_Then_ReturnsUnauthorizedWithoutServerError()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory();
+        using var factory = new InternHubSqliteFactory(authenticateRecruiter: false);
+        using var client = factory.CreateClient();
+        var student = CreateStudent();
+        var offer = CreateOffer("Offer", "Company");
+        var candidacy = CreateCandidacy(student.Id, offer.Id, InternshipCandidacyStatus.Submitted);
+        await SeedAsync(factory, [student], [offer], [candidacy]);
+
+        // Act
+        using var response = await client.GetAsync(
+            $"/api/v1/students/{student.Id}/candidacies/summary");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await ReadCandidaciesAsync(factory)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_AnonymousRequestWithTestAuthPipeline_When_GettingSummary_Then_ReturnsUnauthorized()
+    {
+        // Arrange
+        using var factory = StudentTestAuthentication.CreateFactory();
+        using var client = factory.CreateClient();
+        var student = CreateStudent();
+        await SeedAsync(factory, [student], []);
+
+        // Act
+        using var response = await client.GetAsync(
+            $"/api/v1/students/{student.Id}/candidacies/summary");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await ReadCandidaciesAsync(factory)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_AuthenticatedRecruiter_When_GettingStudentSummary_Then_ReturnsForbiddenAndPreservesDatabase()
+    {
+        // Arrange
+        using var factory = StudentTestAuthentication.CreateFactory();
+        using var client = factory.CreateClient();
+        var student = CreateStudent();
+        var offer = CreateOffer("Offer", "Company");
+        var candidacy = CreateCandidacy(student.Id, offer.Id, InternshipCandidacyStatus.Shortlisted);
+        await SeedAsync(factory, [student], [offer], [candidacy]);
+        using var request = StudentTestAuthentication.CreateRecruiterGetRequest(
+            $"/api/v1/students/{student.Id}/candidacies/summary",
+            Guid.NewGuid(),
+            subjectId: "account-recruiter");
+
+        // Act
+        using var response = await client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await ReadCandidaciesAsync(factory)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_TwoStudentsWithCandidacies_When_StudentARequestsStudentBSummary_Then_ReturnsForbiddenWithoutExposingData()
+    {
+        // Arrange
+        using var factory = StudentTestAuthentication.CreateFactory();
+        using var client = factory.CreateClient();
+        var studentA = CreateStudent();
+        var studentB = CreateStudent();
+        var offerA = CreateOffer("Offer A", "Company A");
+        var offerB = CreateOffer("Offer B", "Company B");
+        var candidacyA = CreateCandidacy(studentA.Id, offerA.Id, InternshipCandidacyStatus.Submitted);
+        var candidacyB = CreateCandidacy(studentB.Id, offerB.Id, InternshipCandidacyStatus.Accepted);
+        await SeedAsync(factory, [studentA, studentB], [offerA, offerB], [candidacyA, candidacyB]);
+        using var request = StudentTestAuthentication.CreateStudentGetRequest(
+            $"/api/v1/students/{studentB.Id}/candidacies/summary",
+            studentA.Id.ToString(),
+            subjectId: "account-student-a");
+
+        // Act
+        using var response = await client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await ReadCandidaciesAsync(factory)).Should().HaveCount(2);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not-a-valid-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public async Task Given_AuthenticatedStudentWithInvalidIdentity_When_GettingSummary_Then_ReturnsForbidden(
+        string? invalidStudentId)
+    {
+        // Arrange
+        using var factory = StudentTestAuthentication.CreateFactory();
+        using var client = factory.CreateClient();
+        var student = CreateStudent();
+        var offer = CreateOffer("Offer", "Company");
+        var candidacy = CreateCandidacy(student.Id, offer.Id, InternshipCandidacyStatus.Submitted);
+        await SeedAsync(factory, [student], [offer], [candidacy]);
+        using var request = StudentTestAuthentication.CreateStudentGetRequest(
+            $"/api/v1/students/{student.Id}/candidacies/summary",
+            invalidStudentId,
+            subjectId: student.Id.ToString());
+
+        // Act
+        using var response = await client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await ReadCandidaciesAsync(factory)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_StudentWithAllStatuses_When_GettingOwnSummary_Then_ReturnsAllCounts()
+    {
+        // Arrange
+        using var factory = StudentTestAuthentication.CreateFactory();
         using var client = factory.CreateClient();
         var student = CreateStudent();
         var statuses = new[]
@@ -45,10 +159,13 @@ public sealed class GetStudentCandidacySummaryEndpointTests
                 CreateCandidacy(student.Id, offers[index].Id, status))
             .ToArray();
         await SeedAsync(factory, [student], offers, candidacies);
+        using var request = StudentTestAuthentication.CreateStudentGetRequest(
+            $"/api/v1/students/{student.Id}/candidacies/summary",
+            student.Id.ToString(),
+            subjectId: "account-student-all");
 
         // Act
-        using var response = await client.GetAsync(
-            $"/api/v1/students/{student.Id}/candidacies/summary");
+        using var response = await client.SendAsync(request);
         var body = await response.Content.ReadFromJsonAsync<GetStudentCandidacySummaryResponse>();
 
         // Assert
@@ -66,17 +183,20 @@ public sealed class GetStudentCandidacySummaryEndpointTests
     }
 
     [Fact]
-    public async Task Given_StudentWithoutCandidacies_When_GettingSummary_Then_ReturnsZeroCounts()
+    public async Task Given_StudentWithoutCandidacies_When_GettingOwnSummary_Then_ReturnsZeroCounts()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory();
+        using var factory = StudentTestAuthentication.CreateFactory();
         using var client = factory.CreateClient();
         var student = CreateStudent();
         await SeedAsync(factory, [student], []);
+        using var request = StudentTestAuthentication.CreateStudentGetRequest(
+            $"/api/v1/students/{student.Id}/candidacies/summary",
+            student.Id.ToString(),
+            subjectId: "account-student-zero");
 
         // Act
-        using var response = await client.GetAsync(
-            $"/api/v1/students/{student.Id}/candidacies/summary");
+        using var response = await client.SendAsync(request);
         var body = await response.Content.ReadFromJsonAsync<GetStudentCandidacySummaryResponse>();
 
         // Assert
@@ -94,16 +214,19 @@ public sealed class GetStudentCandidacySummaryEndpointTests
     }
 
     [Fact]
-    public async Task Given_MissingStudent_When_GettingSummary_Then_ReturnsNotFound()
+    public async Task Given_AuthenticatedStudentWithMissingRecord_When_GettingOwnSummary_Then_ReturnsNotFound()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory();
+        using var factory = StudentTestAuthentication.CreateFactory();
         using var client = factory.CreateClient();
         var studentId = Guid.NewGuid();
+        using var request = StudentTestAuthentication.CreateStudentGetRequest(
+            $"/api/v1/students/{studentId}/candidacies/summary",
+            studentId.ToString(),
+            subjectId: "account-student-missing");
 
         // Act
-        using var response = await client.GetAsync(
-            $"/api/v1/students/{studentId}/candidacies/summary");
+        using var response = await client.SendAsync(request);
         var error = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -118,10 +241,10 @@ public sealed class GetStudentCandidacySummaryEndpointTests
     }
 
     [Fact]
-    public async Task Given_CandidaciesForMultipleStudents_When_GettingSummary_Then_ReturnsOnlyRequestedStudentAndPreservesState()
+    public async Task Given_CandidaciesForMultipleStudents_When_GettingOwnSummary_Then_ReturnsOnlyRequestedStudentAndPreservesState()
     {
         // Arrange
-        using var factory = new InternHubSqliteFactory();
+        using var factory = StudentTestAuthentication.CreateFactory();
         using var client = factory.CreateClient();
         var student = CreateStudent();
         var otherStudent = CreateStudent();
@@ -140,10 +263,13 @@ public sealed class GetStudentCandidacySummaryEndpointTests
             [student, otherStudent],
             [studentOffer, otherOffer],
             [studentCandidacy, otherCandidacy]);
+        using var request = StudentTestAuthentication.CreateStudentGetRequest(
+            $"/api/v1/students/{student.Id}/candidacies/summary",
+            student.Id.ToString(),
+            subjectId: "account-student-own");
 
         // Act
-        using var response = await client.GetAsync(
-            $"/api/v1/students/{student.Id}/candidacies/summary");
+        using var response = await client.SendAsync(request);
         var body = await response.Content.ReadFromJsonAsync<GetStudentCandidacySummaryResponse>();
 
         // Assert
@@ -159,13 +285,7 @@ public sealed class GetStudentCandidacySummaryEndpointTests
             0,
             0));
 
-        using var verificationScope = factory.Services.CreateScope();
-        var verificationDb =
-            verificationScope.ServiceProvider.GetRequiredService<InternHubDbContext>();
-        var persistedCandidacies = await verificationDb.InternshipCandidacies
-            .AsNoTracking()
-            .OrderBy(item => item.Id)
-            .ToArrayAsync();
+        var persistedCandidacies = await ReadCandidaciesAsync(factory);
         persistedCandidacies.Should().HaveCount(2);
         persistedCandidacies.Should().ContainEquivalentOf(studentCandidacy);
         persistedCandidacies.Should().ContainEquivalentOf(otherCandidacy);
@@ -210,5 +330,16 @@ public sealed class GetStudentCandidacySummaryEndpointTests
             db.InternshipCandidacies.AddRange(candidacies);
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task<InternshipCandidacy[]> ReadCandidaciesAsync(InternHubSqliteFactory factory)
+    {
+        using var verificationScope = factory.Services.CreateScope();
+        var verificationDb =
+            verificationScope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        return await verificationDb.InternshipCandidacies
+            .AsNoTracking()
+            .OrderBy(item => item.Id)
+            .ToArrayAsync();
     }
 }

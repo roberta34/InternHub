@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using FluentAssertions;
 using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Domain.Offers;
 using InternHub.Api.Features.InternshipCandidacies.GetStudentCandidacies;
+using InternHub.Api.Features.InternshipCandidacies.StudentAccess;
 using InternHub.Api.Features.Shared;
 using InternHub.Domain.Students;
 using InternHub.Tests.Unit.InternshipCandidacies.Fakes;
@@ -12,10 +14,14 @@ namespace InternHub.Tests.Unit.InternshipCandidacies;
 
 public sealed class GetStudentCandidaciesHandlerTests
 {
+    private const string StudentIdClaimType = "student_id";
+    private const string RecruiterIdClaimType = "recruiter_id";
+    private const string SubjectClaimType = "sub";
+
     private static readonly DateTime Now = new(2027, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void Given_ExistingStudentWithCandidacies_When_Querying_Then_ReturnsNewestFirstWithOfferDetails()
+    public async Task Given_ExistingStudentWithCandidacies_When_QueryingOwnList_Then_ReturnsNewestFirstWithOfferDetails()
     {
         // Arrange
         var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
@@ -34,10 +40,15 @@ public sealed class GetStudentCandidaciesHandlerTests
         offers.Add(olderOffer);
         offers.Add(newerOffer);
 
-        var handler = new GetStudentCandidaciesHandler(candidacies, students, offers);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(student.Id.ToString(), sub: "account-student-1");
 
         // Act
-        var result = handler.Handle(new GetStudentCandidaciesQuery(student.Id));
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
@@ -53,7 +64,7 @@ public sealed class GetStudentCandidaciesHandlerTests
     }
 
     [Fact]
-    public void Given_CandidaciesForMultipleStudents_When_Querying_Then_ExcludesOtherStudents()
+    public async Task Given_CandidaciesForMultipleStudents_When_QueryingOwnList_Then_ExcludesOtherStudents()
     {
         // Arrange
         var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
@@ -72,10 +83,15 @@ public sealed class GetStudentCandidaciesHandlerTests
         var offers = new FakeOfferRepository();
         offers.Add(offer);
 
-        var handler = new GetStudentCandidaciesHandler(candidacies, students, offers);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(student.Id.ToString());
 
         // Act
-        var result = handler.Handle(new GetStudentCandidaciesQuery(student.Id));
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
@@ -85,23 +101,26 @@ public sealed class GetStudentCandidaciesHandlerTests
     }
 
     [Fact]
-    public void Given_MissingStudent_When_Querying_Then_ReturnsNotFound()
+    public async Task Given_AuthenticatedStudentWithMissingStudentRecord_When_QueryingOwnList_Then_ReturnsNotFound()
     {
         // Arrange
+        var studentId = Guid.NewGuid();
         var handler = new GetStudentCandidaciesHandler(
             new FakeInternshipCandidacyRepository(),
             new FakeStudentRepository(),
-            new FakeOfferRepository());
+            new FakeOfferRepository(),
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(studentId.ToString());
 
         // Act
-        var result = handler.Handle(new GetStudentCandidaciesQuery(Guid.NewGuid()));
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(studentId, principal));
 
         // Assert
         result.Status.Should().Be(ResultStatus.NotFound);
     }
 
     [Fact]
-    public void Given_ExistingStudentWithoutCandidacies_When_Querying_Then_ReturnsEmptyCollection()
+    public async Task Given_ExistingStudentWithoutCandidacies_When_QueryingOwnList_Then_ReturnsEmptyCollection()
     {
         // Arrange
         var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
@@ -111,10 +130,12 @@ public sealed class GetStudentCandidaciesHandlerTests
         var handler = new GetStudentCandidaciesHandler(
             candidacies,
             students,
-            new FakeOfferRepository());
+            new FakeOfferRepository(),
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(student.Id.ToString());
 
         // Act
-        var result = handler.Handle(new GetStudentCandidaciesQuery(student.Id));
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
@@ -122,7 +143,7 @@ public sealed class GetStudentCandidaciesHandlerTests
     }
 
     [Fact]
-    public void Given_ExistingCandidacies_When_Querying_Then_DoesNotChangeRepositoryState()
+    public async Task Given_ExistingCandidacies_When_QueryingOwnList_Then_DoesNotChangeRepositoryState()
     {
         // Arrange
         var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
@@ -138,10 +159,15 @@ public sealed class GetStudentCandidaciesHandlerTests
         var offers = new FakeOfferRepository();
         offers.Add(offer);
 
-        var handler = new GetStudentCandidaciesHandler(candidacies, students, offers);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(student.Id.ToString());
 
         // Act
-        var result = handler.Handle(new GetStudentCandidaciesQuery(student.Id));
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
@@ -151,7 +177,7 @@ public sealed class GetStudentCandidaciesHandlerTests
     }
 
     [Fact]
-    public void Given_CandidaciesWithSameApplicationDate_When_Querying_Then_OrdersByIdAscending()
+    public async Task Given_CandidaciesWithSameApplicationDate_When_QueryingOwnList_Then_OrdersByIdAscending()
     {
         // Arrange
         var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
@@ -180,10 +206,15 @@ public sealed class GetStudentCandidaciesHandlerTests
         offers.Add(firstOffer);
         offers.Add(secondOffer);
 
-        var handler = new GetStudentCandidaciesHandler(candidacies, students, offers);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(student.Id.ToString());
 
         // Act
-        var result = handler.Handle(new GetStudentCandidaciesQuery(student.Id));
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
 
         // Assert
         result.Value.Should().NotBeNull();
@@ -191,7 +222,7 @@ public sealed class GetStudentCandidaciesHandlerTests
     }
 
     [Fact]
-    public void Given_CandidacyReferencesMissingOffer_When_Querying_Then_ThrowsInvalidOperationException()
+    public async Task Given_CandidacyReferencesMissingOffer_When_QueryingOwnList_Then_ThrowsInvalidOperationException()
     {
         // Arrange
         var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
@@ -203,14 +234,263 @@ public sealed class GetStudentCandidaciesHandlerTests
         var handler = new GetStudentCandidaciesHandler(
             candidacies,
             students,
-            new FakeOfferRepository());
+            new FakeOfferRepository(),
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(student.Id.ToString());
 
         // Act
-        var act = () => handler.Handle(new GetStudentCandidaciesQuery(student.Id));
+        Func<Task> act = async () =>
+            await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
 
         // Assert
-        act.Should().Throw<InvalidOperationException>()
+        await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*referenced by candidacy*was not found*");
+    }
+
+    [Fact]
+    public async Task Given_UnauthenticatedRequest_When_Querying_Then_ReturnsUnauthorizedWithoutTouchingRepositories()
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
+        var offer = CreateOffer("Offer", "Company");
+        var candidacies = new FakeInternshipCandidacyRepository();
+        candidacies.Seed(CreateCandidacy(student.Id, offer.Id, Now));
+        var students = new FakeStudentRepository();
+        students.Add(student);
+        var offers = new FakeOfferRepository();
+        offers.Add(offer);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+
+        // Act
+        var result = await handler.HandleAsync(
+            new GetStudentCandidaciesQuery(student.Id, new ClaimsPrincipal(new ClaimsIdentity())));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Unauthorized);
+        result.Value.Should().BeNull();
+        students.GetByIdCallCount.Should().Be(0);
+        candidacies.GetByStudentCallCount.Should().Be(0);
+        offers.GetByIdCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_StudentA_When_QueryingStudentBList_Then_ReturnsForbiddenWithoutTouchingRepositories()
+    {
+        // Arrange
+        var studentA = new Student(Guid.NewGuid(), "Student A", "a@example.test");
+        var studentB = new Student(Guid.NewGuid(), "Student B", "b@example.test");
+        var offer = CreateOffer("Offer", "Company");
+        var candidacies = new FakeInternshipCandidacyRepository();
+        candidacies.Seed(CreateCandidacy(studentB.Id, offer.Id, Now));
+        var students = new FakeStudentRepository();
+        students.Add(studentA);
+        students.Add(studentB);
+        var offers = new FakeOfferRepository();
+        offers.Add(offer);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var principalA = CreateStudentPrincipal(studentA.Id.ToString(), sub: "account-a");
+
+        // Act
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(studentB.Id, principalA));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Forbidden);
+        result.Value.Should().BeNull();
+        students.GetByIdCallCount.Should().Be(0);
+        candidacies.GetByStudentCallCount.Should().Be(0);
+        offers.GetByIdCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_AuthenticatedRecruiter_When_QueryingStudentList_Then_ReturnsForbiddenWithoutTouchingRepositories()
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Student", "student@example.test");
+        var offer = CreateOffer("Offer", "Company");
+        var candidacies = new FakeInternshipCandidacyRepository();
+        candidacies.Seed(CreateCandidacy(student.Id, offer.Id, Now));
+        var students = new FakeStudentRepository();
+        students.Add(student);
+        var offers = new FakeOfferRepository();
+        offers.Add(offer);
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var recruiterPrincipal = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.Role, "Recruiter"),
+                    new Claim(RecruiterIdClaimType, Guid.NewGuid().ToString()),
+                    new Claim(SubjectClaimType, "account-recruiter")
+                ],
+                authenticationType: "TestScheme"));
+
+        // Act
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, recruiterPrincipal));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Forbidden);
+        result.Value.Should().BeNull();
+        students.GetByIdCallCount.Should().Be(0);
+        candidacies.GetByStudentCallCount.Should().Be(0);
+        offers.GetByIdCallCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not-a-guid")]
+    [InlineData("00000000-0000-0000-0000-000000000000")]
+    public async Task Given_InvalidStudentIdentityClaim_When_QueryingList_Then_ReturnsForbiddenWithoutTouchingRepositories(
+        string? invalidStudentId)
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Student", "student@example.test");
+        var candidacies = new FakeInternshipCandidacyRepository();
+        var students = new FakeStudentRepository();
+        students.Add(student);
+        var offers = new FakeOfferRepository();
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var principal = CreateStudentPrincipal(invalidStudentId, sub: student.Id.ToString());
+
+        // Act
+        var result = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, principal));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Forbidden);
+        result.Value.Should().BeNull();
+        students.GetByIdCallCount.Should().Be(0);
+        candidacies.GetByStudentCallCount.Should().Be(0);
+        offers.GetByIdCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_DuplicateOrCrossIdentityStudentClaims_When_QueryingList_Then_ReturnsForbiddenWithoutTouchingRepositories()
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Student", "student@example.test");
+        var candidacies = new FakeInternshipCandidacyRepository();
+        var students = new FakeStudentRepository();
+        students.Add(student);
+        var offers = new FakeOfferRepository();
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            offers,
+            new ClaimsPrincipalStudentAccessGuard());
+        var splitPrincipal = new ClaimsPrincipal(
+            [
+                new ClaimsIdentity([new Claim(ClaimTypes.Role, "Student")], authenticationType: "SchemeA"),
+                new ClaimsIdentity([new Claim(StudentIdClaimType, student.Id.ToString())], authenticationType: "SchemeB")
+            ]);
+        var duplicatePrincipal = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.Role, "Student"),
+                    new Claim(StudentIdClaimType, student.Id.ToString()),
+                    new Claim(StudentIdClaimType, student.Id.ToString())
+                ],
+                authenticationType: "TestScheme"));
+
+        // Act
+        var splitResult = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, splitPrincipal));
+        var duplicateResult = await handler.HandleAsync(new GetStudentCandidaciesQuery(student.Id, duplicatePrincipal));
+
+        // Assert
+        splitResult.Status.Should().Be(ResultStatus.Forbidden);
+        duplicateResult.Status.Should().Be(ResultStatus.Forbidden);
+        students.GetByIdCallCount.Should().Be(0);
+        candidacies.GetByStudentCallCount.Should().Be(0);
+        offers.GetByIdCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_AuthorizedQueryWithCancellationToken_When_Handling_Then_PropagatesCancellationTokenToAccessGuard()
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
+        var students = new FakeStudentRepository();
+        students.Add(student);
+        var guard = new FakeStudentAccessGuard();
+        var handler = new GetStudentCandidaciesHandler(
+            new FakeInternshipCandidacyRepository(),
+            students,
+            new FakeOfferRepository(),
+            guard);
+        using var cancellation = new CancellationTokenSource();
+        var principal = CreateStudentPrincipal(student.Id.ToString());
+
+        // Act
+        var result = await handler.HandleAsync(
+            new GetStudentCandidaciesQuery(student.Id, principal),
+            cancellation.Token);
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Success);
+        guard.AuthorizeCallCount.Should().Be(1);
+        guard.LastRequestedStudentId.Should().Be(student.Id);
+        guard.LastCancellationToken.Should().Be(cancellation.Token);
+    }
+
+    [Fact]
+    public async Task Given_CanceledToken_When_Handling_Then_ThrowsOperationCanceledExceptionWithoutTouchingRepositories()
+    {
+        // Arrange
+        var student = new Student(Guid.NewGuid(), "Test Student", "student@example.test");
+        var students = new FakeStudentRepository();
+        students.Add(student);
+        var candidacies = new FakeInternshipCandidacyRepository();
+        var handler = new GetStudentCandidaciesHandler(
+            candidacies,
+            students,
+            new FakeOfferRepository(),
+            new ClaimsPrincipalStudentAccessGuard());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        // Act
+        Func<Task> act = async () => await handler.HandleAsync(
+            new GetStudentCandidaciesQuery(student.Id, CreateStudentPrincipal(student.Id.ToString())),
+            cancellation.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        students.GetByIdCallCount.Should().Be(0);
+        candidacies.GetByStudentCallCount.Should().Be(0);
+    }
+
+    private static ClaimsPrincipal CreateStudentPrincipal(
+        string? studentId,
+        string? sub = null)
+    {
+        var claims = new List<Claim> { new(ClaimTypes.Role, "Student") };
+
+        if (studentId is not null)
+        {
+            claims.Add(new Claim(StudentIdClaimType, studentId));
+        }
+
+        if (sub is not null)
+        {
+            claims.Add(new Claim(SubjectClaimType, sub));
+        }
+
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "TestScheme"));
     }
 
     private static Offer CreateOffer(string title, string companyName) =>

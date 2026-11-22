@@ -8,12 +8,16 @@ internal sealed class FakeStudentRepository : IStudentRepository
 
     public bool AddResult { get; set; } = true;
     public bool UpdateResult { get; set; } = true;
+    public int GetByIdCallCount { get; private set; }
 
     public bool Add(Student student) =>
         AddResult && _students.TryAdd(student.Id, student);
 
-    public Student? GetById(Guid id) =>
-        _students.TryGetValue(id, out var student) ? student : null;
+    public Student? GetById(Guid id)
+    {
+        GetByIdCallCount++;
+        return _students.TryGetValue(id, out var student) ? student : null;
+    }
 
     public IReadOnlyList<Student> GetAll() => _students.Values.ToList();
 
