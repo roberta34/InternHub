@@ -12,14 +12,17 @@ internal sealed class FakeAtomicCandidacyWithdrawal : IAtomicCandidacyWithdrawal
 
     public int CallCount { get; private set; }
     public Guid? LastCandidacyId { get; private set; }
+    public Guid? LastAuthenticatedStudentId { get; private set; }
     public CancellationToken LastCancellationToken { get; private set; }
 
     public Task<AtomicCandidacyWithdrawalResult> WithdrawAsync(
         Guid candidacyId,
+        Guid authenticatedStudentId,
         CancellationToken cancellationToken = default)
     {
         CallCount++;
         LastCandidacyId = candidacyId;
+        LastAuthenticatedStudentId = authenticatedStudentId;
         LastCancellationToken = cancellationToken;
 
         if (ExceptionToThrow is not null)

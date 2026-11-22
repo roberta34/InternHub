@@ -22,7 +22,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalConcurrencyTests
         new(2027, 2, 20, 14, 30, 45, DateTimeKind.Utc);
 
     [Fact]
-    public async Task Given_ShortlistedCandidacy_When_TwoConcurrentWithdrawalsExecute_Then_ExactlyOneSucceedsAndExactlyOneNotificationExists()
+    public async Task Given_ShortlistedCandidacy_When_TwoConcurrentOwnerWithdrawalsExecute_Then_ExactlyOneSucceedsAndExactlyOneNotificationExists()
     {
         // Arrange
         using var database = CreateDatabase();
@@ -37,9 +37,9 @@ public sealed class EfCoreAtomicCandidacyWithdrawalConcurrencyTests
 
         // Act
         var firstTask = Task.Run(() =>
-            WithdrawAsync(databasePath, candidacy.Id, WithdrawTimestampUtc, firstObserver.Interceptor));
+            WithdrawAsync(databasePath, candidacy.Id, student.Id, WithdrawTimestampUtc, firstObserver.Interceptor));
         var secondTask = Task.Run(() =>
-            WithdrawAsync(databasePath, candidacy.Id, WithdrawTimestampUtc, secondObserver.Interceptor));
+            WithdrawAsync(databasePath, candidacy.Id, student.Id, WithdrawTimestampUtc, secondObserver.Interceptor));
         await AwaitTransactionAttemptsAsync(firstObserver, secondObserver);
         writeLock.Dispose();
         var results = await Task.WhenAll(firstTask, secondTask);
@@ -63,6 +63,72 @@ public sealed class EfCoreAtomicCandidacyWithdrawalConcurrencyTests
     }
 
     [Fact]
+    public async Task Given_ShortlistedCandidacy_When_OwnerAndDifferentStudentWithdrawConcurrently_Then_NonOwnerReceivesForbiddenAndOwnerSucceedsOnce()
+    {
+        // Arrange
+        using var database = CreateDatabase();
+        var databasePath = database.Path;
+        var owner = CreateStudent();
+        var otherStudent = CreateStudent();
+        var offer = CreateOffer();
+        var candidacy = CreateCandidacy(owner.Id, offer.Id, InternshipCandidacyStatus.Shortlisted);
+        Seed(databasePath, [owner, otherStudent], [offer], [candidacy]);
+        var ownerObserver = new TransactionAttemptObserver();
+        var otherObserver = new TransactionAttemptObserver();
+        using var writeLock = AcquireWriteLock(databasePath);
+
+        // Act
+        var ownerTask = Task.Run(() =>
+            WithdrawAsync(databasePath, candidacy.Id, owner.Id, WithdrawTimestampUtc, ownerObserver.Interceptor));
+        var otherTask = Task.Run(() =>
+            WithdrawAsync(databasePath, candidacy.Id, otherStudent.Id, WithdrawTimestampUtc, otherObserver.Interceptor));
+        await AwaitTransactionAttemptsAsync(ownerObserver, otherObserver);
+        writeLock.Dispose();
+        var ownerResult = await ownerTask;
+        var otherResult = await otherTask;
+
+        // Assert
+        otherResult.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Forbidden);
+        otherResult.Candidacy.Should().BeNull();
+        ownerResult.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Withdrawn);
+        ReadCandidacy(databasePath, candidacy.Id).Status.Should().Be(InternshipCandidacyStatus.Withdrawn);
+        var notification = ReadNotifications(databasePath).Should().ContainSingle().Subject;
+        notification.StudentId.Should().Be(owner.Id);
+        notification.CandidacyId.Should().Be(candidacy.Id);
+    }
+
+    [Fact]
+    public async Task Given_ShortlistedCandidacy_When_TwoConcurrentNonOwnersWithdraw_Then_BothReceiveForbiddenAndCandidacyRemainsUnchanged()
+    {
+        // Arrange
+        using var database = CreateDatabase();
+        var databasePath = database.Path;
+        var owner = CreateStudent();
+        var firstIntruder = CreateStudent();
+        var secondIntruder = CreateStudent();
+        var offer = CreateOffer();
+        var candidacy = CreateCandidacy(owner.Id, offer.Id, InternshipCandidacyStatus.Shortlisted);
+        Seed(databasePath, [owner, firstIntruder, secondIntruder], [offer], [candidacy]);
+        var firstObserver = new TransactionAttemptObserver();
+        var secondObserver = new TransactionAttemptObserver();
+        using var writeLock = AcquireWriteLock(databasePath);
+
+        // Act
+        var firstTask = Task.Run(() =>
+            WithdrawAsync(databasePath, candidacy.Id, firstIntruder.Id, WithdrawTimestampUtc, firstObserver.Interceptor));
+        var secondTask = Task.Run(() =>
+            WithdrawAsync(databasePath, candidacy.Id, secondIntruder.Id, WithdrawTimestampUtc, secondObserver.Interceptor));
+        await AwaitTransactionAttemptsAsync(firstObserver, secondObserver);
+        writeLock.Dispose();
+        var results = await Task.WhenAll(firstTask, secondTask);
+
+        // Assert
+        results.Should().OnlyContain(result => result.Status == AtomicCandidacyWithdrawalStatus.Forbidden);
+        ReadCandidacy(databasePath, candidacy.Id).Status.Should().Be(InternshipCandidacyStatus.Shortlisted);
+        ReadNotifications(databasePath).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_PersistentSqliteWriteLock_When_WithdrawingExhaustsRetries_Then_ReturnsConcurrencyConflictAndLeavesDatabaseUnchanged()
     {
         // Arrange
@@ -79,6 +145,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalConcurrencyTests
         var result = await WithdrawAsync(
             databasePath,
             candidacy.Id,
+            student.Id,
             WithdrawTimestampUtc,
             observer.Interceptor);
         writeLock.Dispose();
@@ -94,6 +161,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalConcurrencyTests
     private static async Task<AtomicCandidacyWithdrawalResult> WithdrawAsync(
         string databasePath,
         Guid candidacyId,
+        Guid authenticatedStudentId,
         DateTime utcNow,
         params IInterceptor[] interceptors)
     {
@@ -101,7 +169,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalConcurrencyTests
         var withdrawals = new EfCoreAtomicCandidacyWithdrawal(
             context,
             new FixedTimeProvider(utcNow));
-        return await withdrawals.WithdrawAsync(candidacyId);
+        return await withdrawals.WithdrawAsync(candidacyId, authenticatedStudentId);
     }
 
     private static async Task AwaitTransactionAttemptsAsync(

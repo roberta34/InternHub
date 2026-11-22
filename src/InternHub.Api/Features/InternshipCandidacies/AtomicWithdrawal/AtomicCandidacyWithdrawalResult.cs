@@ -6,6 +6,7 @@ public enum AtomicCandidacyWithdrawalStatus
 {
     Withdrawn,
     CandidacyNotFound,
+    Forbidden,
     InvalidTransition,
     ConcurrencyConflict
 }

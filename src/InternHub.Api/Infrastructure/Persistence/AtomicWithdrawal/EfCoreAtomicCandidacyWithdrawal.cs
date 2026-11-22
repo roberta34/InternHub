@@ -17,8 +17,17 @@ public sealed class EfCoreAtomicCandidacyWithdrawal(
 
     public async Task<AtomicCandidacyWithdrawalResult> WithdrawAsync(
         Guid candidacyId,
+        Guid authenticatedStudentId,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (authenticatedStudentId == Guid.Empty)
+        {
+            return AtomicCandidacyWithdrawalResult.Failure(
+                AtomicCandidacyWithdrawalStatus.Forbidden);
+        }
+
         for (var attempt = 1; attempt <= MaximumAttempts; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -26,7 +35,10 @@ public sealed class EfCoreAtomicCandidacyWithdrawal(
 
             try
             {
-                return await WithdrawAttemptAsync(candidacyId, cancellationToken);
+                return await WithdrawAttemptAsync(
+                    candidacyId,
+                    authenticatedStudentId,
+                    cancellationToken);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -82,6 +94,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawal(
 
     private async Task<AtomicCandidacyWithdrawalResult> WithdrawAttemptAsync(
         Guid candidacyId,
+        Guid authenticatedStudentId,
         CancellationToken cancellationToken)
     {
         await using var transaction =
@@ -94,6 +107,12 @@ public sealed class EfCoreAtomicCandidacyWithdrawal(
         {
             return AtomicCandidacyWithdrawalResult.Failure(
                 AtomicCandidacyWithdrawalStatus.CandidacyNotFound);
+        }
+
+        if (candidacy.StudentId != authenticatedStudentId)
+        {
+            return AtomicCandidacyWithdrawalResult.Failure(
+                AtomicCandidacyWithdrawalStatus.Forbidden);
         }
 
         var previousStatus = candidacy.Status;

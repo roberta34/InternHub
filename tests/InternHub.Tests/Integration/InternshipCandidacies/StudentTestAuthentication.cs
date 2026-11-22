@@ -38,9 +38,34 @@ internal static class StudentTestAuthentication
     public static HttpRequestMessage CreateStudentGetRequest(
         string path,
         string? studentId,
-        string? subjectId = null)
+        string? subjectId = null) =>
+        CreateStudentRequest(HttpMethod.Get, path, studentId, subjectId);
+
+    public static HttpRequestMessage CreateStudentPostRequest(
+        string path,
+        string? studentId,
+        string? subjectId = null) =>
+        CreateStudentRequest(HttpMethod.Post, path, studentId, subjectId);
+
+    public static HttpRequestMessage CreateRecruiterGetRequest(
+        string path,
+        Guid recruiterId,
+        string? subjectId = null) =>
+        CreateRecruiterRequest(HttpMethod.Get, path, recruiterId, subjectId);
+
+    public static HttpRequestMessage CreateRecruiterPostRequest(
+        string path,
+        Guid recruiterId,
+        string? subjectId = null) =>
+        CreateRecruiterRequest(HttpMethod.Post, path, recruiterId, subjectId);
+
+    private static HttpRequestMessage CreateStudentRequest(
+        HttpMethod method,
+        string path,
+        string? studentId,
+        string? subjectId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        var request = new HttpRequestMessage(method, path);
         request.Headers.Add(AuthenticatedHeader, "true");
         request.Headers.Add(RoleHeader, "Student");
 
@@ -57,12 +82,13 @@ internal static class StudentTestAuthentication
         return request;
     }
 
-    public static HttpRequestMessage CreateRecruiterGetRequest(
+    private static HttpRequestMessage CreateRecruiterRequest(
+        HttpMethod method,
         string path,
         Guid recruiterId,
-        string? subjectId = null)
+        string? subjectId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, path);
+        var request = new HttpRequestMessage(method, path);
         request.Headers.Add(AuthenticatedHeader, "true");
         request.Headers.Add(RoleHeader, "Recruiter");
         request.Headers.Add(RecruiterIdHeader, recruiterId.ToString());

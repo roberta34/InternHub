@@ -27,7 +27,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         new(2027, 2, 20, 14, 30, 45, DateTimeKind.Utc);
 
     [Fact]
-    public async Task Given_ShortlistedCandidacy_When_Withdrawing_Then_UpdatesStatusAndPersistsSingleOutboxNotification()
+    public async Task Given_OwnerWithShortlistedCandidacy_When_Withdrawing_Then_UpdatesStatusAndPersistsSingleOutboxNotification()
     {
         // Arrange
         using var database = new InMemoryDatabase();
@@ -37,7 +37,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         Seed(database, [student], [offer], [candidacy]);
 
         // Act
-        var result = await WithdrawAsync(database, candidacy.Id, WithdrawTimestampUtc);
+        var result = await WithdrawAsync(database, candidacy.Id, student.Id, WithdrawTimestampUtc);
 
         // Assert
         result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Withdrawn);
@@ -57,7 +57,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
     }
 
     [Fact]
-    public async Task Given_SubmittedCandidacy_When_Withdrawing_Then_UpdatesStatusWithoutCreatingNotification()
+    public async Task Given_OwnerWithSubmittedCandidacy_When_Withdrawing_Then_UpdatesStatusWithoutCreatingNotification()
     {
         // Arrange
         using var database = new InMemoryDatabase();
@@ -67,7 +67,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         Seed(database, [student], [offer], [candidacy]);
 
         // Act
-        var result = await WithdrawAsync(database, candidacy.Id, WithdrawTimestampUtc);
+        var result = await WithdrawAsync(database, candidacy.Id, student.Id, WithdrawTimestampUtc);
 
         // Assert
         result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Withdrawn);
@@ -77,11 +77,89 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
     }
 
     [Theory]
+    [InlineData(InternshipCandidacyStatus.Submitted)]
+    [InlineData(InternshipCandidacyStatus.Shortlisted)]
+    public async Task Given_DifferentStudent_When_WithdrawingOpenCandidacy_Then_ReturnsForbiddenWithoutModifyingDatabaseOrCreatingNotification(
+        InternshipCandidacyStatus initialStatus)
+    {
+        // Arrange
+        using var database = new InMemoryDatabase();
+        var owner = CreateStudent();
+        var otherStudent = CreateStudent();
+        var offer = CreateOffer();
+        var candidacy = CreateCandidacy(owner.Id, offer.Id, initialStatus);
+        Seed(database, [owner, otherStudent], [offer], [candidacy]);
+
+        // Act
+        var result = await WithdrawAsync(database, candidacy.Id, otherStudent.Id, WithdrawTimestampUtc);
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Forbidden);
+        result.Candidacy.Should().BeNull();
+        result.CurrentStatus.Should().BeNull();
+        ReadCandidacy(database, candidacy.Id)!.Status.Should().Be(initialStatus);
+        ReadNotifications(database).Should().BeEmpty();
+    }
+
+    [Theory]
     [InlineData(InternshipCandidacyStatus.Accepted)]
     [InlineData(InternshipCandidacyStatus.Rejected)]
     [InlineData(InternshipCandidacyStatus.Waitlisted)]
     [InlineData(InternshipCandidacyStatus.Withdrawn)]
-    public async Task Given_FinalCandidacy_When_Withdrawing_Then_ReturnsInvalidTransitionWithoutModifyingDatabase(
+    public async Task Given_DifferentStudentAndTerminalCandidacy_When_Withdrawing_Then_ReturnsForbiddenInsteadOfInvalidTransitionWithoutModifyingDatabase(
+        InternshipCandidacyStatus terminalStatus)
+    {
+        // Arrange
+        using var database = new InMemoryDatabase();
+        var owner = CreateStudent();
+        var otherStudent = CreateStudent();
+        var offer = CreateOffer();
+        var candidacy = CreateCandidacy(owner.Id, offer.Id, terminalStatus);
+        Seed(database, [owner, otherStudent], [offer], [candidacy]);
+
+        // Act
+        var result = await WithdrawAsync(database, candidacy.Id, otherStudent.Id, WithdrawTimestampUtc);
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Forbidden);
+        result.Candidacy.Should().BeNull();
+        result.CurrentStatus.Should().BeNull();
+        ReadCandidacy(database, candidacy.Id)!.Status.Should().Be(terminalStatus);
+        ReadNotifications(database).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_EmptyAuthenticatedStudentId_When_Withdrawing_Then_ReturnsForbiddenWithoutExecutingSqlOrModifyingDatabase()
+    {
+        // Arrange
+        using var database = new InMemoryDatabase();
+        var owner = CreateStudent();
+        var offer = CreateOffer();
+        var candidacy = CreateCandidacy(owner.Id, offer.Id, InternshipCandidacyStatus.Shortlisted);
+        Seed(database, [owner], [offer], [candidacy]);
+        var sqlRecorder = new SqlCommandRecorder();
+
+        // Act
+        await using var context = database.CreateContext(sqlRecorder);
+        var withdrawals = new EfCoreAtomicCandidacyWithdrawal(
+            context,
+            new FixedTimeProvider(WithdrawTimestampUtc));
+        var result = await withdrawals.WithdrawAsync(candidacy.Id, Guid.Empty);
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Forbidden);
+        result.Candidacy.Should().BeNull();
+        sqlRecorder.Commands.Should().BeEmpty();
+        ReadCandidacy(database, candidacy.Id)!.Status.Should().Be(InternshipCandidacyStatus.Shortlisted);
+        ReadNotifications(database).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(InternshipCandidacyStatus.Accepted)]
+    [InlineData(InternshipCandidacyStatus.Rejected)]
+    [InlineData(InternshipCandidacyStatus.Waitlisted)]
+    [InlineData(InternshipCandidacyStatus.Withdrawn)]
+    public async Task Given_OwnerWithFinalCandidacy_When_Withdrawing_Then_ReturnsInvalidTransitionWithoutModifyingDatabase(
         InternshipCandidacyStatus finalStatus)
     {
         // Arrange
@@ -92,7 +170,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         Seed(database, [student], [offer], [candidacy]);
 
         // Act
-        var result = await WithdrawAsync(database, candidacy.Id, WithdrawTimestampUtc);
+        var result = await WithdrawAsync(database, candidacy.Id, student.Id, WithdrawTimestampUtc);
 
         // Assert
         result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.InvalidTransition);
@@ -114,7 +192,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         var missingCandidacyId = Guid.NewGuid();
 
         // Act
-        var result = await WithdrawAsync(database, missingCandidacyId, WithdrawTimestampUtc);
+        var result = await WithdrawAsync(database, missingCandidacyId, student.Id, WithdrawTimestampUtc);
 
         // Assert
         result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.CandidacyNotFound);
@@ -124,7 +202,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
     }
 
     [Fact]
-    public async Task Given_ShortlistedCandidacy_When_WithdrawnTwiceSequentially_Then_SecondCallReturnsInvalidTransitionAndOnlyOneNotificationExists()
+    public async Task Given_OwnerWithShortlistedCandidacy_When_WithdrawnTwiceSequentially_Then_SecondCallReturnsInvalidTransitionAndOnlyOneNotificationExists()
     {
         // Arrange
         using var database = new InMemoryDatabase();
@@ -134,8 +212,8 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         Seed(database, [student], [offer], [candidacy]);
 
         // Act
-        var firstResult = await WithdrawAsync(database, candidacy.Id, WithdrawTimestampUtc);
-        var secondResult = await WithdrawAsync(database, candidacy.Id, WithdrawTimestampUtc.AddMinutes(5));
+        var firstResult = await WithdrawAsync(database, candidacy.Id, student.Id, WithdrawTimestampUtc);
+        var secondResult = await WithdrawAsync(database, candidacy.Id, student.Id, WithdrawTimestampUtc.AddMinutes(5));
 
         // Assert
         firstResult.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Withdrawn);
@@ -145,6 +223,49 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         ReadNotifications(database).Should().ContainSingle(entry =>
             entry.CandidacyId == candidacy.Id &&
             entry.OccurredAtUtc == WithdrawTimestampUtc);
+    }
+
+    [Fact]
+    public async Task Given_TransientSqliteBusyAfterReadAndOwnershipChangeBeforeRetry_When_Retrying_Then_ReopensTransactionRereadsCandidacyAndReturnsForbidden()
+    {
+        // Arrange
+        using var database = new InMemoryDatabase();
+        var originalOwner = CreateStudent();
+        var newOwner = CreateStudent();
+        var offer = CreateOffer();
+        var candidacy = CreateCandidacy(originalOwner.Id, offer.Id, InternshipCandidacyStatus.Shortlisted);
+        Seed(database, [originalOwner, newOwner], [offer], [candidacy]);
+        var readTracker = new CandidacyReadTransactionTracker();
+        var failFirstSave = new FailFirstSaveWithSqliteBusyInterceptor();
+        var reassignBeforeRetry = new ReassignOwnershipBeforeRetryTransactionInterceptor(
+            candidacy.Id,
+            newOwner.Id);
+
+        // Act
+        await using var context = database.CreateContext(
+            readTracker,
+            failFirstSave,
+            reassignBeforeRetry);
+        var withdrawals = new EfCoreAtomicCandidacyWithdrawal(
+            context,
+            new FixedTimeProvider(WithdrawTimestampUtc));
+        var result = await withdrawals.WithdrawAsync(candidacy.Id, originalOwner.Id);
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyWithdrawalStatus.Forbidden);
+        result.Candidacy.Should().BeNull();
+        result.CurrentStatus.Should().BeNull();
+        reassignBeforeRetry.TransactionStarts.Should().Be(2);
+        reassignBeforeRetry.ReassignedRows.Should().Be(1);
+        failFirstSave.SavingAttempts.Should().Be(1);
+        readTracker.CandidacySelectTransactions.Should().HaveCount(2);
+        readTracker.CandidacySelectTransactions.Should().NotContainNulls();
+        readTracker.CandidacySelectTransactions.Distinct().Should().HaveCount(2);
+
+        var persisted = ReadCandidacy(database, candidacy.Id)!;
+        persisted.Status.Should().Be(InternshipCandidacyStatus.Shortlisted);
+        persisted.StudentId.Should().Be(newOwner.Id);
+        ReadNotifications(database).Should().BeEmpty();
     }
 
     [Fact]
@@ -171,7 +292,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
             var withdrawals = new EfCoreAtomicCandidacyWithdrawal(
                 context,
                 new FixedTimeProvider(WithdrawTimestampUtc));
-            await withdrawals.WithdrawAsync(candidacy.Id);
+            await withdrawals.WithdrawAsync(candidacy.Id, student.Id);
         };
 
         // Assert
@@ -218,7 +339,7 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
             var withdrawals = new EfCoreAtomicCandidacyWithdrawal(
                 context,
                 new FixedTimeProvider(WithdrawTimestampUtc));
-            await withdrawals.WithdrawAsync(candidacy.Id, cancellation.Token);
+            await withdrawals.WithdrawAsync(candidacy.Id, student.Id, cancellation.Token);
         };
 
         // Assert
@@ -257,13 +378,14 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
     private static async Task<AtomicCandidacyWithdrawalResult> WithdrawAsync(
         InMemoryDatabase database,
         Guid candidacyId,
+        Guid authenticatedStudentId,
         DateTime utcNow)
     {
         await using var context = database.CreateContext();
         var withdrawals = new EfCoreAtomicCandidacyWithdrawal(
             context,
             new FixedTimeProvider(utcNow));
-        return await withdrawals.WithdrawAsync(candidacyId);
+        return await withdrawals.WithdrawAsync(candidacyId, authenticatedStudentId);
     }
 
     private static void Seed(
@@ -343,6 +465,91 @@ public sealed class EfCoreAtomicCandidacyWithdrawalTests
         {
             _commands.Add(command.CommandText);
             return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
+    private sealed class CandidacyReadTransactionTracker : DbCommandInterceptor
+    {
+        private readonly List<DbTransaction?> _candidacySelectTransactions = [];
+
+        public IReadOnlyList<DbTransaction?> CandidacySelectTransactions => _candidacySelectTransactions;
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("FROM \"InternshipCandidacies\"", StringComparison.OrdinalIgnoreCase))
+            {
+                _candidacySelectTransactions.Add(command.Transaction);
+            }
+
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
+    private sealed class FailFirstSaveWithSqliteBusyInterceptor : SaveChangesInterceptor
+    {
+        private int _savingAttempts;
+
+        public int SavingAttempts => Volatile.Read(ref _savingAttempts);
+
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            var attempt = Interlocked.Increment(ref _savingAttempts);
+
+            if (attempt == 1)
+            {
+                throw new DbUpdateException(
+                    "Simulated transient SQLite busy during first withdrawal save.",
+                    new SqliteException("SQLite Error 5: 'database is locked'.", 5));
+            }
+
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    private sealed class ReassignOwnershipBeforeRetryTransactionInterceptor(
+        Guid candidacyId,
+        Guid reassignedOwnerId) : DbTransactionInterceptor
+    {
+        private int _transactionStarts;
+        private int _reassignedRows;
+
+        public int TransactionStarts => Volatile.Read(ref _transactionStarts);
+        public int ReassignedRows => Volatile.Read(ref _reassignedRows);
+
+        public override async ValueTask<InterceptionResult<DbTransaction>> TransactionStartingAsync(
+            DbConnection connection,
+            TransactionStartingEventData eventData,
+            InterceptionResult<DbTransaction> result,
+            CancellationToken cancellationToken = default)
+        {
+            var attempt = Interlocked.Increment(ref _transactionStarts);
+
+            if (attempt == 2)
+            {
+                await using var updateCommand = connection.CreateCommand();
+                updateCommand.CommandText =
+                    "UPDATE \"InternshipCandidacies\" SET \"StudentId\" = $newStudentId WHERE \"Id\" = $candidacyId;";
+                var studentParameter = updateCommand.CreateParameter();
+                studentParameter.ParameterName = "$newStudentId";
+                studentParameter.Value = reassignedOwnerId.ToString();
+                updateCommand.Parameters.Add(studentParameter);
+
+                var candidacyParameter = updateCommand.CreateParameter();
+                candidacyParameter.ParameterName = "$candidacyId";
+                candidacyParameter.Value = candidacyId.ToString();
+                updateCommand.Parameters.Add(candidacyParameter);
+
+                _reassignedRows = await updateCommand.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            return await base.TransactionStartingAsync(connection, eventData, result, cancellationToken);
         }
     }
 
