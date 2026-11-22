@@ -6,8 +6,10 @@ using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Infrastructure.Persistence.AtomicSubmission;
 using InternHub.Api.Features.InternshipCandidacies.AtomicDecision;
 using InternHub.Api.Features.InternshipCandidacies.AtomicWithdrawal;
+using InternHub.Api.Features.Notifications.GetRecruiterNotifications;
 using InternHub.Api.Infrastructure.Persistence.AtomicDecision;
 using InternHub.Api.Infrastructure.Persistence.AtomicWithdrawal;
+using InternHub.Api.Infrastructure.Persistence.Notifications;
 
 namespace InternHub.Api.Infrastructure.Persistence;
 
@@ -29,6 +31,8 @@ public static class PersistenceExtensions
         services.AddScoped<IAtomicCandidacySubmission, EfCoreAtomicCandidacySubmission>();
         services.AddScoped<IAtomicCandidacyDecision, EfCoreAtomicCandidacyDecision>();
         services.AddScoped<IAtomicCandidacyWithdrawal, EfCoreAtomicCandidacyWithdrawal>();
+        services.AddScoped<INotificationOutboxReader, EfCoreNotificationOutboxReader>();
+        services.AddScoped<IRecruiterCompanyAccessLookup, UnconfiguredRecruiterCompanyAccessLookup>();
         return services;
     }
 }
