@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using InternHub.Api.Domain.InternshipCandidacies;
+using InternHub.Api.Features.InternshipCandidacies.AtomicWithdrawal;
 using InternHub.Api.Features.InternshipCandidacies.WithdrawInternshipCandidacy;
 using InternHub.Api.Features.Shared;
 using InternHub.Tests.Unit.InternshipCandidacies.Fakes;
@@ -11,26 +12,68 @@ public sealed class WithdrawInternshipCandidacyHandlerTests
     private static readonly DateTime ApplicationDate =
         new(2027, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 
-    [Theory]
-    [InlineData(InternshipCandidacyStatus.Submitted)]
-    [InlineData(InternshipCandidacyStatus.Shortlisted)]
-    public void Given_OpenCandidacy_When_Withdrawing_Then_ReturnsSuccessAndUpdates(
-        InternshipCandidacyStatus initialStatus)
+    [Fact]
+    public async Task Given_AtomicWithdrawalSucceeds_When_Withdrawing_Then_ReturnsSuccessAndDelegatesToAtomicWithdrawal()
     {
         // Arrange
-        var candidacy = CreateCandidacy(initialStatus);
-        var candidacies = new FakeInternshipCandidacyRepository();
-        candidacies.Seed(candidacy);
-        var handler = new WithdrawInternshipCandidacyHandler(candidacies);
+        var candidacy = CreateCandidacy(InternshipCandidacyStatus.Withdrawn);
+        var withdrawals = new FakeAtomicCandidacyWithdrawal
+        {
+            Result = AtomicCandidacyWithdrawalResult.Success(candidacy)
+        };
+        var handler = new WithdrawInternshipCandidacyHandler(withdrawals);
 
         // Act
-        var result = handler.Handle(new WithdrawInternshipCandidacyCommand(candidacy.Id));
+        var result = await handler.HandleAsync(new WithdrawInternshipCandidacyCommand(candidacy.Id));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
         result.Value.Should().BeTrue();
-        candidacy.Status.Should().Be(InternshipCandidacyStatus.Withdrawn);
-        candidacies.UpdateCallCount.Should().Be(1);
+        result.Error.Should().BeNull();
+        withdrawals.CallCount.Should().Be(1);
+        withdrawals.LastCandidacyId.Should().Be(candidacy.Id);
+    }
+
+    [Fact]
+    public async Task Given_CancellationToken_When_Withdrawing_Then_PassesTokenToAtomicWithdrawal()
+    {
+        // Arrange
+        using var cancellationSource = new CancellationTokenSource();
+        var candidacyId = Guid.NewGuid();
+        var withdrawals = new FakeAtomicCandidacyWithdrawal();
+        var handler = new WithdrawInternshipCandidacyHandler(withdrawals);
+
+        // Act
+        await handler.HandleAsync(
+            new WithdrawInternshipCandidacyCommand(candidacyId),
+            cancellationSource.Token);
+
+        // Assert
+        withdrawals.CallCount.Should().Be(1);
+        withdrawals.LastCandidacyId.Should().Be(candidacyId);
+        withdrawals.LastCancellationToken.Should().Be(cancellationSource.Token);
+    }
+
+    [Fact]
+    public async Task Given_MissingCandidacy_When_Withdrawing_Then_ReturnsNotFound()
+    {
+        // Arrange
+        var candidacyId = Guid.NewGuid();
+        var withdrawals = new FakeAtomicCandidacyWithdrawal
+        {
+            Result = AtomicCandidacyWithdrawalResult.Failure(
+                AtomicCandidacyWithdrawalStatus.CandidacyNotFound)
+        };
+        var handler = new WithdrawInternshipCandidacyHandler(withdrawals);
+
+        // Act
+        var result = await handler.HandleAsync(new WithdrawInternshipCandidacyCommand(candidacyId));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.NotFound);
+        result.Error.Should().Be($"Candidacy {candidacyId} not found.");
+        result.Value.Should().BeFalse();
+        withdrawals.CallCount.Should().Be(1);
     }
 
     [Theory]
@@ -38,62 +81,68 @@ public sealed class WithdrawInternshipCandidacyHandlerTests
     [InlineData(InternshipCandidacyStatus.Rejected)]
     [InlineData(InternshipCandidacyStatus.Waitlisted)]
     [InlineData(InternshipCandidacyStatus.Withdrawn)]
-    public void Given_FinalCandidacy_When_Withdrawing_Then_ReturnsConflictAndDoesNotUpdate(
+    public async Task Given_InvalidTransition_When_Withdrawing_Then_ReturnsConflictWithCurrentStatus(
         InternshipCandidacyStatus finalStatus)
     {
         // Arrange
-        var candidacy = CreateCandidacy(finalStatus);
-        var candidacies = new FakeInternshipCandidacyRepository();
-        candidacies.Seed(candidacy);
-        var handler = new WithdrawInternshipCandidacyHandler(candidacies);
+        var candidacyId = Guid.NewGuid();
+        var withdrawals = new FakeAtomicCandidacyWithdrawal
+        {
+            Result = AtomicCandidacyWithdrawalResult.InvalidTransition(finalStatus)
+        };
+        var handler = new WithdrawInternshipCandidacyHandler(withdrawals);
 
         // Act
-        var result = handler.Handle(new WithdrawInternshipCandidacyCommand(candidacy.Id));
+        var result = await handler.HandleAsync(new WithdrawInternshipCandidacyCommand(candidacyId));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Conflict);
         result.Error.Should().Be(
-            $"Candidacy {candidacy.Id} cannot be withdrawn from status {finalStatus}.");
-        candidacy.Status.Should().Be(finalStatus);
-        candidacies.UpdateCallCount.Should().Be(0);
+            $"Candidacy {candidacyId} cannot be withdrawn from status {finalStatus}.");
+        result.Value.Should().BeFalse();
+        withdrawals.CallCount.Should().Be(1);
     }
 
     [Fact]
-    public void Given_MissingCandidacy_When_Withdrawing_Then_ReturnsNotFoundAndDoesNotUpdate()
+    public async Task Given_ConcurrencyConflict_When_Withdrawing_Then_ReturnsConflictWithRetryMessage()
     {
         // Arrange
         var candidacyId = Guid.NewGuid();
-        var candidacies = new FakeInternshipCandidacyRepository();
-        var handler = new WithdrawInternshipCandidacyHandler(candidacies);
+        var withdrawals = new FakeAtomicCandidacyWithdrawal
+        {
+            Result = AtomicCandidacyWithdrawalResult.Failure(
+                AtomicCandidacyWithdrawalStatus.ConcurrencyConflict)
+        };
+        var handler = new WithdrawInternshipCandidacyHandler(withdrawals);
 
         // Act
-        var result = handler.Handle(new WithdrawInternshipCandidacyCommand(candidacyId));
+        var result = await handler.HandleAsync(new WithdrawInternshipCandidacyCommand(candidacyId));
 
         // Assert
-        result.Status.Should().Be(ResultStatus.NotFound);
-        result.Error.Should().Be($"Candidacy {candidacyId} not found.");
+        result.Status.Should().Be(ResultStatus.Conflict);
+        result.Error.Should().Be(
+            $"Candidacy {candidacyId} could not be withdrawn due to a concurrent update. Retry the request.");
         result.Value.Should().BeFalse();
-        candidacies.UpdateCallCount.Should().Be(0);
+        withdrawals.CallCount.Should().Be(1);
     }
 
     [Fact]
-    public void Given_OpenCandidacyAndFailedRepositoryUpdate_When_Withdrawing_Then_ReturnsNotFound()
+    public async Task Given_AtomicWithdrawalThrowsPersistenceError_When_Withdrawing_Then_PropagatesExceptionWithoutReturningSuccess()
     {
         // Arrange
-        var candidacy = CreateCandidacy(InternshipCandidacyStatus.Submitted);
-        var candidacies = new FakeInternshipCandidacyRepository { UpdateResult = false };
-        candidacies.Seed(candidacy);
-        var handler = new WithdrawInternshipCandidacyHandler(candidacies);
+        var candidacyId = Guid.NewGuid();
+        var withdrawals = new FakeAtomicCandidacyWithdrawal
+        {
+            ExceptionToThrow = new InvalidOperationException("Simulated persistence failure.")
+        };
+        var handler = new WithdrawInternshipCandidacyHandler(withdrawals);
 
         // Act
-        var result = handler.Handle(new WithdrawInternshipCandidacyCommand(candidacy.Id));
+        Func<Task> act = () => handler.HandleAsync(new WithdrawInternshipCandidacyCommand(candidacyId));
 
         // Assert
-        result.Status.Should().Be(ResultStatus.NotFound);
-        result.Error.Should().Be($"Candidacy {candidacy.Id} not found.");
-        result.Value.Should().BeFalse();
-        candidacy.Status.Should().Be(InternshipCandidacyStatus.Withdrawn);
-        candidacies.UpdateCallCount.Should().Be(1);
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        withdrawals.CallCount.Should().Be(1);
     }
 
     private static InternshipCandidacy CreateCandidacy(InternshipCandidacyStatus status) =>

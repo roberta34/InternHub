@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Infrastructure.Persistence.AtomicSubmission;
 using InternHub.Api.Features.InternshipCandidacies.AtomicDecision;
+using InternHub.Api.Features.InternshipCandidacies.AtomicWithdrawal;
 using InternHub.Api.Infrastructure.Persistence.AtomicDecision;
+using InternHub.Api.Infrastructure.Persistence.AtomicWithdrawal;
 
 namespace InternHub.Api.Infrastructure.Persistence;
 
@@ -26,6 +28,7 @@ public static class PersistenceExtensions
         services.AddScoped<IInternshipCandidacyRepository, EfCoreInternshipCandidacyRepository>();
         services.AddScoped<IAtomicCandidacySubmission, EfCoreAtomicCandidacySubmission>();
         services.AddScoped<IAtomicCandidacyDecision, EfCoreAtomicCandidacyDecision>();
+        services.AddScoped<IAtomicCandidacyWithdrawal, EfCoreAtomicCandidacyWithdrawal>();
         return services;
     }
 }
