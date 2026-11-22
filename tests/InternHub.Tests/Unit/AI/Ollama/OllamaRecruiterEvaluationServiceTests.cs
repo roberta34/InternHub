@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using InternHub.Api.Features.StudentCvFeedback;
 using InternHub.Api.Infrastructure.AI.Ollama;
 using Microsoft.Extensions.Configuration;
 
@@ -14,7 +15,16 @@ public sealed class OllamaRecruiterEvaluationServiceTests
     {
         // Arrange
         var handler = new FakeHttpMessageHandler(
-            OllamaResponse("""{"matchedSkills":["C#"],"missingSkills":["Docker"],"suggestions":["Study Docker."],"summary":"Good match."}"""));
+            OllamaResponse("""
+                {
+                  "matchedSkills": ["C#"],
+                  "missingSkills": ["Docker"],
+                  "suggestions": [
+                    { "skill": "Docker", "suggestion": "Study Docker." }
+                  ],
+                  "summary": "Good match."
+                }
+                """));
         var service = CreateService(handler);
 
         // Act
@@ -51,8 +61,61 @@ public sealed class OllamaRecruiterEvaluationServiceTests
         payload.RootElement.GetProperty("format").GetString().Should().Be("json");
         payload.RootElement.GetProperty("options").GetProperty("temperature")
             .GetDouble().Should().Be(0.1);
-        payload.RootElement.GetProperty("prompt").GetString()
-            .Should().Contain("internhub-recruiter-evaluation-v1");
+        var prompt = payload.RootElement.GetProperty("prompt").GetString();
+        prompt.Should().Contain("internhub-student-cv-feedback-v2");
+        prompt.Should().Contain("suggestions: array of objects");
+    }
+
+    [Fact]
+    public async Task Given_StructuredSkillSuggestions_When_Analyzing_Then_MapsSuggestions()
+    {
+        // Arrange
+        const string evaluation = """
+            {
+              "matchedSkills": ["C#"],
+              "missingSkills": ["Docker"],
+              "suggestions": [
+                { "skill": "Docker", "suggestion": "Study Docker." }
+              ],
+              "summary": "Good match."
+            }
+            """;
+
+        var handler = new FakeHttpMessageHandler(OllamaResponse(evaluation));
+        var service = CreateService(handler);
+
+        // Act
+        var result = await service.AnalyzeAsync("C# developer", "C#, Docker");
+
+        // Assert
+        result.MissingSkills.Should().ContainSingle().Which.Should().Be("Docker");
+        result.Suggestions.Should().ContainSingle().Which.Should().Be("Study Docker.");
+        handler.Requests.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData("""{"matchedSkills":[],"missingSkills":["Docker"],"suggestions":[{"skill":"React","suggestion":"Study React."}],"summary":"Missing Docker."}""")]
+    [InlineData("""{"matchedSkills":[],"missingSkills":["Docker"],"suggestions":[],"summary":"Missing Docker."}""")]
+    [InlineData("""{"matchedSkills":[],"missingSkills":["Docker","SQL"],"suggestions":[{"skill":"Docker","suggestion":"Study Docker."}],"summary":"Missing skills."}""")]
+    [InlineData("""{"matchedSkills":[],"missingSkills":["Docker"],"suggestions":[{"skill":"Docker","suggestion":"  "}],"summary":"Missing Docker."}""")]
+    [InlineData("""{"matchedSkills":[],"missingSkills":["Docker"],"suggestions":["Study Docker."],"summary":"Missing Docker."}""")]
+    public async Task Given_InvalidSkillSuggestion_When_Analyzing_Then_RetriesAndFails(
+        string invalidEvaluation)
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(
+            OllamaResponse(invalidEvaluation),
+            OllamaResponse(invalidEvaluation));
+        var service = CreateService(handler);
+
+        // Act
+        var action = () => service.AnalyzeAsync("CV", "Requirements");
+
+        // Assert
+        await action.Should()
+            .ThrowAsync<StudentCvFeedbackProviderException>()
+            .Where(exception => exception.Kind == StudentCvFeedbackFailureKind.InvalidEvaluation);
+        handler.Requests.Should().HaveCount(2);
     }
 
     [Fact]
@@ -85,8 +148,9 @@ public sealed class OllamaRecruiterEvaluationServiceTests
         var action = () => service.AnalyzeAsync("CV", "Requirements");
 
         // Assert
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*invalid recruiter evaluation*");
+        var exception = await action.Should()
+            .ThrowAsync<StudentCvFeedbackProviderException>();
+        exception.Which.Kind.Should().Be(StudentCvFeedbackFailureKind.InvalidEvaluation);
         handler.Requests.Should().HaveCount(2);
     }
 
@@ -107,7 +171,9 @@ public sealed class OllamaRecruiterEvaluationServiceTests
         var action = () => service.AnalyzeAsync("CV", "Requirements");
 
         // Assert
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        await action.Should()
+            .ThrowAsync<StudentCvFeedbackProviderException>()
+            .Where(exception => exception.Kind == StudentCvFeedbackFailureKind.InvalidEvaluation);
         handler.Requests.Should().HaveCount(2);
     }
 
@@ -117,6 +183,49 @@ public sealed class OllamaRecruiterEvaluationServiceTests
         // Arrange
         var handler = new FakeHttpMessageHandler(
             new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        var service = CreateService(handler);
+
+        // Act
+        var action = () => service.AnalyzeAsync("CV", "Requirements");
+
+        // Assert
+        await action.Should()
+            .ThrowAsync<StudentCvFeedbackProviderException>()
+            .Where(exception => exception.Kind ==
+                StudentCvFeedbackFailureKind.ProviderUnavailable);
+        handler.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_NetworkFailure_When_Analyzing_Then_ThrowsProviderUnavailable()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(
+            (_, _) => throw new HttpRequestException("Network unavailable."));
+        var service = CreateService(handler);
+
+        // Act
+        var action = () => service.AnalyzeAsync("CV", "Requirements");
+
+        // Assert
+        await action.Should()
+            .ThrowAsync<StudentCvFeedbackProviderException>()
+            .Where(exception => exception.Kind ==
+                StudentCvFeedbackFailureKind.ProviderUnavailable);
+        handler.Requests.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.UnprocessableEntity)]
+    public async Task Given_Http4xx_When_Analyzing_Then_PropagatesHttpFailure(
+        HttpStatusCode statusCode)
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(
+            new HttpResponseMessage(statusCode));
         var service = CreateService(handler);
 
         // Act
@@ -165,7 +274,10 @@ public sealed class OllamaRecruiterEvaluationServiceTests
         var action = () => service.AnalyzeAsync("CV", "Requirements");
 
         // Assert
-        await action.Should().ThrowAsync<OperationCanceledException>();
+        await action.Should()
+            .ThrowAsync<StudentCvFeedbackProviderException>()
+            .Where(exception => exception.Kind ==
+                StudentCvFeedbackFailureKind.Timeout);
         handler.Requests.Should().ContainSingle();
     }
 

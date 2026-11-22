@@ -5,6 +5,7 @@ using FluentAssertions;
 using InternHub.Api.Domain.Offers;
 using InternHub.Api.Features.Offers.CvFeedback;
 using InternHub.Api.Features.RecruiterEvaluation;
+using InternHub.Api.Features.StudentCvFeedback;
 using InternHub.Api.Infrastructure.Persistence;
 using InternHub.Tests.Integration.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
@@ -137,7 +138,9 @@ public sealed class CvFeedbackEndpointTests
         // Arrange
         const string cvText = "Private CV content for provider failure.";
         var evaluator = new FakeRecruiterEvaluationService(
-            exception: new HttpRequestException("Provider connection failed."));
+            exception: new StudentCvFeedbackProviderException(
+                StudentCvFeedbackFailureKind.ProviderUnavailable,
+                "Provider connection failed."));
         using var factory = CreateFactory(evaluator);
         using var client = factory.CreateClient();
         var logProvider = new RecordingLoggerProvider();

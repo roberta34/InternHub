@@ -7,4 +7,5 @@ public sealed record UpdateOfferCommand(
     string Requirements,
     DateTime Deadline,
     int MaximumAvailableSlots,
-    int Version);
+    int Version,
+    Guid? RecruiterId = null);

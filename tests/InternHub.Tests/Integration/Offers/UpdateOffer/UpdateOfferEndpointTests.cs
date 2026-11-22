@@ -5,6 +5,9 @@ using InternHub.Api.Infrastructure.Persistence;
 using InternHub.Tests.Integration.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using InternHub.Api.Domain.Offers;
+using InternHub.Api.Domain.InternshipCandidacies;
+using InternHub.Domain.Students;
 
 namespace InternHub.Tests.Integration.Offers.UpdateOffer;
 
@@ -82,6 +85,171 @@ public sealed class UpdateOfferEndpointTests
         persisted.Requirements.Should().Be(offer.Requirements);
         persisted.Deadline.Should().Be(offer.Deadline);
         persisted.MaximumAvailableSlots.Should().Be(offer.MaximumAvailableSlots);
+        persisted.Version.Should().Be(offer.Version);
+    }
+
+    [Fact]
+    public async Task Given_DifferentRecruiter_When_UpdatingOffer_Then_ReturnsForbiddenAndPreservesData()
+    {
+        // Arrange
+        var otherRecruiterId = Guid.NewGuid();
+        using var factory = new InternHubSqliteFactory(recruiterId: otherRecruiterId);
+        using var client = factory.CreateClient();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var offer = new Offer(
+            "Backend Intern",
+            "Example Company",
+            "C#, Git",
+            InitialDeadline,
+            2,
+            InternHubSqliteFactory.RecruiterId);
+        db.Offers.Add(offer);
+        await db.SaveChangesAsync();
+
+        var request = new
+        {
+            title = "Updated Backend Intern",
+            companyName = "Updated Company",
+            requirements = "C#, EF Core",
+            deadline = UpdatedDeadline,
+            maximumAvailableSlots = 4,
+            version = offer.Version
+        };
+
+        // Act
+        using var response = await client.PutAsJsonAsync($"/api/v1/offers/{offer.Id}", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var verificationScope = factory.Services.CreateScope();
+        var verificationDb = verificationScope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var persisted = await verificationDb.Offers.AsNoTracking().SingleAsync(item => item.Id == offer.Id);
+        persisted.Title.Should().Be("Backend Intern");
+        persisted.Version.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task Given_NonPositiveCapacity_When_UpdatingOffer_Then_ReturnsBadRequestAndPreservesData(int capacity)
+    {
+        // Arrange
+        using var factory = new InternHubSqliteFactory();
+        using var client = factory.CreateClient();
+        var offer = await CreateOffer(client);
+        var request = new
+        {
+            title = "Updated Backend Intern",
+            companyName = "Updated Company",
+            requirements = "C#, EF Core",
+            deadline = UpdatedDeadline,
+            maximumAvailableSlots = capacity,
+            version = offer.Version
+        };
+
+        // Act
+        using var response = await client.PutAsJsonAsync($"/api/v1/offers/{offer.Id}", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("Maximum available slots");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var persisted = await db.Offers.AsNoTracking().SingleAsync(item => item.Id == offer.Id);
+        persisted.MaximumAvailableSlots.Should().Be(offer.MaximumAvailableSlots);
+        persisted.Title.Should().Be(offer.Title);
+        persisted.Version.Should().Be(offer.Version);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Given_CapacityAtLeastAcceptedCount_When_UpdatingOffer_Then_Succeeds(int capacity)
+    {
+        // Arrange
+        using var factory = new InternHubSqliteFactory();
+        using var client = factory.CreateClient();
+        var offer = await CreateOffer(client);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var student = new Student(Guid.NewGuid(), "Accepted Student", "accepted@example.com");
+        var candidacy = new InternshipCandidacy(
+            Guid.NewGuid(),
+            student.Id,
+            offer.Id,
+            InitialDeadline,
+            InternshipCandidacyStatus.Accepted);
+        db.Students.Add(student);
+        db.InternshipCandidacies.Add(candidacy);
+        await db.SaveChangesAsync();
+
+        var request = new
+        {
+            title = "Updated Backend Intern",
+            companyName = "Updated Company",
+            requirements = "C#, EF Core",
+            deadline = UpdatedDeadline,
+            maximumAvailableSlots = capacity,
+            version = offer.Version
+        };
+
+        // Act
+        using var response = await client.PutAsJsonAsync($"/api/v1/offers/{offer.Id}", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Given_CapacityBelowAcceptedCount_When_UpdatingOffer_Then_ReturnsConflictAndPreservesData()
+    {
+        // Arrange
+        using var factory = new InternHubSqliteFactory();
+        using var client = factory.CreateClient();
+        var offer = await CreateOffer(client);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var students = new[]
+        {
+            new Student(Guid.NewGuid(), "Accepted One", "accepted1@example.com"),
+            new Student(Guid.NewGuid(), "Accepted Two", "accepted2@example.com")
+        };
+        db.Students.AddRange(students);
+        db.InternshipCandidacies.AddRange(
+            students.Select(student => new InternshipCandidacy(
+                Guid.NewGuid(),
+                student.Id,
+                offer.Id,
+                InitialDeadline,
+                InternshipCandidacyStatus.Accepted)));
+        await db.SaveChangesAsync();
+
+        var request = new
+        {
+            title = "Updated Backend Intern",
+            companyName = "Updated Company",
+            requirements = "C#, EF Core",
+            deadline = UpdatedDeadline,
+            maximumAvailableSlots = 1,
+            version = offer.Version
+        };
+
+        // Act
+        using var response = await client.PutAsJsonAsync($"/api/v1/offers/{offer.Id}", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("accepted candidacy count");
+
+        using var verificationScope = factory.Services.CreateScope();
+        var verificationDb = verificationScope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        var persisted = await verificationDb.Offers.AsNoTracking().SingleAsync(item => item.Id == offer.Id);
+        persisted.MaximumAvailableSlots.Should().Be(offer.MaximumAvailableSlots);
+        persisted.Title.Should().Be(offer.Title);
         persisted.Version.Should().Be(offer.Version);
     }
 
