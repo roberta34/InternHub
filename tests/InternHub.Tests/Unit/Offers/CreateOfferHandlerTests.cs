@@ -7,6 +7,9 @@ namespace InternHub.Tests.Unit.Offers;
 
 public sealed class CreateOfferHandlerTests
 {
+    private static readonly Guid RecruiterId =
+        Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     private static readonly DateTime Deadline =
         new(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc);
 
@@ -16,7 +19,7 @@ public sealed class CreateOfferHandlerTests
         // Arrange
         var repository = new FakeOfferRepository();
         var handler = new CreateOfferHandler(repository);
-        var command = new CreateOfferCommand("Backend Intern", "Example Co", "C#", Deadline, 2);
+        var command = new CreateOfferCommand("Backend Intern", "Example Co", "C#", Deadline, 2, RecruiterId);
 
         // Act
         var result = handler.Handle(command);
@@ -41,7 +44,7 @@ public sealed class CreateOfferHandlerTests
         // Arrange
         var repository = new FakeOfferRepository();
         var handler = new CreateOfferHandler(repository);
-        var command = new CreateOfferCommand("", "Example Co", "C#", Deadline, 2);
+        var command = new CreateOfferCommand("", "Example Co", "C#", Deadline, 2, RecruiterId);
 
         // Act
         var result = handler.Handle(command);
@@ -58,7 +61,7 @@ public sealed class CreateOfferHandlerTests
         // Arrange
         var repository = new FakeOfferRepository { AddResult = false };
         var handler = new CreateOfferHandler(repository);
-        var command = new CreateOfferCommand("Backend Intern", "Example Co", "C#", Deadline, 2);
+        var command = new CreateOfferCommand("Backend Intern", "Example Co", "C#", Deadline, 2, RecruiterId);
 
         // Act
         var result = handler.Handle(command);
@@ -67,5 +70,43 @@ public sealed class CreateOfferHandlerTests
         result.Status.Should().Be(ResultStatus.Conflict);
         result.Error.Should().Contain("already exists");
         result.Value.Should().BeNull();
+    }
+
+    [Fact]
+    public void Given_UnauthenticatedCommand_When_CreatingOffer_Then_ReturnsUnauthorized()
+    {
+        // Arrange
+        var repository = new FakeOfferRepository();
+        var handler = new CreateOfferHandler(repository);
+        var command = new CreateOfferCommand("Backend Intern", "Example Co", "C#", Deadline, 2);
+
+        // Act
+        var result = handler.Handle(command);
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Unauthorized);
+        repository.AddedOffers.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Given_EmptyRecruiterId_When_CreatingOffer_Then_ReturnsUnauthorized()
+    {
+        // Arrange
+        var repository = new FakeOfferRepository();
+        var handler = new CreateOfferHandler(repository);
+        var command = new CreateOfferCommand(
+            "Backend Intern",
+            "Example Co",
+            "C#",
+            Deadline,
+            2,
+            Guid.Empty);
+
+        // Act
+        var result = handler.Handle(command);
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Unauthorized);
+        repository.AddedOffers.Should().BeEmpty();
     }
 }

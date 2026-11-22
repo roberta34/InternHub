@@ -4,5 +4,7 @@ namespace InternHub.Api.Features.InternshipCandidacies.DecideInternshipCandidacy
 
 public interface IDecideInternshipCandidacyHandler
 {
-    Result<DecideInternshipCandidacyResponse> Handle(DecideInternshipCandidacyCommand command);
+    Task<Result<DecideInternshipCandidacyResponse>> HandleAsync(
+        DecideInternshipCandidacyCommand command,
+        CancellationToken cancellationToken = default);
 }

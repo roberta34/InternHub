@@ -1,14 +1,44 @@
-using InternHub.Api.Domain.InternshipCandidacies;
-using InternHub.Api.Domain.Offers;
+using InternHub.Api.Features.InternshipCandidacies.AtomicDecision;
 using InternHub.Api.Features.Shared;
 
 namespace InternHub.Api.Features.InternshipCandidacies.DecideInternshipCandidacy;
 
 public sealed class DecideInternshipCandidacyHandler(
-    IInternshipCandidacyRepository candidacies,
-    IOfferRepository offers) : IDecideInternshipCandidacyHandler
+    IAtomicCandidacyDecision decisions) : IDecideInternshipCandidacyHandler
 {
-    public Result<DecideInternshipCandidacyResponse> Handle(DecideInternshipCandidacyCommand command)
+    private static readonly IReadOnlyDictionary<CandidacyDecision, string> Verbs =
+        new Dictionary<CandidacyDecision, string>
+        {
+            [CandidacyDecision.Shortlist] = "shortlisted",
+            [CandidacyDecision.Accept] = "accepted",
+            [CandidacyDecision.Reject] = "rejected"
+        };
+
+    private static readonly IReadOnlyDictionary<AtomicCandidacyDecisionStatus,
+        Func<Guid, CandidacyDecision, AtomicCandidacyDecisionResult, Result<DecideInternshipCandidacyResponse>>> Outcomes =
+        new Dictionary<AtomicCandidacyDecisionStatus,
+            Func<Guid, CandidacyDecision, AtomicCandidacyDecisionResult, Result<DecideInternshipCandidacyResponse>>>
+        {
+            [AtomicCandidacyDecisionStatus.Decided] = (_, _, outcome) =>
+                Result<DecideInternshipCandidacyResponse>.Success(
+                    new DecideInternshipCandidacyResponse(outcome.Candidacy!.Id, outcome.Candidacy.Status)),
+            [AtomicCandidacyDecisionStatus.CandidacyNotFound] = (id, _, _) =>
+                Result<DecideInternshipCandidacyResponse>.NotFound(
+                    $"Candidacy {id} not found."),
+            [AtomicCandidacyDecisionStatus.OfferNotFound] = (id, _, _) =>
+                Result<DecideInternshipCandidacyResponse>.NotFound(
+                    $"Offer of candidacy {id} not found."),
+            [AtomicCandidacyDecisionStatus.InvalidTransition] = (id, decision, _) =>
+                Result<DecideInternshipCandidacyResponse>.Conflict(
+                    $"Candidacy {id} cannot be {Verbs[decision]} from its current status."),
+            [AtomicCandidacyDecisionStatus.ConcurrencyConflict] = (id, _, _) =>
+                Result<DecideInternshipCandidacyResponse>.Conflict(
+                    $"Candidacy {id} could not be decided because the offer was modified concurrently. Retry the request.")
+        };
+
+    public async Task<Result<DecideInternshipCandidacyResponse>> HandleAsync(
+        DecideInternshipCandidacyCommand command,
+        CancellationToken cancellationToken = default)
     {
         var decisionName = Enum.GetNames<CandidacyDecision>()
             .FirstOrDefault(name => string.Equals(name, command.Action, StringComparison.OrdinalIgnoreCase));
@@ -19,41 +49,8 @@ public sealed class DecideInternshipCandidacyHandler(
 
         var decision = Enum.Parse<CandidacyDecision>(decisionName);
 
-        var candidacy = candidacies.GetById(command.CandidacyId);
+        var outcome = await decisions.DecideAsync(command.CandidacyId, decision, cancellationToken);
 
-        if (candidacy is null)
-            return Result<DecideInternshipCandidacyResponse>.NotFound(
-                $"Candidacy {command.CandidacyId} not found.");
-
-        var hasAvailableSlot = false;
-
-        if (decision == CandidacyDecision.Accept)
-        {
-            var offer = offers.GetById(candidacy.OfferId);
-
-            if (offer is null)
-                return Result<DecideInternshipCandidacyResponse>.NotFound(
-                    $"Offer {candidacy.OfferId} not found.");
-
-            hasAvailableSlot = candidacies.CountAcceptedForOffer(offer.Id) < offer.MaximumAvailableSlots;
-        }
-
-        var (changed, verb) = decision switch
-        {
-            CandidacyDecision.Shortlist => (candidacy.Shortlist(), "shortlisted"),
-            CandidacyDecision.Accept => (candidacy.Accept(hasAvailableSlot), "accepted"),
-            _ => (candidacy.Reject(), "rejected")
-        };
-
-        if (!changed)
-            return Result<DecideInternshipCandidacyResponse>.Conflict(
-                $"Candidacy {command.CandidacyId} cannot be {verb} from status {candidacy.Status}.");
-
-        if (!candidacies.Update(candidacy))
-            return Result<DecideInternshipCandidacyResponse>.NotFound(
-                $"Candidacy {command.CandidacyId} not found.");
-
-        return Result<DecideInternshipCandidacyResponse>.Success(
-            new DecideInternshipCandidacyResponse(candidacy.Id, candidacy.Status));
+        return Outcomes[outcome.Status](command.CandidacyId, decision, outcome);
     }
 }

@@ -1,6 +1,7 @@
 using InternHub.Api.Domain.Offers;
 using InternHub.Api.Features.RecruiterEvaluation;
 using InternHub.Api.Features.Shared;
+using InternHub.Api.Features.StudentCvFeedback;
 
 namespace InternHub.Api.Features.Offers.CvFeedback;
 
@@ -43,15 +44,12 @@ public sealed class CvFeedbackHandler(
                 offer.Requirements,
                 cancellationToken);
         }
-        catch (HttpRequestException)
-        {
-            return ProviderUnavailable();
-        }
-        catch (InvalidOperationException)
-        {
-            return ProviderUnavailable();
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        
+        catch (StudentCvFeedbackProviderException exception)
+            when (exception.Kind is
+                StudentCvFeedbackFailureKind.ProviderUnavailable
+                or StudentCvFeedbackFailureKind.Timeout
+                or StudentCvFeedbackFailureKind.InvalidEvaluation)
         {
             return ProviderUnavailable();
         }

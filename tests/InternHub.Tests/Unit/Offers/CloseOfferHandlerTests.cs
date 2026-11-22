@@ -8,6 +8,9 @@ namespace InternHub.Tests.Unit.Offers;
 
 public sealed class CloseOfferHandlerTests
 {
+    private static readonly Guid RecruiterId =
+        Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     private static readonly DateTime Deadline =
         new(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc);
 
@@ -21,7 +24,7 @@ public sealed class CloseOfferHandlerTests
         var handler = new CloseOfferHandler(repository);
 
         // Act
-        var result = handler.Handle(new CloseOfferCommand(offer.Id));
+        var result = handler.Handle(new CloseOfferCommand(offer.Id, RecruiterId));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
@@ -41,7 +44,7 @@ public sealed class CloseOfferHandlerTests
         var handler = new CloseOfferHandler(repository);
 
         // Act
-        var result = handler.Handle(new CloseOfferCommand(offer.Id));
+        var result = handler.Handle(new CloseOfferCommand(offer.Id, RecruiterId));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Success);
@@ -58,7 +61,7 @@ public sealed class CloseOfferHandlerTests
         var offerId = Guid.NewGuid();
 
         // Act
-        var result = handler.Handle(new CloseOfferCommand(offerId));
+        var result = handler.Handle(new CloseOfferCommand(offerId, RecruiterId));
 
         // Assert
         result.Status.Should().Be(ResultStatus.NotFound);
@@ -79,7 +82,7 @@ public sealed class CloseOfferHandlerTests
         var handler = new CloseOfferHandler(repository);
 
         // Act
-        var result = handler.Handle(new CloseOfferCommand(offer.Id));
+        var result = handler.Handle(new CloseOfferCommand(offer.Id, RecruiterId));
 
         // Assert
         result.Status.Should().Be(ResultStatus.NotFound);
@@ -102,7 +105,7 @@ public sealed class CloseOfferHandlerTests
         var handler = new CloseOfferHandler(repository);
 
         // Act
-        var result = handler.Handle(new CloseOfferCommand(offer.Id));
+        var result = handler.Handle(new CloseOfferCommand(offer.Id, RecruiterId));
 
         // Assert
         result.Status.Should().Be(ResultStatus.Conflict);
@@ -110,6 +113,24 @@ public sealed class CloseOfferHandlerTests
         repository.UpdateCallCount.Should().Be(1);
     }
 
+    [Fact]
+    public void Given_EmptyRecruiterId_When_ClosingOffer_Then_ReturnsUnauthorized()
+    {
+        // Arrange
+        var offer = CreateOffer();
+        var repository = new FakeOfferRepository();
+        repository.Offers.Add(offer);
+        var handler = new CloseOfferHandler(repository);
+
+        // Act
+        var result = handler.Handle(new CloseOfferCommand(offer.Id, Guid.Empty));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Unauthorized);
+        repository.UpdateCallCount.Should().Be(0);
+        offer.IsClosed.Should().BeFalse();
+    }
+
     private static Offer CreateOffer() =>
-        new("Backend Intern", "Example Company", "C#, Git", Deadline, 2);
+        new("Backend Intern", "Example Company", "C#, Git", Deadline, 2, RecruiterId);
 }

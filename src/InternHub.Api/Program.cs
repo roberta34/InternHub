@@ -9,6 +9,9 @@ using InternHub.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+
 // Discover Sprint 3 modules once; each module needs a public parameterless constructor.
 var featureModules = typeof(IFeatureModule).Assembly
     .GetTypes()
@@ -33,6 +36,9 @@ foreach (var module in featureModules)
 }
 
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {

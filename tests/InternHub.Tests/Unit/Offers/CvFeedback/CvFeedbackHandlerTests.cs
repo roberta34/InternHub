@@ -4,6 +4,7 @@ using InternHub.Api.Domain.Offers;
 using InternHub.Api.Features.Offers.CvFeedback;
 using InternHub.Api.Features.RecruiterEvaluation;
 using InternHub.Api.Features.Shared;
+using InternHub.Api.Features.StudentCvFeedback;
 
 namespace InternHub.Tests.Unit.Offers.CvFeedback;
 
@@ -132,7 +133,7 @@ public sealed class CvFeedbackHandlerTests
     }
 
     [Fact]
-    public async Task Given_HttpProviderFailure_When_AnalyzingCv_Then_ReturnsServiceUnavailable()
+    public async Task Given_TypedProviderUnavailable_When_AnalyzingCv_Then_ReturnsServiceUnavailable()
     {
         // Arrange
         var offer = CreateOffer();
@@ -140,7 +141,9 @@ public sealed class CvFeedbackHandlerTests
         offers.Add(offer);
         var evaluator = new FakeRecruiterEvaluationService
         {
-            Exception = new HttpRequestException("Provider unavailable.")
+            Exception = new StudentCvFeedbackProviderException(
+                StudentCvFeedbackFailureKind.ProviderUnavailable,
+                "Provider unavailable.")
         };
         var handler = new CvFeedbackHandler(offers, evaluator);
 
@@ -155,7 +158,7 @@ public sealed class CvFeedbackHandlerTests
     }
 
     [Fact]
-    public async Task Given_InvalidProviderResponse_When_AnalyzingCv_Then_ReturnsServiceUnavailable()
+    public async Task Given_TypedInvalidEvaluation_When_AnalyzingCv_Then_ReturnsServiceUnavailable()
     {
         // Arrange
         var offer = CreateOffer();
@@ -163,7 +166,9 @@ public sealed class CvFeedbackHandlerTests
         offers.Add(offer);
         var evaluator = new FakeRecruiterEvaluationService
         {
-            Exception = new InvalidOperationException("Invalid provider response.")
+            Exception = new StudentCvFeedbackProviderException(
+                StudentCvFeedbackFailureKind.InvalidEvaluation,
+                "Invalid provider response.")
         };
         var handler = new CvFeedbackHandler(offers, evaluator);
 
@@ -178,7 +183,7 @@ public sealed class CvFeedbackHandlerTests
     }
 
     [Fact]
-    public async Task Given_ProviderTimeout_When_AnalyzingCv_Then_ReturnsServiceUnavailable()
+    public async Task Given_TypedProviderTimeout_When_AnalyzingCv_Then_ReturnsServiceUnavailable()
     {
         // Arrange
         var offer = CreateOffer();
@@ -186,7 +191,9 @@ public sealed class CvFeedbackHandlerTests
         offers.Add(offer);
         var evaluator = new FakeRecruiterEvaluationService
         {
-            Exception = new OperationCanceledException("Provider timed out.")
+            Exception = new StudentCvFeedbackProviderException(
+                StudentCvFeedbackFailureKind.Timeout,
+                "Provider timed out.")
         };
         var handler = new CvFeedbackHandler(offers, evaluator);
 
@@ -198,6 +205,74 @@ public sealed class CvFeedbackHandlerTests
         // Assert
         result.Status.Should().Be(ResultStatus.ServiceUnavailable);
         result.Error.Should().Be("CV feedback is temporarily unavailable.");
+    }
+
+    [Fact]
+    public async Task Given_UnrelatedHttpFailure_When_AnalyzingCv_Then_RethrowsWithoutFallback()
+    {
+        // Arrange
+        var offer = CreateOffer();
+        var offers = new FakeOfferRepository();
+        offers.Add(offer);
+        var evaluator = new FakeRecruiterEvaluationService
+        {
+            Exception = new HttpRequestException("Unexpected HTTP failure.")
+        };
+        var handler = new CvFeedbackHandler(offers, evaluator);
+
+        // Act
+        var action = () => handler.HandleAsync(
+            new CvFeedbackCommand(offer.Id, "A valid CV."),
+            CancellationToken.None);
+
+        // Assert
+        await action.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task Given_UnexpectedBug_When_AnalyzingCv_Then_RethrowsWithoutFallback()
+    {
+        // Arrange
+        var offer = CreateOffer();
+        var offers = new FakeOfferRepository();
+        offers.Add(offer);
+        var evaluator = new FakeRecruiterEvaluationService
+        {
+            Exception = new InvalidOperationException("Unexpected bug.")
+        };
+        var handler = new CvFeedbackHandler(offers, evaluator);
+
+        // Act
+        var action = () => handler.HandleAsync(
+            new CvFeedbackCommand(offer.Id, "A valid CV."),
+            CancellationToken.None);
+
+        // Assert
+        await action.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Given_ClientCancellation_When_AnalyzingCv_Then_RethrowsCancellation()
+    {
+        // Arrange
+        var offer = CreateOffer();
+        var offers = new FakeOfferRepository();
+        offers.Add(offer);
+        var evaluator = new FakeRecruiterEvaluationService
+        {
+            Exception = new OperationCanceledException("Canceled by caller.")
+        };
+        var handler = new CvFeedbackHandler(offers, evaluator);
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+
+        // Act
+        var action = () => handler.HandleAsync(
+            new CvFeedbackCommand(offer.Id, "A valid CV."),
+            cancellationSource.Token);
+
+        // Assert
+        await action.Should().ThrowAsync<OperationCanceledException>();
     }
 
     private static Offer CreateOffer() =>

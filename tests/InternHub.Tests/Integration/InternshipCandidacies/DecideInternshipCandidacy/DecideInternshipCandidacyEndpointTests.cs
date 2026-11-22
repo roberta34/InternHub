@@ -178,7 +178,7 @@ public sealed class DecideInternshipCandidacyEndpointTests
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await response.Content.ReadAsStringAsync())
-            .Should().Contain($"Candidacy {candidacy.Id} cannot be accepted from status Rejected.");
+            .Should().Contain($"Candidacy {candidacy.Id} cannot be accepted from its current status.");
         (await ReadStatusAsync(factory, candidacy.Id)).Should().Be(InternshipCandidacyStatus.Rejected);
     }
 

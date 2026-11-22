@@ -32,6 +32,9 @@ public sealed class OfferConfiguration : IEntityTypeConfiguration<Offer>
         builder.Property(o => o.IsClosed)
             .IsRequired();
 
+        builder.Property(o => o.RecruiterId)
+            .HasConversion<string>();
+
         builder.Property(o => o.Version)
             .IsConcurrencyToken();
 

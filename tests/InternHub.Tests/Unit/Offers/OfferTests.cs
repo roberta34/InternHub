@@ -1,6 +1,7 @@
 using FluentAssertions;
 using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Domain.Offers;
+using InternHub.Api.Features.Shared;
 
 namespace InternHub.Tests.Unit.Offers;
 
@@ -74,6 +75,21 @@ public sealed class OfferTests
         action.Should().Throw<ArgumentException>().WithMessage("*Requirements are required.*");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Given_NonPositiveCapacity_When_CreatingOffer_Then_ThrowsArgumentException(int capacity)
+    {
+        // Arrange
+
+        // Act
+        var action = () => new Offer("Title", "Company", "Requirements", Deadline, capacity);
+
+        // Assert
+        action.Should().Throw<ArgumentException>()
+            .WithMessage("*Maximum available slots must be greater than 0.*");
+    }
+
     [Fact]
     public void Given_ValidOfferData_When_UpdatingOffer_Then_UpdatesValuesAndIncrementsVersion()
     {
@@ -90,6 +106,80 @@ public sealed class OfferTests
         offer.Requirements.Should().Be("New requirements");
         offer.Deadline.Should().Be(updatedDeadline);
         offer.MaximumAvailableSlots.Should().Be(4);
+        offer.Version.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Given_NonPositiveCapacity_When_UpdatingOffer_Then_PreservesAllState(int capacity)
+    {
+        // Arrange
+        var offer = new Offer("Old title", "Old company", "Old requirements", Deadline, 2);
+        var originalId = offer.Id;
+        var originalDeadline = offer.Deadline;
+        var originalVersion = offer.Version;
+        var originalClosed = offer.IsClosed;
+
+        // Act
+        var action = () => offer.Update("New title", "New company", "New requirements", Deadline, capacity);
+
+        // Assert
+        action.Should().Throw<ArgumentException>()
+            .WithMessage("*Maximum available slots must be greater than 0.*");
+        offer.Id.Should().Be(originalId);
+        offer.Title.Should().Be("Old title");
+        offer.CompanyName.Should().Be("Old company");
+        offer.Requirements.Should().Be("Old requirements");
+        offer.Deadline.Should().Be(originalDeadline);
+        offer.MaximumAvailableSlots.Should().Be(2);
+        offer.IsClosed.Should().Be(originalClosed);
+        offer.Version.Should().Be(originalVersion);
+    }
+
+    [Fact]
+    public void Given_CapacityBelowAcceptedCount_When_UpdatingOffer_Then_ReturnsConflictAndPreservesState()
+    {
+        // Arrange
+        var offer = new Offer("Old title", "Old company", "Old requirements", Deadline, 3);
+
+        // Act
+        var result = offer.Update(
+            "New title",
+            "New company",
+            "New requirements",
+            Deadline,
+            2,
+            acceptedCount: 3);
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Conflict);
+        offer.Title.Should().Be("Old title");
+        offer.CompanyName.Should().Be("Old company");
+        offer.Requirements.Should().Be("Old requirements");
+        offer.Deadline.Should().Be(Deadline);
+        offer.MaximumAvailableSlots.Should().Be(3);
+        offer.Version.Should().Be(0);
+    }
+
+    [Fact]
+    public void Given_CapacityEqualToAcceptedCount_When_UpdatingOffer_Then_UpdatesSuccessfully()
+    {
+        // Arrange
+        var offer = new Offer("Old title", "Old company", "Old requirements", Deadline, 3);
+
+        // Act
+        var result = offer.Update(
+            "New title",
+            "New company",
+            "New requirements",
+            Deadline,
+            3,
+            acceptedCount: 3);
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Success);
+        offer.MaximumAvailableSlots.Should().Be(3);
         offer.Version.Should().Be(1);
     }
 
@@ -227,5 +317,48 @@ public sealed class OfferTests
         // Assert
         collection.Should().BeAssignableTo<ICollection<InternshipCandidacy>>();
         ((ICollection<InternshipCandidacy>)collection).IsReadOnly.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Given_OfferWithNonZeroVersion_When_RegisteringAcceptedSlot_Then_IncrementsVersionByExactlyOne()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 2);
+        offer.Update("Title", "Company", "Requirements", Deadline, 2);
+        var versionBefore = offer.Version;
+
+        // Act
+        offer.RegisterAcceptedSlot();
+
+        // Assert
+        offer.Version.Should().Be(versionBefore + 1);
+    }
+
+    [Fact]
+    public void Given_ClosedOffer_When_RegisteringAcceptedSlot_Then_PreservesOtherProperties()
+    {
+        // Arrange
+        var offer = new Offer("Title", "Company", "Requirements", Deadline, 2);
+        offer.Close();
+        var id = offer.Id;
+        var title = offer.Title;
+        var companyName = offer.CompanyName;
+        var requirements = offer.Requirements;
+        var deadline = offer.Deadline;
+        var maximumAvailableSlots = offer.MaximumAvailableSlots;
+        var internshipCandidacies = offer.InternshipCandidacies.ToArray();
+
+        // Act
+        offer.RegisterAcceptedSlot();
+
+        // Assert
+        offer.Id.Should().Be(id);
+        offer.Title.Should().Be(title);
+        offer.CompanyName.Should().Be(companyName);
+        offer.Requirements.Should().Be(requirements);
+        offer.Deadline.Should().Be(deadline);
+        offer.MaximumAvailableSlots.Should().Be(maximumAvailableSlots);
+        offer.IsClosed.Should().BeTrue();
+        offer.InternshipCandidacies.Should().BeEquivalentTo(internshipCandidacies);
     }
 }
