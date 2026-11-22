@@ -1,5 +1,6 @@
 using InternHub.Api.Domain.InternshipCandidacies;
 using InternHub.Api.Domain.Offers;
+using InternHub.Api.Features.InternshipCandidacies.RecruiterAccess;
 using InternHub.Api.Features.Offers.CvFeedback;
 using InternHub.Api.Features.RecruiterReview;
 using InternHub.Api.Features.Shared;
@@ -13,7 +14,8 @@ namespace InternHub.Api.Features.InternshipCandidacies.ReviewCandidacyWithAi;
 public sealed class ReviewCandidacyWithAiHandler(
     IInternshipCandidacyRepository candidacies,
     IOfferRepository offers,
-    IRecruiterCandidacyReviewService reviewer) : IReviewCandidacyWithAiHandler
+    IRecruiterCandidacyReviewService reviewer,
+    IRecruiterAccessGuard recruiterAccess) : IReviewCandidacyWithAiHandler
 {
     public const int MaximumCvLength = CvFeedbackHandler.MaximumCvLength;
 
@@ -21,6 +23,10 @@ public sealed class ReviewCandidacyWithAiHandler(
         ReviewCandidacyWithAiCommand command,
         CancellationToken cancellationToken = default)
     {
+        var access = await recruiterAccess.ResolveAuthenticatedRecruiterAsync(command.User, cancellationToken);
+        if (!access.IsAuthorized)
+            return access.ToFailure<ReviewCandidacyWithAiResponse>();
+
         if (string.IsNullOrWhiteSpace(command.CvText))
             return Result<ReviewCandidacyWithAiResponse>.Validation("CV text must not be empty.");
 
@@ -38,7 +44,9 @@ public sealed class ReviewCandidacyWithAiHandler(
             return Result<ReviewCandidacyWithAiResponse>.NotFound(
                 $"Offer of candidacy {command.CandidacyId} not found.");
 
-        // Authorization extension point: the recruiter ownership check (403) goes here, after both 404s.
+        if (offer.RecruiterId != access.RecruiterId)
+            return Result<ReviewCandidacyWithAiResponse>.Forbidden(
+                $"Only the owning Recruiter can review candidacy {command.CandidacyId}.");
 
         RecruiterCandidacyReview review;
         try

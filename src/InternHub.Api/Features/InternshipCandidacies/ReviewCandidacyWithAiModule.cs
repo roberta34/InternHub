@@ -1,9 +1,11 @@
+using InternHub.Api.Features.InternshipCandidacies.RecruiterAccess;
 using InternHub.Api.Features.InternshipCandidacies.ReviewCandidacyWithAi;
 using InternHub.Api.Features.RecruiterReview;
 using InternHub.Api.Features.Shared;
 using InternHub.Api.Infrastructure.AI.RecruiterReview;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace InternHub.Api.Features.InternshipCandidacies;
 
@@ -15,6 +17,7 @@ public sealed class ReviewCandidacyWithAiModule : IFeatureModule
 {
     public void RegisterServices(IServiceCollection services)
     {
+        services.TryAddScoped<IRecruiterAccessGuard, ClaimsPrincipalRecruiterAccessGuard>();
         services.AddScoped<IRecruiterCandidacyReviewService, RecruiterReviewEvaluationAdapter>();
         services.AddScoped<IReviewCandidacyWithAiHandler, ReviewCandidacyWithAiHandler>();
     }

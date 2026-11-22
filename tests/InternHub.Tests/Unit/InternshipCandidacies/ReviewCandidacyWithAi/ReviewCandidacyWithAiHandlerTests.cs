@@ -98,7 +98,11 @@ public sealed class ReviewCandidacyWithAiHandlerTests
         var candidacy = CreateCandidacy(Guid.NewGuid());
         candidacies.Seed(candidacy);
         var reviewer = new FakeRecruiterCandidacyReviewService();
-        var handler = new ReviewCandidacyWithAiHandler(candidacies, new FakeOfferRepository(), reviewer);
+        var handler = new ReviewCandidacyWithAiHandler(
+            candidacies,
+            new FakeOfferRepository(),
+            reviewer,
+            FakeRecruiterAccessGuard.AuthorizedAs(RecruiterId));
 
         // Act
         var result = await handler.HandleAsync(new ReviewCandidacyWithAiCommand(candidacy.Id, Cv));
@@ -158,21 +162,112 @@ public sealed class ReviewCandidacyWithAiHandlerTests
         candidacies.UpdateCallCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Given_AnonymousUserAndInvalidCv_When_Reviewing_Then_ReturnsUnauthorizedAndDoesNotCallAi()
+    {
+        // Arrange
+        var (handler, candidacy, _, reviewer, _) = CreateSut("C#", guard: FakeRecruiterAccessGuard.Unauthorized());
+
+        // Act
+        var result = await handler.HandleAsync(new ReviewCandidacyWithAiCommand(candidacy.Id, null));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Unauthorized);
+        reviewer.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_NonRecruiterAndInvalidCv_When_Reviewing_Then_ReturnsForbiddenAndDoesNotCallAi()
+    {
+        // Arrange
+        var (handler, candidacy, _, reviewer, _) = CreateSut("C#", guard: FakeRecruiterAccessGuard.Forbidden());
+
+        // Act
+        var result = await handler.HandleAsync(new ReviewCandidacyWithAiCommand(candidacy.Id, null));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Forbidden);
+        reviewer.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_UserFromCommand_When_Reviewing_Then_PassesItToRecruiterAccessGuard()
+    {
+        // Arrange
+        var guard = FakeRecruiterAccessGuard.AuthorizedAs(RecruiterId);
+        var (handler, candidacy, _, _, _) = CreateSut("C#", guard: guard);
+        var user = new System.Security.Claims.ClaimsPrincipal();
+
+        // Act
+        await handler.HandleAsync(new ReviewCandidacyWithAiCommand(candidacy.Id, Cv, user));
+
+        // Assert
+        guard.CallCount.Should().Be(1);
+        guard.LastUser.Should().BeSameAs(user);
+    }
+
+    [Fact]
+    public async Task Given_OfferOwnedByAnotherRecruiter_When_Reviewing_Then_ReturnsForbiddenAndDoesNotCallAi()
+    {
+        // Arrange
+        var (handler, candidacy, _, reviewer, _) = CreateSut("C#", offerRecruiterId: Guid.NewGuid());
+
+        // Act
+        var result = await handler.HandleAsync(new ReviewCandidacyWithAiCommand(candidacy.Id, Cv));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Forbidden);
+        result.Error.Should().Be($"Only the owning Recruiter can review candidacy {candidacy.Id}.");
+        reviewer.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_LegacyOfferWithoutOwner_When_Reviewing_Then_ReturnsForbiddenAndDoesNotCallAi()
+    {
+        // Arrange
+        var (handler, candidacy, _, reviewer, _) = CreateSut("C#", legacyOffer: true);
+
+        // Act
+        var result = await handler.HandleAsync(new ReviewCandidacyWithAiCommand(candidacy.Id, Cv));
+
+        // Assert
+        result.Status.Should().Be(ResultStatus.Forbidden);
+        reviewer.CallCount.Should().Be(0);
+    }
+
+    private static readonly Guid RecruiterId = Guid.NewGuid();
+
     private static (
         ReviewCandidacyWithAiHandler Handler,
         InternshipCandidacy Candidacy,
         Offer Offer,
         FakeRecruiterCandidacyReviewService Reviewer,
-        FakeInternshipCandidacyRepository Candidacies) CreateSut(string requirements)
+        FakeInternshipCandidacyRepository Candidacies) CreateSut(
+        string requirements,
+        FakeRecruiterAccessGuard? guard = null,
+        Guid? offerRecruiterId = null,
+        bool legacyOffer = false)
     {
-        var offer = new Offer("Backend Intern", "Example Co", requirements, ApplicationDate.AddDays(10), 2);
+        var offer = legacyOffer
+            ? new Offer("Backend Intern", "Example Co", requirements, ApplicationDate.AddDays(10), 2)
+            : new Offer(
+                "Backend Intern",
+                "Example Co",
+                requirements,
+                ApplicationDate.AddDays(10),
+                2,
+                offerRecruiterId ?? RecruiterId);
         var offers = new FakeOfferRepository();
         offers.Offers.Add(offer);
         var candidacy = CreateCandidacy(offer.Id);
         var candidacies = new FakeInternshipCandidacyRepository();
         candidacies.Seed(candidacy);
         var reviewer = new FakeRecruiterCandidacyReviewService();
-        var handler = new ReviewCandidacyWithAiHandler(candidacies, offers, reviewer);
+        var handler = new ReviewCandidacyWithAiHandler(
+            candidacies,
+            offers,
+            reviewer,
+            guard ?? FakeRecruiterAccessGuard.AuthorizedAs(RecruiterId));
 
         return (handler, candidacy, offer, reviewer, candidacies);
     }

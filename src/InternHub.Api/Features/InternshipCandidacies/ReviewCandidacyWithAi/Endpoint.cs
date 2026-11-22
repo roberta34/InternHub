@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using InternHub.Api.Features.Shared;
 using InternHub.Api.Infrastructure.AI.Fallback;
 
@@ -8,14 +9,15 @@ public static class Endpoint
     public static void Map(RouteGroupBuilder api) =>
         api.MapPost("/candidacies/{candidacyId:guid}/ai-review", async (
             Guid candidacyId,
-            ReviewCandidacyWithAiRequest request,
+            ReviewCandidacyWithAiRequest? request,
+            ClaimsPrincipal user,
             IReviewCandidacyWithAiHandler handler,
             AiExecutionTrace executionTrace,
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
             var result = await handler.HandleAsync(
-                new ReviewCandidacyWithAiCommand(candidacyId, request.CvText),
+                new ReviewCandidacyWithAiCommand(candidacyId, request?.CvText, user),
                 cancellationToken);
 
             if (result.Status != ResultStatus.Success)
