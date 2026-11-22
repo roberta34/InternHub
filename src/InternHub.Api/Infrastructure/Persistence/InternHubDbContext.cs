@@ -1,4 +1,5 @@
 using InternHub.Api.Domain.InternshipCandidacies;
+using InternHub.Api.Domain.Notifications;
 using InternHub.Api.Domain.Offers;
 using InternHub.Domain.Students;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +12,13 @@ public sealed class InternHubDbContext(DbContextOptions<InternHubDbContext> opti
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Offer> Offers => Set<Offer>();
     public DbSet<InternshipCandidacy> InternshipCandidacies => Set<InternshipCandidacy>();
+    public DbSet<NotificationOutboxEntry> NotificationOutboxEntries => Set<NotificationOutboxEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new StudentConfiguration());
         modelBuilder.ApplyConfiguration(new OfferConfiguration());
         modelBuilder.ApplyConfiguration(new InternshipCandidacyConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationOutboxEntryConfiguration());
     }
 }
