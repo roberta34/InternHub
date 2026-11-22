@@ -10,6 +10,7 @@ internal sealed class FakeInternshipCandidacyRepository : IInternshipCandidacyRe
     public bool UpdateResult { get; set; } = true;
     public int AddCallCount { get; private set; }
     public int UpdateCallCount { get; private set; }
+    public int GetByStudentCallCount { get; private set; }
     public List<InternshipCandidacy> Candidacies => _candidacies;
 
     public void Seed(InternshipCandidacy candidacy) =>
@@ -29,8 +30,11 @@ internal sealed class FakeInternshipCandidacyRepository : IInternshipCandidacyRe
     public InternshipCandidacy? GetById(Guid id) =>
         _candidacies.SingleOrDefault(candidacy => candidacy.Id == id);
 
-    public IReadOnlyList<InternshipCandidacy> GetByStudent(Guid studentId) =>
-        _candidacies.Where(candidacy => candidacy.StudentId == studentId).ToArray();
+    public IReadOnlyList<InternshipCandidacy> GetByStudent(Guid studentId)
+    {
+        GetByStudentCallCount++;
+        return _candidacies.Where(candidacy => candidacy.StudentId == studentId).ToArray();
+    }
 
     public IReadOnlyList<InternshipCandidacy> GetByOffer(Guid offerId) =>
         _candidacies.Where(candidacy => candidacy.OfferId == offerId).ToArray();

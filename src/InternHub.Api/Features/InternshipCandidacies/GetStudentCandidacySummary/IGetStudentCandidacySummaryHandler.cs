@@ -4,5 +4,7 @@ namespace InternHub.Api.Features.InternshipCandidacies.GetStudentCandidacySummar
 
 public interface IGetStudentCandidacySummaryHandler
 {
-    Result<GetStudentCandidacySummaryResponse> Handle(GetStudentCandidacySummaryQuery query);
+    Task<Result<GetStudentCandidacySummaryResponse>> HandleAsync(
+        GetStudentCandidacySummaryQuery query,
+        CancellationToken cancellationToken = default);
 }

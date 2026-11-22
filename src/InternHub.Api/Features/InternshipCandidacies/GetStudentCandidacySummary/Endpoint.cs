@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using InternHub.Api.Features.Shared;
 
 namespace InternHub.Api.Features.InternshipCandidacies.GetStudentCandidacySummary;
@@ -5,11 +6,15 @@ namespace InternHub.Api.Features.InternshipCandidacies.GetStudentCandidacySummar
 public static class Endpoint
 {
     public static void Map(RouteGroupBuilder api) =>
-        api.MapGet("/students/{studentId:guid}/candidacies/summary", (
+        api.MapGet("/students/{studentId:guid}/candidacies/summary", async (
             Guid studentId,
-            IGetStudentCandidacySummaryHandler handler) =>
+            ClaimsPrincipal user,
+            IGetStudentCandidacySummaryHandler handler,
+            CancellationToken cancellationToken) =>
         {
-            var result = handler.Handle(new GetStudentCandidacySummaryQuery(studentId));
+            var result = await handler.HandleAsync(
+                new GetStudentCandidacySummaryQuery(studentId, user),
+                cancellationToken);
 
             return result.Status == ResultStatus.Success
                 ? Results.Ok(result.Value)

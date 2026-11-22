@@ -9,6 +9,7 @@ internal sealed class FakeOfferRepository : IOfferRepository
     public List<Offer> AddedOffers { get; } = [];
     public int UpdateCallCount { get; private set; }
     public int DeleteCallCount { get; private set; }
+    public int GetByIdCallCount { get; private set; }
     public Exception? UpdateException { get; set; }
     public bool UpdateResult { get; set; } = true;
 
@@ -22,8 +23,11 @@ internal sealed class FakeOfferRepository : IOfferRepository
         return true;
     }
 
-    public Offer? GetById(Guid id) =>
-        Offers.SingleOrDefault(offer => offer.Id == id);
+    public Offer? GetById(Guid id)
+    {
+        GetByIdCallCount++;
+        return Offers.SingleOrDefault(offer => offer.Id == id);
+    }
 
     public IReadOnlyCollection<Offer> GetAll() =>
         Offers.ToArray();
