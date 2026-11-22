@@ -7,6 +7,8 @@ public static class ResultHttpMapping
         ResultStatus.Validation => Results.BadRequest(result.Error),
         ResultStatus.NotFound => Results.NotFound(result.Error),
         ResultStatus.Conflict => Results.Conflict(result.Error),
+        ResultStatus.Unauthorized => Results.Json(result.Error, statusCode: StatusCodes.Status401Unauthorized),
+        ResultStatus.Forbidden => Results.Json(result.Error, statusCode: StatusCodes.Status403Forbidden),
         ResultStatus.ServiceUnavailable => Results.Problem(
             statusCode: StatusCodes.Status503ServiceUnavailable,
             detail: result.Error),

@@ -5,4 +5,5 @@ public sealed record CreateOfferCommand(
     string CompanyName,
     string Requirements,
     DateTime Deadline,
-    int MaximumAvailableSlots);
+    int MaximumAvailableSlots,
+    Guid? RecruiterId = null);

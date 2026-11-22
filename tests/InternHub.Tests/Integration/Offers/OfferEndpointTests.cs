@@ -5,6 +5,8 @@ using InternHub.Api.Infrastructure.Persistence;
 using InternHub.Tests.Integration.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using InternHub.Api.Domain.Offers;
+using InternHub.Api.Features.Offers.UpdateOffer;
 
 namespace InternHub.Tests.Integration.Offers;
 
@@ -61,6 +63,58 @@ public sealed class OfferEndpointTests
         persisted.MaximumAvailableSlots.Should().Be(request.MaximumAvailableSlots);
         persisted.IsClosed.Should().BeFalse();
         persisted.Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_UnauthenticatedRequest_When_CreatingOffer_Then_ReturnsUnauthorized()
+    {
+        // Arrange
+        using var factory = new InternHubSqliteFactory(authenticateRecruiter: false);
+        using var client = factory.CreateClient();
+        var request = new CreateOfferRequest(
+            "Backend Intern",
+            "Example Company",
+            "C#, Git",
+            BackendDeadline,
+            2);
+
+        // Act
+        using var response = await client.PostAsJsonAsync("/api/v1/offers", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        (await db.Offers.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task Given_NonPositiveCapacity_When_CreatingOffer_Then_ReturnsBadRequestAndPreservesDatabase(int capacity)
+    {
+        // Arrange
+        using var factory = new InternHubSqliteFactory();
+        using var client = factory.CreateClient();
+        var request = new CreateOfferRequest(
+            "Backend Intern",
+            "Example Company",
+            "C#, Git",
+            BackendDeadline,
+            capacity);
+
+        // Act
+        using var response = await client.PostAsJsonAsync("/api/v1/offers", request);
+        var error = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        error.Should().Contain("Maximum available slots must be greater than 0.");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
+        (await db.Offers.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
     [Fact]

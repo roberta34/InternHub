@@ -6,6 +6,8 @@ public enum ResultStatus
     Validation,
     NotFound,
     Conflict,
+    Unauthorized,
+    Forbidden,
     ServiceUnavailable
 }
 
@@ -26,6 +28,8 @@ public sealed class Result<T>
     public static Result<T> Validation(string error) => new(ResultStatus.Validation, default, error);
     public static Result<T> NotFound(string error) => new(ResultStatus.NotFound, default, error);
     public static Result<T> Conflict(string error) => new(ResultStatus.Conflict, default, error);
+    public static Result<T> Unauthorized(string error) => new(ResultStatus.Unauthorized, default, error);
+    public static Result<T> Forbidden(string error) => new(ResultStatus.Forbidden, default, error);
     public static Result<T> ServiceUnavailable(string error) =>
         new(ResultStatus.ServiceUnavailable, default, error);
 }

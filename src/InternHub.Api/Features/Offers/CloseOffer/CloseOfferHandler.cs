@@ -8,11 +8,17 @@ public sealed class CloseOfferHandler(IOfferRepository offers)
 {
     public Result<bool> Handle(CloseOfferCommand command)
     {
+        if (!command.RecruiterId.HasValue || command.RecruiterId == Guid.Empty)
+            return Result<bool>.Unauthorized("Recruiter authentication is required.");
+
         var offer = offers.GetById(command.Id);
 
         if (offer is null)
             return Result<bool>.NotFound(
                 $"Offer {command.Id} not found.");
+
+        if (!offer.RecruiterId.HasValue || offer.RecruiterId != command.RecruiterId)
+            return Result<bool>.Forbidden($"Only the owning Recruiter can close offer {command.Id}.");
 
         if (offer.IsClosed)
             return Result<bool>.Success(true);
