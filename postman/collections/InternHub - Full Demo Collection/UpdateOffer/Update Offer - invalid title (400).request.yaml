@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "",
+      "companyName": "InternHub Demo Company 2",
+      "requirements": "C#, .NET 10, SQLite",
+      "deadline": "{{updateDeadline}}",
+      "maximumAvailableSlots": 5,
+      "version": {{offerVersion}}
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.variables.set('updateDeadline', new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('400 Bad Request', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 3000

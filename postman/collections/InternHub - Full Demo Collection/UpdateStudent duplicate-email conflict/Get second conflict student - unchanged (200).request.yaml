@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students/{{conflictSecondStudentId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const student = pm.response.json();
+      pm.test('Second student preserves original data', () => {
+        pm.expect(student.id).to.eql(pm.collectionVariables.get('conflictSecondStudentId'));
+        pm.expect(student.fullName).to.eql('Conflict Second Student');
+        pm.expect(student.email).to.eql(pm.collectionVariables.get('conflictSecondStudentEmail'));
+      });
+    language: text/javascript
+order: 5000

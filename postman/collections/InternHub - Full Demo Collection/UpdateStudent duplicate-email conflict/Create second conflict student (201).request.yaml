@@ -1,0 +1,31 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Conflict Second Student",
+      "email": "{{conflictSecondStudentEmail}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const conflictSecondSuffix = pm.variables.replaceIn('{{$guid}}');
+      pm.collectionVariables.set('conflictSecondStudentEmail', 'conflict.second.' + conflictSecondSuffix + '@mail.com');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('Second conflict student data is correct', () => {
+        pm.expect(body.fullName).to.eql('Conflict Second Student');
+        pm.expect(body.email).to.eql(pm.collectionVariables.get('conflictSecondStudentEmail'));
+      });
+      if (pm.response.code === 201 && body.id) {
+        pm.collectionVariables.set('conflictSecondStudentId', body.id);
+      }
+    language: text/javascript
+order: 2000

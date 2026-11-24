@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+method: POST
+headers:
+  Authorization: Bearer {{sprintStudentToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "studentId": "{{sprintStudentId}}",
+      "offerId": "{{sprintOfferId}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (!pm.collectionVariables.get('sprintStudentToken')) {
+        throw new Error('Run request 2 first to obtain the student bearer token.');
+      }
+      if (!pm.collectionVariables.get('sprintOfferId')) {
+        throw new Error('Run request 5 first to create the demo offer.');
+      }
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.collectionVariables.set('sprintCandidacyId', body.id);
+    language: text/javascript
+order: 6000

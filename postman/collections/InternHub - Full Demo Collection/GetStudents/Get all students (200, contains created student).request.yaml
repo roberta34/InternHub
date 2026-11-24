@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const students = pm.response.json();
+      pm.test('Response body is a JSON array', () => {
+        pm.expect(students).to.be.an('array');
+      });
+      pm.test('Array contains the previously created student ID', () => {
+        pm.expect(students.some(student => student.id === pm.collectionVariables.get('studentId'))).to.eql(true);
+      });
+    language: text/javascript
+order: 1000

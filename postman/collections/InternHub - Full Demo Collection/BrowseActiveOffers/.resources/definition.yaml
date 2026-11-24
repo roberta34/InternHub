@@ -1,0 +1,3 @@
+$kind: collection
+description: Sprint 3. Run this folder top to bottom. It seeds separate open, expired, and closed offers, then validates activeOnly query semantics independently of the earlier CloseOffer folder.
+order: 12000

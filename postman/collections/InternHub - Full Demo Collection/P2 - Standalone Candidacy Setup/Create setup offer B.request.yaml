@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "title": "P2 Standalone Offer B", "companyName": "InternHub Demo", "requirements": "C#, .NET", "deadline": "{{p2StandaloneDeadlineB}}", "maximumAvailableSlots": 1 }'
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set('p2StandaloneDeadlineB', new Date(Date.now() + 21 * 86400000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('p2StandaloneOfferBId', pm.response.json().id);
+    language: text/javascript
+order: 4000

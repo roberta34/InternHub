@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/{{browseClosedOfferId}}/close"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('204 No Content', () => pm.response.to.have.status(204));
+      pm.test('Response body empty', () => pm.expect(pm.response.text()).to.eql(''));
+    language: text/javascript
+order: 4000

@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{withdrawSubmittedCandidacyId}}/withdraw"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('204 No Content', () => pm.response.to.have.status(204));
+      pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));
+    language: text/javascript
+order: 1000

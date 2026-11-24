@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('Details status is Withdrawn (5)', () => pm.expect(pm.response.json().status).to.eql(5));
+    language: text/javascript
+order: 17000

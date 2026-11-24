@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "studentId": "{{p4StudentBId}}",
+      "offerId": "{{p4OfferId}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('p4CandidacyBId', pm.response.json().id);
+    language: text/javascript
+order: 5000

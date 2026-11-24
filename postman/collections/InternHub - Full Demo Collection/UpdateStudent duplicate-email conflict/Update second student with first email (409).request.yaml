@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students/{{conflictSecondStudentId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Changed Conflict Second Student",
+      "email": "{{conflictFirstStudentEmail}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 3000

@@ -1,0 +1,3 @@
+$kind: collection
+description: Run in order. The API must be started in Development and configured with the recruiter seed variables. Baseline AI is the default and does not require Ollama.
+order: 20000

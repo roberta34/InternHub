@@ -1,0 +1,3 @@
+$kind: collection
+description: Self-contained, repeatable Get Candidacy Details and Withdraw Candidacy demo. Run requests in order; every setup request creates fresh data and captures its IDs automatically.
+order: 19000

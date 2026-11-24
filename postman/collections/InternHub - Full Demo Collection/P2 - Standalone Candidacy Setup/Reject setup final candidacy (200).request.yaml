@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{withdrawFinalCandidacyId}}/decision"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "action": "Reject" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('Status is Rejected (3)', () => pm.expect(pm.response.json().status).to.eql(3));
+    language: text/javascript
+order: 10000

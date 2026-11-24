@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{missingCandidacyId}}/withdraw"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('404 Not Found', () => pm.response.to.have.status(404));
+      pm.test('Error identifies missing candidacy', () => pm.expect(pm.response.text()).to.contain(pm.collectionVariables.get('missingCandidacyId')));
+    language: text/javascript
+order: 4000

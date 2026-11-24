@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers?activeOnly=true"
+method: GET
+queryParams:
+  activeOnly: "true"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      if (pm.response.code === 200) {
+        const offers = pm.response.json();
+        pm.test('JSON array', () => pm.expect(offers).to.be.an('array'));
+        pm.test('Includes seeded active offer', () => pm.expect(offers.some(o => o.id === pm.collectionVariables.get('browseActiveOfferId'))).to.eql(true));
+        pm.test('Excludes seeded closed offer', () => pm.expect(offers.some(o => o.id === pm.collectionVariables.get('browseClosedOfferId'))).to.eql(false));
+        pm.test('Excludes seeded expired offer', () => pm.expect(offers.some(o => o.id === pm.collectionVariables.get('browseExpiredOfferId'))).to.eql(false));
+        pm.test('Every returned offer is open with future deadline', () => {
+          const now = Date.now();
+          offers.forEach(o => {
+            pm.expect(o.isClosed).to.eql(false);
+            pm.expect(Date.parse(o.deadline)).to.be.above(now);
+          });
+        });
+      }
+    language: text/javascript
+order: 5000

@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/00000000-0000-0000-0000-000000000002"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated Missing Offer",
+      "companyName": "Example Company",
+      "requirements": "C#, SQL",
+      "deadline": "{{updateDeadline}}",
+      "maximumAvailableSlots": 2,
+      "version": 0
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.variables.set('updateDeadline', new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('404 Not Found', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 4000

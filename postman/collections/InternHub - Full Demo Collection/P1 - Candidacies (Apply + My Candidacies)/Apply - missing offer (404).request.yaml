@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "studentId": "{{p1StudentId}}", "offerId": "22222222-2222-4222-8222-222222222222" }'
+scripts:
+  - type: afterResponse
+    code: pm.test('404 Not Found', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 6000

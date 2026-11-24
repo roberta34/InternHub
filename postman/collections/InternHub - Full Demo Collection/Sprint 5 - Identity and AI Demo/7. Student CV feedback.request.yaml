@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/{{sprintOfferId}}/cv-feedback"
+method: POST
+headers:
+  Authorization: Bearer {{sprintStudentToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "cvText": "I have experience with C#, .NET, SQL, EF Core, ASP.NET Core, REST APIs and Git."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('AI provider header exists', () => pm.response.to.have.header('X-InternHub-AI-Provider'));
+      const body = pm.response.json();
+      pm.test('Structured feedback returned', () => {
+        pm.expect(body).to.have.property('matchedSkills');
+        pm.expect(body).to.have.property('missingSkills');
+        pm.expect(body).to.have.property('suggestions');
+      });
+    language: text/javascript
+order: 7000

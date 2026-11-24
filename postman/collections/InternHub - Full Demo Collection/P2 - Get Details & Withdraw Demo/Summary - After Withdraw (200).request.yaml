@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));
+      pm.test('Active count is 0', () => pm.expect(body.activeCount).to.eql(0));
+      pm.test('Withdrawn count is 1', () => pm.expect(body.withdrawnCount).to.eql(1));
+      pm.test('Other status counts are zero', () => pm.expect([body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount]).to.eql([0, 0, 0, 0, 0]));
+    language: text/javascript
+order: 7000

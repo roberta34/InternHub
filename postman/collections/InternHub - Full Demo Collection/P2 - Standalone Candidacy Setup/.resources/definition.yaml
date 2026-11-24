@@ -1,0 +1,3 @@
+$kind: collection
+description: Creates fresh records for the standalone Get Details and Withdraw folders. Run in order.
+order: 14000

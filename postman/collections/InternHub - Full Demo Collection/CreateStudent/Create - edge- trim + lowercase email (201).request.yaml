@@ -1,0 +1,40 @@
+$kind: http-request
+name: "Create - edge: trim + lowercase email (201)"
+url: "{{baseUrl}}/api/{{apiVersion}}/students"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "  Ion Ionescu  ",
+      "email": "{{edgeStudentEmail}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const uniqueEdgeSuffix = pm.variables.replaceIn('{{$guid}}');
+      const emailBeforeNormalization = 'ION.' + uniqueEdgeSuffix + '@Mail.com';
+      pm.collectionVariables.set('edgeStudentEmail', emailBeforeNormalization);
+      pm.collectionVariables.set('normalizedEdgeStudentEmail', emailBeforeNormalization.trim().toLowerCase());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.test('Normalized', () => {
+        const b = pm.response.json();
+        pm.expect(b.fullName).to.eql('Ion Ionescu');
+        pm.expect(b.email).to.eql(pm.collectionVariables.get('normalizedEdgeStudentEmail'));
+      });
+      const body = pm.response.json();
+      const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      pm.test('Response contains a valid non-empty GUID', () => {
+        pm.expect(body.id).to.be.a('string').and.not.empty;
+        pm.expect(body.id).to.match(idPattern);
+      });
+      if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {
+        pm.collectionVariables.set('studentId', body.id);
+      }
+    language: text/javascript
+order: 3000

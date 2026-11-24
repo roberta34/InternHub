@@ -2,7 +2,7 @@
   "info": {
     "name": "InternHub - Full Demo Collection",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "InternHub Postman collection covering student and offer setup, candidacy lifecycle, recruiter decisions, authentication, AI feedback and Sprint 5 demonstration flows."
+    "description": "InternHub Postman collection covering student and offer setup, candidacy lifecycle, recruiter decisions, authentication, AI feedback and Sprint 5 demonstration flows. Run the 'Sprint 5 - Identity and AI Demo' folder in numbered order after starting the API with the Development recruiter seed."
   },
   "variable": [
     {
@@ -3555,6 +3555,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "if (!pm.collectionVariables.get('sprintRecruiterToken')) {",
+                  "  throw new Error('Run request 4 first to obtain the recruiter bearer token.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
                   "pm.collectionVariables.set('sprintOfferDeadline', new Date(Date.now() + 30 * 86400000).toISOString());"
                 ]
               }
@@ -3593,6 +3604,20 @@
         {
           "name": "6. Apply as student",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('sprintStudentToken')) {",
+                  "  throw new Error('Run request 2 first to obtain the student bearer token.');",
+                  "}",
+                  "if (!pm.collectionVariables.get('sprintOfferId')) {",
+                  "  throw new Error('Run request 5 first to create the demo offer.');",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -3730,6 +3755,29 @@
         },
         {
           "name": "10. Shortlist candidacy",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('sprintCandidacyId')) {",
+                  "  throw new Error('Run request 6 first to create the candidacy.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Candidacy shortlisted', () => pm.expect(pm.response.json().status).to.eql(1));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -3791,7 +3839,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK or 403 before ownership integration', () => pm.expect([200, 403]).to.include(pm.response.code));"
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Notifications is a list', () => pm.expect(pm.response.json()).to.be.an('array'));"
                 ]
               }
             }

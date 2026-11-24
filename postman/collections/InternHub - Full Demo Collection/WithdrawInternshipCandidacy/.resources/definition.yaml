@@ -1,0 +1,3 @@
+$kind: collection
+description: "Independent requests for POST /api/v1/candidacies/{id}/withdraw. Before running a request, set the referenced collection variable to an existing candidacy ID. Prepare the Submitted and Shortlisted cases by creating a candidacy through Apply or seeding SQLite, and prepare the final-status case by using an existing candidacy whose status is Accepted, Rejected, Waitlisted or Withdrawn. Do not run these requests against the same candidacy more than once: successful withdrawal changes its status to Withdrawn. The missing-candidacy request uses missingCandidacyId and requires no setup."
+order: 16000

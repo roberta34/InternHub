@@ -1,0 +1,3 @@
+$kind: collection
+description: Run after CreateOffer and UpdateOffer, before DeleteOffer. Uses the existing {{offerId}}. Tests successful close, persistence, version increment, idempotency and missing offer.
+order: 11000

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{candidacyId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const candidacy = pm.response.json();
+      pm.test('Candidacy response fields match requested record', () => {
+        pm.expect(candidacy.id).to.eql(pm.collectionVariables.get('candidacyId'));
+        pm.expect(candidacy).to.have.property('studentId');
+        pm.expect(candidacy).to.have.property('offerId');
+        pm.expect(candidacy).to.have.property('applicationDate');
+        pm.expect(candidacy).to.have.property('status');
+      });
+    language: text/javascript
+order: 1000

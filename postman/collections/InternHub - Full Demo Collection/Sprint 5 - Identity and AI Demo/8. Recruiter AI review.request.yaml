@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{sprintCandidacyId}}/ai-review"
+method: POST
+headers:
+  Authorization: Bearer {{sprintRecruiterToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "cvText": "C#, .NET, ASP.NET Core, SQL, EF Core and Git. One internship project using REST APIs."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('AI provider header exists', () => pm.response.to.have.header('X-InternHub-AI-Provider'));
+      const body = pm.response.json();
+      pm.test('Read-only reviewer DTO returned', () => {
+        pm.expect(body).to.have.property('matchedSkills');
+        pm.expect(body).to.have.property('missingOrUnclearSkills');
+        pm.expect(body).to.have.property('evidence');
+        pm.expect(body).to.have.property('summary');
+      });
+    language: text/javascript
+order: 8000

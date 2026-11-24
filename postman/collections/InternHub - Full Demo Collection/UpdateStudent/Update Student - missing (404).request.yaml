@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000002"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Missing Student",
+      "email": "missing.student@example.com"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('404 Not Found', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 4000

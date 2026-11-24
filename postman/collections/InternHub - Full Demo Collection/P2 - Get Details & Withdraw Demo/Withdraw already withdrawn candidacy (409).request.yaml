@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}/withdraw"
+method: POST
+scripts:
+  - type: afterResponse
+    code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 9000

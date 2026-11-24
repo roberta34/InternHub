@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{withdrawFinalCandidacyId}}/withdraw"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('409 Conflict', () => pm.response.to.have.status(409));
+      pm.test('Error identifies the candidacy and final status', () => {
+        const id = pm.collectionVariables.get('withdrawFinalCandidacyId');
+        const status = pm.collectionVariables.get('withdrawFinalCandidacyStatus');
+        pm.expect(pm.response.text()).to.contain(id);
+        if (status) pm.expect(pm.response.text()).to.contain(status);
+      });
+    language: text/javascript
+order: 3000

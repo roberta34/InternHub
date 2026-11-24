@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('Details status is Submitted (0)', () => pm.expect(pm.response.json().status).to.eql(0));
+    language: text/javascript
+order: 4000

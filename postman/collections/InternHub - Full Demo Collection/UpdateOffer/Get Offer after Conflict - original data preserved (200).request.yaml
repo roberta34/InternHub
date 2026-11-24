@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const offer = pm.response.json();
+      pm.test('409 did not overwrite database state', () => {
+        pm.expect(offer.title).to.eql('Updated Backend Internship');
+        pm.expect(offer.companyName).to.eql('InternHub Demo Company 2');
+        pm.expect(offer.version).to.eql(Number(pm.collectionVariables.get('offerVersion')));
+      });
+    language: text/javascript
+order: 6000

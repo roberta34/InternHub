@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "fullName": "P2 Standalone Student B", "email": "{{p2StandaloneStudentBEmail}}" }'
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set('p2StandaloneStudentBEmail', 'p2-standalone-b-' + pm.variables.replaceIn('{{$guid}}') + '@example.test');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('p2StandaloneStudentBId', pm.response.json().id);
+    language: text/javascript
+order: 2000

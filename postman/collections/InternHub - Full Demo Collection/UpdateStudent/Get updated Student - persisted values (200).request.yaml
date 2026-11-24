@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students/{{studentId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const student = pm.response.json();
+      pm.test('Updated Student is persisted', () => {
+        pm.expect(student.id).to.eql(pm.collectionVariables.get('studentId'));
+        pm.expect(student.fullName).to.eql('Updated Student');
+        pm.expect(student.email).to.eql(pm.collectionVariables.get('updatedStudentEmail'));
+      });
+    language: text/javascript
+order: 2000

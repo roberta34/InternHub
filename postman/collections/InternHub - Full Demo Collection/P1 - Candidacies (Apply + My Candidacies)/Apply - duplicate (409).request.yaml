@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "studentId": "{{p1StudentId}}", "offerId": "{{p1OfferId}}" }'
+scripts:
+  - type: afterResponse
+    code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 4000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/{{p4OfferId}}/candidacies"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('Returns both candidacies of the offer', () => pm.expect(body).to.have.lengthOf(2));
+      pm.test('Contains student names', () => pm.expect(body.map(c => c.studentFullName)).to.include.members(['P4 Student A', 'P4 Student B']));
+    language: text/javascript
+order: 1000

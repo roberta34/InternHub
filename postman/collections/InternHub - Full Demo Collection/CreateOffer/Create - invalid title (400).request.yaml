@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "",
+      "companyName": "InternHub Demo Company",
+      "requirements": "C#, .NET, SQL",
+      "deadline": "{{futureDeadline}}",
+      "maximumAvailableSlots": 3
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const daysFromNow = 30;
+      pm.variables.set('futureDeadline', new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('400 Bad Request', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 2000

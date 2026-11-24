@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "studentId": "{{p1StudentId}}", "offerId": "{{p1OfferId}}" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.test('Location header', () => pm.response.to.have.header('Location'));
+      const body = pm.response.json();
+      pm.test('Status is Submitted (0)', () => pm.expect(body.status).to.eql(0));
+      pm.test('Ids match', () => {
+        pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p1StudentId'));
+        pm.expect(body.offerId).to.eql(pm.collectionVariables.get('p1OfferId'));
+      });
+    language: text/javascript
+order: 3000

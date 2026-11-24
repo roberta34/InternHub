@@ -15,6 +15,65 @@ namespace InternHub.Api.Infrastructure.Persistence;
 
 public static class PersistenceExtensions
 {
+    public static void EnsureExistingSqliteSchema(this InternHubDbContext db)
+    {
+        var connection = db.Database.GetDbConnection();
+        var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+        if (shouldClose)
+            connection.Open();
+
+        try
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = """
+                    SELECT COUNT(*)
+                    FROM sqlite_master
+                    WHERE type = 'table' AND name = 'Offers';
+                    """;
+                var offersTableExists = Convert.ToInt32(command.ExecuteScalar()) == 1;
+
+                if (offersTableExists)
+                {
+                    command.CommandText =
+                        """SELECT COUNT(*) FROM pragma_table_info('Offers') WHERE name = 'RecruiterId';""";
+                    var recruiterColumnExists = Convert.ToInt32(command.ExecuteScalar()) == 1;
+
+                    if (!recruiterColumnExists)
+                    {
+                        command.CommandText = "ALTER TABLE Offers ADD COLUMN RecruiterId TEXT;";
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = """
+                    CREATE TABLE IF NOT EXISTS NotificationOutboxEntries (
+                        Id TEXT NOT NULL PRIMARY KEY,
+                        CandidacyId TEXT NOT NULL,
+                        OfferId TEXT NOT NULL,
+                        StudentId TEXT NOT NULL,
+                        Kind TEXT NOT NULL,
+                        OccurredAtUtc TEXT NOT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS IX_NotificationOutboxEntries_CandidacyId_Kind
+                        ON NotificationOutboxEntries (CandidacyId, Kind);
+                    CREATE INDEX IF NOT EXISTS IX_NotificationOutboxEntries_OfferId_OccurredAtUtc
+                        ON NotificationOutboxEntries (OfferId, OccurredAtUtc);
+                    """;
+                command.ExecuteNonQuery();
+            }
+        }
+        finally
+        {
+            if (shouldClose)
+                connection.Close();
+        }
+    }
+
     public static IServiceCollection AddPersistence(
         this IServiceCollection services,
         IConfiguration configuration)

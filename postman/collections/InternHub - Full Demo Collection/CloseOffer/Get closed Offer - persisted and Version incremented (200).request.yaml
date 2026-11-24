@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers/{{offerId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      if (pm.response.code === 200) {
+        const offer = pm.response.json();
+        pm.test('Close is persisted and Version incremented once', () => {
+          pm.expect(offer.id).to.eql(pm.collectionVariables.get('offerId'));
+          pm.expect(offer.isClosed).to.eql(true);
+          const versionBefore = Number(pm.collectionVariables.get('closeOfferVersionBefore'));
+          pm.expect(offer.version).to.eql(versionBefore + 1);
+        });
+        if (offer.isClosed === true && Number.isInteger(offer.version)) {
+          pm.collectionVariables.set('closeOfferVersionAfterFirst', String(offer.version));
+        }
+      }
+    language: text/javascript
+order: 3000

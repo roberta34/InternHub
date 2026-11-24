@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('Student ID is Student A', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentAId')));
+      pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));
+      pm.test('Active count is 1', () => pm.expect(body.activeCount).to.eql(1));
+      pm.test('Submitted count is 1', () => pm.expect(body.submittedCount).to.eql(1));
+      pm.test('Other status counts are zero', () => pm.expect([body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0]));
+    language: text/javascript
+order: 5000

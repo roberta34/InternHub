@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/auth/me"
+method: GET
+headers:
+  Authorization: Bearer {{sprintStudentToken}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('Authenticated role is Student', () => pm.expect(pm.response.json().role).to.eql('Student'));
+    language: text/javascript
+order: 3000

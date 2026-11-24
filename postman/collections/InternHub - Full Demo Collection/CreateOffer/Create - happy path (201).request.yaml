@@ -1,0 +1,47 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Backend Internship",
+      "companyName": "InternHub Demo Company",
+      "requirements": "C#, .NET, SQL",
+      "deadline": "{{futureDeadline}}",
+      "maximumAvailableSlots": 3
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const daysFromNow = 30;
+      pm.variables.set('futureDeadline', new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.test('Location header', () => pm.response.to.have.header('Location'));
+      const body = pm.response.json();
+      const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      pm.test('Response contains a valid non-empty GUID', () => {
+        pm.expect(body.id).to.be.a('string').and.not.empty;
+        pm.expect(body.id).to.match(idPattern);
+      });
+      pm.test('Location points to created Offer', () => {
+        pm.expect(pm.response.headers.get('Location')).to.include('/api/' + pm.collectionVariables.get('apiVersion') + '/offers/' + body.id);
+      });
+      pm.test('Offer fields are returned', () => {
+        pm.expect(body.title).to.eql('Backend Internship');
+        pm.expect(body.companyName).to.eql('InternHub Demo Company');
+        pm.expect(body.maximumAvailableSlots).to.eql(3);
+        pm.expect(body.version).to.eql(0);
+      });
+      if (pm.response.code === 201 && body.id && idPattern.test(body.id)) {
+        pm.collectionVariables.set('offerId', body.id);
+        pm.collectionVariables.set('staleOfferVersion', body.version);
+        pm.collectionVariables.set('offerVersion', body.version);
+      }
+    language: text/javascript
+order: 1000

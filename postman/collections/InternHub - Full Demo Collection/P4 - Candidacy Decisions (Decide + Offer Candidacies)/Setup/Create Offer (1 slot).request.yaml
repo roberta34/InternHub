@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "title": "P4 Backend Intern",
+      "companyName": "P4 Demo Co",
+      "requirements": "C#, .NET",
+      "deadline": "2030-01-01T00:00:00Z",
+      "maximumAvailableSlots": 1
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('p4OfferId', pm.response.json().id);
+    language: text/javascript
+order: 3000

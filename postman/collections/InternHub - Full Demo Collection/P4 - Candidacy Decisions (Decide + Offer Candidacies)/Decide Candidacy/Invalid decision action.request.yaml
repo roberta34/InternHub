@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "action": "1" }'
+scripts:
+  - type: afterResponse
+    code: pm.test('400 Bad Request', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 5000

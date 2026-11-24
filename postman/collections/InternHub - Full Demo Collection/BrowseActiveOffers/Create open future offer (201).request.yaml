@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Browse Active - open future",
+      "companyName": "InternHub Postman Validation",
+      "requirements": "C# and .NET",
+      "deadline": "{{browseFutureDeadline}}",
+      "maximumAvailableSlots": 3
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.variables.set('browseFutureDeadline', new Date(Date.now() + 30 * 86400000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      if (pm.response.code === 201) {
+        const offer = pm.response.json();
+        pm.test('Created offer has valid id', () => pm.expect(offer.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));
+        pm.collectionVariables.set('browseActiveOfferId', offer.id);
+      }
+    language: text/javascript
+order: 1000

@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/auth/register-student"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "fullName": "Sprint 5 Student",
+      "email": "{{sprintStudentEmail}}",
+      "password": "{{sprintStudentPassword}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const email = 'sprint5.' + pm.variables.replaceIn('{{$guid}}') + '@mail.com';
+      pm.collectionVariables.set('sprintStudentEmail', email);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('Student role assigned', () => pm.expect(body.role).to.eql('Student'));
+      pm.collectionVariables.set('sprintStudentId', body.studentId);
+    language: text/javascript
+order: 1000

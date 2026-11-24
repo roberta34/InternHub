@@ -1,0 +1,33 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/offers"
+method: POST
+headers:
+  Authorization: Bearer {{sprintRecruiterToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "title": "Sprint 5 .NET Intern",
+      "companyName": "InternHub Demo",
+      "requirements": "C#, .NET, ASP.NET Core, SQL, EF Core, Git",
+      "deadline": "{{sprintOfferDeadline}}",
+      "maximumAvailableSlots": 1
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (!pm.collectionVariables.get('sprintRecruiterToken')) {
+        throw new Error('Run request 4 first to obtain the recruiter bearer token.');
+      }
+    language: text/javascript
+  - type: beforeRequest
+    code: pm.collectionVariables.set('sprintOfferDeadline', new Date(Date.now() + 30 * 86400000).toISOString());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.collectionVariables.set('sprintOfferId', body.id);
+    language: text/javascript
+order: 5000

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "action": "Reject" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('409 Conflict', () => pm.response.to.have.status(409));
+      pm.test('Error message explains accepted candidacy cannot be rejected', () => pm.expect(pm.response.text()).to.contain('cannot be rejected'));
+    language: text/javascript
+order: 3000

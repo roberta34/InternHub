@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "{{sprintStudentEmail}}",
+      "password": "{{sprintStudentPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('Bearer token returned', () => pm.expect(body.accessToken).to.be.a('string').and.not.empty);
+      pm.collectionVariables.set('sprintStudentToken', body.accessToken);
+    language: text/javascript
+order: 2000

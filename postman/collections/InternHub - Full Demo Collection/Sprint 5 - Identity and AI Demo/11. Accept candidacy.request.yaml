@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{sprintCandidacyId}}/decision"
+method: POST
+headers:
+  Authorization: Bearer {{sprintRecruiterToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "action": "Accept" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test('Final status is Accepted or Waitlisted', () => pm.expect([2, 4]).to.include(body.status));
+    language: text/javascript
+order: 11000

@@ -44,6 +44,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<InternHubDbContext>();
     db.Database.EnsureCreated();
+    db.EnsureExistingSqliteSchema();
 }
 
 await RecruiterSeeder.SeedAsync(app.Services, builder.Configuration, app.Environment);

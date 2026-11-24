@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "{{sprintRecruiterEmail}}",
+      "password": "{{sprintRecruiterPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.collectionVariables.set('sprintRecruiterToken', body.accessToken);
+    language: text/javascript
+order: 4000

@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "studentId": "{{p2StandaloneStudentAId}}", "offerId": "{{p2StandaloneOfferCId}}" }'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('withdrawShortlistedCandidacyId', pm.response.json().id);
+      pm.collectionVariables.set('p2StandaloneCandidacyShortlistedId', pm.response.json().id);
+    language: text/javascript
+order: 8000
