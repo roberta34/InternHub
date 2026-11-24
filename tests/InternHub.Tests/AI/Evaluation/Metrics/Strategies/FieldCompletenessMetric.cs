@@ -8,6 +8,8 @@ public sealed class FieldCompletenessMetric : ICaseMetric
 {
     public string Name => "Field completeness";
 
+    public MetricKind Kind => MetricKind.Structural;
+
     public double Compute(EvaluationCase evaluationCase, RecruiterEvaluationResult result, SkillNormalizer normalizer)
     {
         ArgumentNullException.ThrowIfNull(result);

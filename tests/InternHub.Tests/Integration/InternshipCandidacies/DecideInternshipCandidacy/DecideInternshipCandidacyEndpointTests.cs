@@ -207,7 +207,7 @@ public sealed class DecideInternshipCandidacyEndpointTests
         new(Guid.NewGuid(), "Integration Student", $"student-{Guid.NewGuid():N}@example.test");
 
     private static Offer CreateOffer(int maximumAvailableSlots) =>
-        new("Offer", "Company", ".NET", ApplicationDate.AddDays(10), maximumAvailableSlots);
+        new("Offer", "Company", ".NET", ApplicationDate.AddDays(10), maximumAvailableSlots, InternHubSqliteFactory.RecruiterId);
 
     private static InternshipCandidacy CreateCandidacy(
         Guid studentId,

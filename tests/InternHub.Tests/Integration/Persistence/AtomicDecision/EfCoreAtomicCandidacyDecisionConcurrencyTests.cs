@@ -18,6 +18,8 @@ public sealed class EfCoreAtomicCandidacyDecisionConcurrencyTests
     private static readonly DateTime Now =
         new(2027, 1, 15, 12, 0, 0, DateTimeKind.Utc);
 
+    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(10);
+
     [Fact]
     public async Task Given_OneSlotLeftAndTwoConcurrentAccepts_When_Deciding_Then_OneIsAcceptedAndOneIsWaitlisted()
     {
@@ -181,6 +183,64 @@ public sealed class EfCoreAtomicCandidacyDecisionConcurrencyTests
                 .Select(outcome => outcome.CandidacyId));
     }
 
+    [Fact]
+    public async Task Given_WriteLockHeldDuringFirstAttempt_When_Accepting_Then_RetriesAndAccepts()
+    {
+        // Arrange
+        using var database = CreateDatabase();
+        var databasePath = database.Path;
+        var student = CreateStudent();
+        var offer = CreateOffer(maximumAvailableSlots: 1);
+        var candidacy = CreateCandidacy(student.Id, offer.Id, InternshipCandidacyStatus.Submitted);
+        Seed(databasePath, [student], [offer], [candidacy]);
+        var versionBefore = ReadOfferVersion(databasePath, offer.Id);
+        var counter = new TransactionAttemptCounter(signalAtAttempt: 2);
+        using var writeLock = AcquireWriteLock(databasePath);
+
+        // Act
+        var decision = Task.Run(() =>
+            DecideAsync(databasePath, candidacy.Id, CandidacyDecision.Accept, counter));
+        await counter.SignalledAttempt.Task.WaitAsync(WaitTimeout);
+        writeLock.Dispose();
+        var result = await decision.WaitAsync(WaitTimeout);
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyDecisionStatus.Decided);
+        result.Candidacy!.Status.Should().Be(InternshipCandidacyStatus.Accepted);
+        counter.Attempts.Should().Be(2);
+        ReadCandidacy(databasePath, candidacy.Id).Status.Should().Be(InternshipCandidacyStatus.Accepted);
+        ReadOfferVersion(databasePath, offer.Id).Should().Be(versionBefore + 1);
+    }
+
+    [Fact]
+    public async Task Given_WriteLockHeldOnEveryAttempt_When_Accepting_Then_ReturnsConcurrencyConflictAndChangesNothing()
+    {
+        // Arrange
+        using var database = CreateDatabase();
+        var databasePath = database.Path;
+        var student = CreateStudent();
+        var offer = CreateOffer(maximumAvailableSlots: 1);
+        var candidacy = CreateCandidacy(student.Id, offer.Id, InternshipCandidacyStatus.Submitted);
+        Seed(databasePath, [student], [offer], [candidacy]);
+        var versionBefore = ReadOfferVersion(databasePath, offer.Id);
+        var counter = new TransactionAttemptCounter(signalAtAttempt: int.MaxValue);
+        using var writeLock = AcquireWriteLock(databasePath);
+
+        // Act
+        var result = await Task.Run(() =>
+                DecideAsync(databasePath, candidacy.Id, CandidacyDecision.Accept, counter))
+            .WaitAsync(WaitTimeout);
+        writeLock.Dispose();
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyDecisionStatus.ConcurrencyConflict);
+        result.Candidacy.Should().BeNull();
+        counter.Attempts.Should().Be(3);
+        ReadCandidacy(databasePath, candidacy.Id).Status.Should().Be(InternshipCandidacyStatus.Submitted);
+        ReadOfferVersion(databasePath, offer.Id).Should().Be(versionBefore);
+        CountAccepted(databasePath, offer.Id).Should().Be(0);
+    }
+
     private static async Task<AtomicCandidacyDecisionResult> DecideAsync(
         string databasePath,
         Guid candidacyId,
@@ -341,6 +401,45 @@ public sealed class EfCoreAtomicCandidacyDecisionConcurrencyTests
                 eventData,
                 result,
                 cancellationToken);
+        }
+    }
+
+    private sealed class TransactionAttemptCounter(int signalAtAttempt) : DbTransactionInterceptor
+    {
+        private int _attempts;
+
+        public int Attempts => Volatile.Read(ref _attempts);
+
+        public TaskCompletionSource<bool> SignalledAttempt { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override InterceptionResult<DbTransaction> TransactionStarting(
+            DbConnection connection,
+            TransactionStartingEventData eventData,
+            InterceptionResult<DbTransaction> result)
+        {
+            CountAttempt();
+            return base.TransactionStarting(connection, eventData, result);
+        }
+
+        public override ValueTask<InterceptionResult<DbTransaction>> TransactionStartingAsync(
+            DbConnection connection,
+            TransactionStartingEventData eventData,
+            InterceptionResult<DbTransaction> result,
+            CancellationToken cancellationToken = default)
+        {
+            CountAttempt();
+            return base.TransactionStartingAsync(
+                connection,
+                eventData,
+                result,
+                cancellationToken);
+        }
+
+        private void CountAttempt()
+        {
+            if (Interlocked.Increment(ref _attempts) >= signalAtAttempt)
+                SignalledAttempt.TrySetResult(true);
         }
     }
 

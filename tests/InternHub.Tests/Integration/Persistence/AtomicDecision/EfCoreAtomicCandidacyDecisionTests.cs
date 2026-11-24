@@ -150,6 +150,26 @@ public sealed class EfCoreAtomicCandidacyDecisionTests
         ReadCandidacy(database, candidacy.Id)!.Status.Should().Be(InternshipCandidacyStatus.Accepted);
     }
 
+    [Fact]
+    public async Task Given_CandidacyWhoseOfferIsMissing_When_Accepting_Then_ReturnsOfferNotFoundAndChangesNothing()
+    {
+        // Arrange
+        using var database = new InMemoryDatabase();
+        var student = CreateStudent();
+        var missingOfferId = Guid.NewGuid();
+        var candidacy = CreateCandidacy(student.Id, missingOfferId, InternshipCandidacyStatus.Submitted);
+        SeedCandidacyWithoutOffer(database, student, candidacy);
+
+        // Act
+        var result = await DecideAsync(database, candidacy.Id, CandidacyDecision.Accept);
+
+        // Assert
+        result.Status.Should().Be(AtomicCandidacyDecisionStatus.OfferNotFound);
+        result.Candidacy.Should().BeNull();
+        ReadCandidacy(database, candidacy.Id)!.Status.Should().Be(InternshipCandidacyStatus.Submitted);
+        CountOffers(database).Should().Be(0);
+    }
+
     private static async Task<AtomicCandidacyDecisionResult> DecideAsync(
         InMemoryDatabase database,
         Guid candidacyId,
@@ -171,6 +191,26 @@ public sealed class EfCoreAtomicCandidacyDecisionTests
         context.Offers.AddRange(offers);
         context.InternshipCandidacies.AddRange(candidacies);
         context.SaveChanges();
+    }
+
+    private static void SeedCandidacyWithoutOffer(
+        InMemoryDatabase database,
+        Student student,
+        InternshipCandidacy candidacy)
+    {
+        using var context = database.CreateContext();
+        // Simulates a state the Offers foreign key normally prevents, to reach the defensive
+        // OfferNotFound branch. The pragma affects only this test's own in-memory connection.
+        context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF;");
+        context.Students.Add(student);
+        context.InternshipCandidacies.Add(candidacy);
+        context.SaveChanges();
+    }
+
+    private static int CountOffers(InMemoryDatabase database)
+    {
+        using var context = database.CreateContext();
+        return context.Offers.AsNoTracking().Count();
     }
 
     private static InternshipCandidacy? ReadCandidacy(InMemoryDatabase database, Guid candidacyId)

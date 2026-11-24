@@ -1,4 +1,5 @@
 using FluentAssertions;
+using InternHub.Tests.AI.Evaluation.Dataset;
 using InternHub.Tests.AI.Evaluation.Metrics.Core;
 
 namespace InternHub.Tests.Unit.AI.Evaluation.Metrics.Core;
@@ -12,6 +13,25 @@ public sealed class SkillNormalizerTests
             ["csharp"] = "c#",
             ["js"] = "javascript"
         };
+
+    [Theory]
+    [InlineData("C", "C#")]
+    [InlineData("Java", "JavaScript")]
+    [InlineData("SQL", "SQL Server")]
+    public void Given_ConfusablePairAndDatasetAliases_When_Normalizing_Then_ReturnsDifferentSkills(
+        string first,
+        string second)
+    {
+        // Arrange
+        var normalizer = new SkillNormalizer(EvaluationDatasetLoader.Load().Aliases);
+
+        // Act
+        var firstNormalized = normalizer.Normalize(first);
+        var secondNormalized = normalizer.Normalize(second);
+
+        // Assert
+        firstNormalized.Should().NotBe(secondNormalized);
+    }
 
     [Theory]
     [InlineData("  Docker ", "docker")]

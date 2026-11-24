@@ -42,7 +42,20 @@ public sealed class EvaluationDatasetTests
     }
 
     [Fact]
-    public void Given_Dataset_When_CountingCases_Then_ContainsExactlyFifteen()
+    public void Given_Dataset_When_ReadingVersion_Then_IsTwoPointZero()
+    {
+        // Arrange
+        var dataset = Dataset;
+
+        // Act
+        var version = dataset.DatasetVersion;
+
+        // Assert
+        version.Should().Be("2.0.0");
+    }
+
+    [Fact]
+    public void Given_Dataset_When_CountingCases_Then_ContainsExactlyTwentySix()
     {
         // Arrange
         var cases = Dataset.Cases;
@@ -51,17 +64,20 @@ public sealed class EvaluationDatasetTests
         var count = cases.Count;
 
         // Assert
-        count.Should().Be(15);
+        count.Should().Be(26);
     }
 
     [Theory]
     [InlineData(EvaluationCategory.Clear, 3)]
     [InlineData(EvaluationCategory.Synonyms, 2)]
-    [InlineData(EvaluationCategory.Negation, 2)]
+    [InlineData(EvaluationCategory.Negation, 4)]
     [InlineData(EvaluationCategory.Implicit, 2)]
-    [InlineData(EvaluationCategory.Noise, 2)]
+    [InlineData(EvaluationCategory.Noise, 3)]
     [InlineData(EvaluationCategory.Minimal, 2)]
-    [InlineData(EvaluationCategory.PromptInjection, 2)]
+    [InlineData(EvaluationCategory.PromptInjection, 4)]
+    [InlineData(EvaluationCategory.AmbiguousTerms, 2)]
+    [InlineData(EvaluationCategory.SuggestionMismatch, 2)]
+    [InlineData(EvaluationCategory.UnsupportedEvidence, 2)]
     public void Given_Dataset_When_CountingCasesPerCategory_Then_MatchesRequiredDistribution(
         EvaluationCategory category,
         int expectedCount)
@@ -181,6 +197,67 @@ public sealed class EvaluationDatasetTests
         // Assert
         rationale.Should().NotBeNullOrWhiteSpace();
     }
+
+    [Fact]
+    public void Given_Dataset_When_ReadingCategories_Then_EveryCategoryHasCases()
+    {
+        // Arrange
+        var categories = Enum.GetValues<EvaluationCategory>();
+
+        // Act
+        var emptyCategories = categories
+            .Where(category => Dataset.Cases.All(evaluationCase => evaluationCase.Category != category))
+            .ToList();
+
+        // Assert
+        categories.Should().HaveCount(10);
+        emptyCategories.Should().BeEmpty();
+    }
+
+    [Theory]
+    [MemberData(nameof(UnsupportedEvidenceCaseIds))]
+    public void Given_UnsupportedEvidenceCase_When_ReadingLabels_Then_HasRequiredSkillsAndNamesTechnologyOutsideThem(
+        string caseId)
+    {
+        // Arrange
+        var evaluationCase = FindCase(caseId);
+        var required = Normalizer.ToSet(evaluationCase.RequiredSkills);
+
+        // Act
+        var named = Regex.Match(evaluationCase.Rationale, "^Unsupported: ([^.]+)\\.");
+
+        // Assert
+        required.Should().NotBeEmpty();
+        named.Success.Should().BeTrue("the rationale must start with 'Unsupported: <technology>.'");
+        required.Should().NotContain(Normalizer.Normalize(named.Groups[1].Value));
+        evaluationCase.CvText.Should().ContainEquivalentOf(named.Groups[1].Value);
+    }
+
+    [Theory]
+    [InlineData("c", "c#")]
+    [InlineData("c#", "c")]
+    [InlineData("java", "javascript")]
+    [InlineData("javascript", "java")]
+    [InlineData("sql", "sql server")]
+    [InlineData("sql server", "sql")]
+    public void Given_ConfusableSkill_When_NormalizingWithDatasetAliases_Then_NeverYieldsTheOtherSkill(
+        string skill,
+        string confusable)
+    {
+        // Arrange
+        var normalizer = Normalizer;
+
+        // Act
+        var normalized = normalizer.Normalize(skill);
+
+        // Assert
+        normalized.Should().NotBe(confusable);
+    }
+
+    public static TheoryData<string> UnsupportedEvidenceCaseIds() =>
+        new(Dataset.Cases
+            .Where(evaluationCase => evaluationCase.Category == EvaluationCategory.UnsupportedEvidence)
+            .Select(evaluationCase => evaluationCase.Id));
 
     private static EvaluationCase FindCase(string caseId) =>
         Dataset.Cases.Single(evaluationCase => evaluationCase.Id == caseId);

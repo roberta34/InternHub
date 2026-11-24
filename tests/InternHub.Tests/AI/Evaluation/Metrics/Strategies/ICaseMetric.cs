@@ -9,5 +9,7 @@ public interface ICaseMetric
 {
     string Name { get; }
 
+    MetricKind Kind { get; }
+
     double Compute(EvaluationCase evaluationCase, RecruiterEvaluationResult result, SkillNormalizer normalizer);
 }

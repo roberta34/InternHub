@@ -44,6 +44,8 @@ public sealed class MetricAggregator
                 .Select(pair => ConfusionCounts.For(pair.Case, pair.Result, _normalizer, list))
                 .Aggregate(ConfusionCounts.Zero, (total, counts) => total + counts));
 
-        return new AggregateScores(pairs.Count, macro, micro);
+        var kinds = _metrics.ToDictionary(metric => metric.Name, metric => metric.Kind);
+
+        return new AggregateScores(pairs.Count, macro, micro, kinds);
     }
 }

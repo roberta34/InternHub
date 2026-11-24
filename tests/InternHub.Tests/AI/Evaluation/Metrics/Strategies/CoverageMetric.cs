@@ -8,6 +8,8 @@ public sealed class CoverageMetric : ICaseMetric
 {
     public string Name => "Coverage";
 
+    public MetricKind Kind => MetricKind.Semantic;
+
     public double Compute(EvaluationCase evaluationCase, RecruiterEvaluationResult result, SkillNormalizer normalizer)
     {
         ArgumentNullException.ThrowIfNull(evaluationCase);
