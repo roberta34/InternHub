@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "InternHub - Sprint 2 + Sprint 3 Offers (CloseOffer + BrowseActiveOffers)",
+    "name": "InternHub - Full Demo Collection",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Preserves Sprint 2 and Sprint 3 CloseOffer requests, and adds BrowseActiveOffers checks. Run CreateOffer and UpdateOffer before CloseOffer. BrowseActiveOffers seeds its own offers; run its requests in order. Run DeleteOffer last. For Sprint 3 team ownership, use docs/postman/parts/p3.json before final consolidation."
+    "description": "InternHub Postman collection covering student and offer setup, candidacy lifecycle, recruiter decisions, authentication, AI feedback and Sprint 5 demonstration flows."
   },
   "variable": [
     {
@@ -211,6 +211,46 @@
     },
     {
       "key": "p2StandaloneDeadlineC",
+      "value": ""
+    },
+    {
+      "key": "sprintStudentEmail",
+      "value": ""
+    },
+    {
+      "key": "sprintStudentPassword",
+      "value": "Student123!"
+    },
+    {
+      "key": "sprintStudentToken",
+      "value": ""
+    },
+    {
+      "key": "sprintStudentId",
+      "value": ""
+    },
+    {
+      "key": "sprintRecruiterEmail",
+      "value": "recruiter@internhub.local"
+    },
+    {
+      "key": "sprintRecruiterPassword",
+      "value": "Recruiter123!"
+    },
+    {
+      "key": "sprintRecruiterToken",
+      "value": ""
+    },
+    {
+      "key": "sprintOfferId",
+      "value": ""
+    },
+    {
+      "key": "sprintCandidacyId",
+      "value": ""
+    },
+    {
+      "key": "sprintOfferDeadline",
       "value": ""
     }
   ],
@@ -1710,7 +1750,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"fullName\": \"P2 Standalone Student A\", \"email\": \"{{p2StandaloneStudentAEmail}}\" }"
@@ -1743,7 +1788,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"fullName\": \"P2 Standalone Student B\", \"email\": \"{{p2StandaloneStudentBEmail}}\" }"
@@ -1776,7 +1826,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"title\": \"P2 Standalone Offer A\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2StandaloneDeadlineA}}\", \"maximumAvailableSlots\": 1 }"
@@ -1809,7 +1864,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"title\": \"P2 Standalone Offer B\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2StandaloneDeadlineB}}\", \"maximumAvailableSlots\": 1 }"
@@ -1842,7 +1902,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"title\": \"P2 Standalone Offer C\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2StandaloneDeadlineC}}\", \"maximumAvailableSlots\": 1 }"
@@ -1867,7 +1932,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"studentId\": \"{{p2StandaloneStudentAId}}\", \"offerId\": \"{{p2StandaloneOfferAId}}\" }"
@@ -1892,7 +1962,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"studentId\": \"{{p2StandaloneStudentAId}}\", \"offerId\": \"{{p2StandaloneOfferBId}}\" }"
@@ -1917,7 +1992,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"studentId\": \"{{p2StandaloneStudentAId}}\", \"offerId\": \"{{p2StandaloneOfferCId}}\" }"
@@ -1943,7 +2023,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"studentId\": \"{{p2StandaloneStudentBId}}\", \"offerId\": \"{{p2StandaloneOfferAId}}\" }"
@@ -1967,7 +2052,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"action\": \"Reject\" }"
@@ -1991,7 +2081,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{ \"action\": \"Shortlist\" }"
@@ -2412,914 +2507,1307 @@
     },
     {
       "name": "P4 - Candidacy Decisions (Decide + Offer Candidacies)",
-                "item": [
-                  {
-                    "name": "Setup",
-                    "item": [
-                      {
-                        "name": "Create Student A",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                                "pm.collectionVariables.set('p4StudentAId', pm.response.json().id);"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"fullName\": \"P4 Student A\",\n  \"email\": \"p4-a-{{$guid}}@example.test\"\n}"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/students"
-                        }
-                      },
-                      {
-                        "name": "Create Student B",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                                "pm.collectionVariables.set('p4StudentBId', pm.response.json().id);"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"fullName\": \"P4 Student B\",\n  \"email\": \"p4-b-{{$guid}}@example.test\"\n}"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/students"
-                        }
-                      },
-                      {
-                        "name": "Create Offer (1 slot)",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                                "pm.collectionVariables.set('p4OfferId', pm.response.json().id);"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"title\": \"P4 Backend Intern\",\n  \"companyName\": \"P4 Demo Co\",\n  \"requirements\": \"C#, .NET\",\n  \"deadline\": \"2030-01-01T00:00:00Z\",\n  \"maximumAvailableSlots\": 1\n}"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
-                        }
-                      },
-                      {
-                        "name": "Apply - Student A",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                                "pm.collectionVariables.set('p4CandidacyAId', pm.response.json().id);"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"studentId\": \"{{p4StudentAId}}\",\n  \"offerId\": \"{{p4OfferId}}\"\n}"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
-                        }
-                      },
-                      {
-                        "name": "Apply - Student B",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                                "pm.collectionVariables.set('p4CandidacyBId', pm.response.json().id);"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"studentId\": \"{{p4StudentBId}}\",\n  \"offerId\": \"{{p4OfferId}}\"\n}"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "name": "Get Offer Candidacies",
-                    "item": [
-                      {
-                        "name": "Get Offer Candidacies - 200",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                                "const body = pm.response.json();",
-                                "pm.test('Returns both candidacies of the offer', () => pm.expect(body).to.have.lengthOf(2));",
-                                "pm.test('Contains student names', () => pm.expect(body.map(c => c.studentFullName)).to.include.members(['P4 Student A', 'P4 Student B']));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "GET",
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{p4OfferId}}/candidacies"
-                        }
-                      },
-                      {
-                        "name": "Get Offer Candidacies - missing offer 404",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "GET",
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/offers/11111111-1111-4111-8111-111111111111/candidacies"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "name": "Decide Candidacy",
-                    "item": [
-                      {
-                        "name": "Shortlist Candidacy A",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                                "pm.test('Status is Shortlisted (1)', () => pm.expect(pm.response.json().status).to.eql(1));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Shortlist\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
-                        }
-                      },
-                      {
-                        "name": "Accept Candidacy A",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                                "pm.test('Status is Accepted (2)', () => pm.expect(pm.response.json().status).to.eql(2));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Accept\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
-                        }
-                      },
-                      {
-                        "name": "Reject accepted Student A - 409 Conflict",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
-                                "pm.test('Error message explains accepted candidacy cannot be rejected', () => pm.expect(pm.response.text()).to.contain('cannot be rejected'));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Reject\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
-                        }
-                      },
-                      {
-                        "name": "Accept Candidacy B when slot is full",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                                "pm.test('Status is Waitlisted (4)', () => pm.expect(pm.response.json().status).to.eql(4));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Accept\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
-                        }
-                      },
-                      {
-                        "name": "Invalid decision action",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"1\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
-                        }
-                      },
-                      {
-                        "name": "Invalid combined decision action",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Shortlist,Accept\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
-                        }
-                      },
-                      {
-                        "name": "Decide missing candidacy",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Accept\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/11111111-1111-4111-8111-111111111111/decision"
-                        }
-                      },
-                      {
-                        "name": "Decide final candidacy conflict",
-                        "event": [
-                          {
-                            "listen": "test",
-                            "script": {
-                              "type": "text/javascript",
-                              "exec": [
-                                "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
-                              ]
-                            }
-                          }
-                        ],
-                        "request": {
-                          "method": "POST",
-                          "header": [
-                            {
-                              "key": "Content-Type",
-                              "value": "application/json"
-                            }
-                          ],
-                          "body": {
-                            "mode": "raw",
-                            "raw": "{ \"action\": \"Accept\" }"
-                          },
-                          "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
-                        }
-                      }
+      "item": [
+        {
+          "name": "Setup",
+          "item": [
+            {
+              "name": "Create Student A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('p4StudentAId', pm.response.json().id);"
                     ]
                   }
-                ]
-              },
-      {
-        "name": "P2 - Get Details & Withdraw Demo",
-                      "description": "Self-contained, repeatable Get Candidacy Details and Withdraw Candidacy demo. Run requests in order; every setup request creates fresh data and captures its IDs automatically.",
-                      "item": [
-                        {
-                "name": "Setup - Create Student A",
-                "event": [
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
                   {
-                    "listen": "prerequest",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.collectionVariables.set('p2DemoStudentAEmail', 'p2-demo-a-' + pm.variables.replaceIn('{{$guid}}') + '@example.test');"
-                      ]
-                    }
-                  },
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                        "pm.collectionVariables.set('p2DemoStudentAId', pm.response.json().id);",
-                        "pm.test('Student A ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoStudentAId')).to.be.a('string').and.not.empty);"
-                      ]
-                    }
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
                 ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"fullName\": \"P2 Demo Student A\", \"email\": \"{{p2DemoStudentAEmail}}\" }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/students"
-                }
-                        },
-                        {
-                "name": "Setup - Create Offer A",
-                "event": [
-                  {
-                    "listen": "prerequest",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.collectionVariables.set('p2DemoOfferADeadline', new Date(Date.now() + 14 * 86400000).toISOString());"
-                      ]
-                    }
-                  },
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                        "pm.collectionVariables.set('p2DemoOfferAId', pm.response.json().id);",
-                        "pm.test('Offer A ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoOfferAId')).to.be.a('string').and.not.empty);"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"title\": \"P2 Demo Offer A\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2DemoOfferADeadline}}\", \"maximumAvailableSlots\": 1 }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
-                }
-                        },
-                        {
-                "name": "Apply - Submitted candidacy",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                        "const body = pm.response.json();",
-                        "pm.test('Status is Submitted (0)', () => pm.expect(body.status).to.eql(0));",
-                        "pm.collectionVariables.set('p2DemoSubmittedCandidacyId', body.id);",
-                        "pm.test('Submitted candidacy ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoSubmittedCandidacyId')).to.be.a('string').and.not.empty);"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"studentId\": \"{{p2DemoStudentAId}}\", \"offerId\": \"{{p2DemoOfferAId}}\" }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
-                }
-                        },
-                        {
-                "name": "Get Submitted candidacy details (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                        "pm.test('Details status is Submitted (0)', () => pm.expect(pm.response.json().status).to.eql(0));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}"
-                }
-                        },
-                        {
-                "name": "Summary - Submitted candidacy (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                        "const body = pm.response.json();",
-                        "pm.test('Student ID is Student A', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentAId')));",
-                        "pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));",
-                        "pm.test('Active count is 1', () => pm.expect(body.activeCount).to.eql(1));",
-                        "pm.test('Submitted count is 1', () => pm.expect(body.submittedCount).to.eql(1));",
-                        "pm.test('Other status counts are zero', () => pm.expect([body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0]));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
-                }
-                        },
-                        {
-                "name": "Withdraw Submitted candidacy (204)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('204 No Content', () => pm.response.to.have.status(204));",
-                        "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}/withdraw"
-                }
-                        },
-                        {
-                "name": "Summary - After Withdraw (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                        "const body = pm.response.json();",
-                        "pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));",
-                        "pm.test('Active count is 0', () => pm.expect(body.activeCount).to.eql(0));",
-                        "pm.test('Withdrawn count is 1', () => pm.expect(body.withdrawnCount).to.eql(1));",
-                        "pm.test('Other status counts are zero', () => pm.expect([body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount]).to.eql([0, 0, 0, 0, 0]));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
-                }
-                        },
-                        {
-                "name": "Get Withdrawn Submitted candidacy details (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                        "pm.test('Details status is Withdrawn (5)', () => pm.expect(pm.response.json().status).to.eql(5));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}"
-                }
-                        },
-                        {
-                "name": "Withdraw already withdrawn candidacy (409)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}/withdraw"
-                }
-                        },
-                        {
-                "name": "Setup - Create Student B",
-                "event": [
-                  {
-                    "listen": "prerequest",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.collectionVariables.set('p2DemoStudentBEmail', 'p2-demo-b-' + pm.variables.replaceIn('{{$guid}}') + '@example.test');"
-                      ]
-                    }
-                  },
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                        "pm.collectionVariables.set('p2DemoStudentBId', pm.response.json().id);",
-                        "pm.test('Student B ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoStudentBId')).to.be.a('string').and.not.empty);"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"fullName\": \"P2 Demo Student B\", \"email\": \"{{p2DemoStudentBEmail}}\" }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/students"
-                }
-                        },
-                        {
-                "name": "Summary - Student without candidacies (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                        "const body = pm.response.json();",
-                        "pm.test('Student ID is Student B', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentBId')));",
-                        "pm.test('All counts are zero', () => pm.expect([body.totalCount, body.activeCount, body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0, 0, 0, 0]));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentBId}}/candidacies/summary"
-                }
-                        },
-                        {
-                "name": "Summary - Missing student (404)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000000/candidacies/summary"
-                }
-                        },
-                        {
-                "name": "Setup - Create Offer B",
-                "event": [
-                  {
-                    "listen": "prerequest",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.collectionVariables.set('p2DemoOfferBDeadline', new Date(Date.now() + 21 * 86400000).toISOString());"
-                      ]
-                    }
-                  },
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                        "pm.collectionVariables.set('p2DemoOfferBId', pm.response.json().id);",
-                        "pm.test('Offer B ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoOfferBId')).to.be.a('string').and.not.empty);"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"title\": \"P2 Demo Offer B\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2DemoOfferBDeadline}}\", \"maximumAvailableSlots\": 1 }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
-                }
-                        },
-                        {
-                "name": "Apply - Shortlist candidate",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                        "const body = pm.response.json();",
-                        "pm.test('Status is Submitted (0)', () => pm.expect(body.status).to.eql(0));",
-                        "pm.collectionVariables.set('p2DemoShortlistedCandidacyId', body.id);"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"studentId\": \"{{p2DemoStudentBId}}\", \"offerId\": \"{{p2DemoOfferBId}}\" }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
-                }
-                        },
-                        {
-                "name": "Shortlist candidacy (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                        "exec": [
-                          "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                          "pm.test('Status is Shortlisted (1)', () => pm.expect(pm.response.json().status).to.eql(1));"
-                        ]
-                      }
-                    }
-                ],
-                "request": {
-                  "method": "POST",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "body": {
-                    "mode": "raw",
-                    "raw": "{ \"action\": \"Shortlist\" }"
-                  },
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}/decision"
-                }
-                        },
-                        {
-                "name": "Withdraw Shortlisted candidacy (204)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('204 No Content', () => pm.response.to.have.status(204));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}/withdraw"
-                }
-                        },
-                        {
-                "name": "Get Withdrawn Shortlisted candidacy details (200)",
-                "event": [
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                        "pm.test('Details status is Withdrawn (5)', () => pm.expect(pm.response.json().status).to.eql(5));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "GET",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}"
-                }
-                        },
-                        {
-                "name": "Withdraw missing candidacy (404)",
-                "event": [
-                  {
-                    "listen": "prerequest",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.collectionVariables.set('p2DemoMissingCandidacyId', pm.variables.replaceIn('{{$guid}}'));"
-                      ]
-                    }
-                  },
-                  {
-                    "listen": "test",
-                    "script": {
-                      "type": "text/javascript",
-                      "exec": [
-                        "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
-                      ]
-                    }
-                  }
-                ],
-                "request": {
-                  "method": "POST",
-                  "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoMissingCandidacyId}}/withdraw"
-                }
-                        }
-                      ]
-                    }
-                  ]
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"P4 Student A\",\n  \"email\": \"p4-a-{{$guid}}@example.test\"\n}"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/students"
               }
+            },
+            {
+              "name": "Create Student B",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('p4StudentBId', pm.response.json().id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"P4 Student B\",\n  \"email\": \"p4-b-{{$guid}}@example.test\"\n}"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+              }
+            },
+            {
+              "name": "Create Offer (1 slot)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('p4OfferId', pm.response.json().id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"P4 Backend Intern\",\n  \"companyName\": \"P4 Demo Co\",\n  \"requirements\": \"C#, .NET\",\n  \"deadline\": \"2030-01-01T00:00:00Z\",\n  \"maximumAvailableSlots\": 1\n}"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
+              }
+            },
+            {
+              "name": "Apply - Student A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('p4CandidacyAId', pm.response.json().id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"studentId\": \"{{p4StudentAId}}\",\n  \"offerId\": \"{{p4OfferId}}\"\n}"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+              }
+            },
+            {
+              "name": "Apply - Student B",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "pm.collectionVariables.set('p4CandidacyBId', pm.response.json().id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"studentId\": \"{{p4StudentBId}}\",\n  \"offerId\": \"{{p4OfferId}}\"\n}"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Offer Candidacies",
+          "item": [
+            {
+              "name": "Get Offer Candidacies - 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Returns both candidacies of the offer', () => pm.expect(body).to.have.lengthOf(2));",
+                      "pm.test('Contains student names', () => pm.expect(body.map(c => c.studentFullName)).to.include.members(['P4 Student A', 'P4 Student B']));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{p4OfferId}}/candidacies"
+              }
+            },
+            {
+              "name": "Get Offer Candidacies - missing offer 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/{{apiVersion}}/offers/11111111-1111-4111-8111-111111111111/candidacies"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Decide Candidacy",
+          "item": [
+            {
+              "name": "Shortlist Candidacy A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "pm.test('Status is Shortlisted (1)', () => pm.expect(pm.response.json().status).to.eql(1));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Shortlist\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
+              }
+            },
+            {
+              "name": "Accept Candidacy A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "pm.test('Status is Accepted (2)', () => pm.expect(pm.response.json().status).to.eql(2));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Accept\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
+              }
+            },
+            {
+              "name": "Reject accepted Student A - 409 Conflict",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+                      "pm.test('Error message explains accepted candidacy cannot be rejected', () => pm.expect(pm.response.text()).to.contain('cannot be rejected'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Reject\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
+              }
+            },
+            {
+              "name": "Accept Candidacy B when slot is full",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "pm.test('Status is Waitlisted (4)', () => pm.expect(pm.response.json().status).to.eql(4));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Accept\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
+              }
+            },
+            {
+              "name": "Invalid decision action",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"1\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
+              }
+            },
+            {
+              "name": "Invalid combined decision action",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Shortlist,Accept\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyBId}}/decision"
+              }
+            },
+            {
+              "name": "Decide missing candidacy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Accept\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/11111111-1111-4111-8111-111111111111/decision"
+              }
+            },
+            {
+              "name": "Decide final candidacy conflict",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ \"action\": \"Accept\" }"
+                },
+                "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p4CandidacyAId}}/decision"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P2 - Get Details & Withdraw Demo",
+      "description": "Self-contained, repeatable Get Candidacy Details and Withdraw Candidacy demo. Run requests in order; every setup request creates fresh data and captures its IDs automatically.",
+      "item": [
+        {
+          "name": "Setup - Create Student A",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p2DemoStudentAEmail', 'p2-demo-a-' + pm.variables.replaceIn('{{$guid}}') + '@example.test');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('p2DemoStudentAId', pm.response.json().id);",
+                  "pm.test('Student A ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoStudentAId')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"fullName\": \"P2 Demo Student A\", \"email\": \"{{p2DemoStudentAEmail}}\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        },
+        {
+          "name": "Setup - Create Offer A",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p2DemoOfferADeadline', new Date(Date.now() + 14 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('p2DemoOfferAId', pm.response.json().id);",
+                  "pm.test('Offer A ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoOfferAId')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"title\": \"P2 Demo Offer A\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2DemoOfferADeadline}}\", \"maximumAvailableSlots\": 1 }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
+          }
+        },
+        {
+          "name": "Apply - Submitted candidacy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is Submitted (0)', () => pm.expect(body.status).to.eql(0));",
+                  "pm.collectionVariables.set('p2DemoSubmittedCandidacyId', body.id);",
+                  "pm.test('Submitted candidacy ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoSubmittedCandidacyId')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"{{p2DemoStudentAId}}\", \"offerId\": \"{{p2DemoOfferAId}}\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+          }
+        },
+        {
+          "name": "Get Submitted candidacy details (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Details status is Submitted (0)', () => pm.expect(pm.response.json().status).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}"
+          }
+        },
+        {
+          "name": "Summary - Submitted candidacy (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Student ID is Student A', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentAId')));",
+                  "pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));",
+                  "pm.test('Active count is 1', () => pm.expect(body.activeCount).to.eql(1));",
+                  "pm.test('Submitted count is 1', () => pm.expect(body.submittedCount).to.eql(1));",
+                  "pm.test('Other status counts are zero', () => pm.expect([body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
+          }
+        },
+        {
+          "name": "Withdraw Submitted candidacy (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Response body is empty', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}/withdraw"
+          }
+        },
+        {
+          "name": "Summary - After Withdraw (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Total count is 1', () => pm.expect(body.totalCount).to.eql(1));",
+                  "pm.test('Active count is 0', () => pm.expect(body.activeCount).to.eql(0));",
+                  "pm.test('Withdrawn count is 1', () => pm.expect(body.withdrawnCount).to.eql(1));",
+                  "pm.test('Other status counts are zero', () => pm.expect([body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount]).to.eql([0, 0, 0, 0, 0]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentAId}}/candidacies/summary"
+          }
+        },
+        {
+          "name": "Get Withdrawn Submitted candidacy details (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Details status is Withdrawn (5)', () => pm.expect(pm.response.json().status).to.eql(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}"
+          }
+        },
+        {
+          "name": "Withdraw already withdrawn candidacy (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoSubmittedCandidacyId}}/withdraw"
+          }
+        },
+        {
+          "name": "Setup - Create Student B",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p2DemoStudentBEmail', 'p2-demo-b-' + pm.variables.replaceIn('{{$guid}}') + '@example.test');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('p2DemoStudentBId', pm.response.json().id);",
+                  "pm.test('Student B ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoStudentBId')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"fullName\": \"P2 Demo Student B\", \"email\": \"{{p2DemoStudentBEmail}}\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students"
+          }
+        },
+        {
+          "name": "Summary - Student without candidacies (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Student ID is Student B', () => pm.expect(body.studentId).to.eql(pm.collectionVariables.get('p2DemoStudentBId')));",
+                  "pm.test('All counts are zero', () => pm.expect([body.totalCount, body.activeCount, body.submittedCount, body.shortlistedCount, body.acceptedCount, body.rejectedCount, body.waitlistedCount, body.withdrawnCount]).to.eql([0, 0, 0, 0, 0, 0, 0, 0]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/{{p2DemoStudentBId}}/candidacies/summary"
+          }
+        },
+        {
+          "name": "Summary - Missing student (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/students/00000000-0000-0000-0000-000000000000/candidacies/summary"
+          }
+        },
+        {
+          "name": "Setup - Create Offer B",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p2DemoOfferBDeadline', new Date(Date.now() + 21 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('p2DemoOfferBId', pm.response.json().id);",
+                  "pm.test('Offer B ID captured', () => pm.expect(pm.collectionVariables.get('p2DemoOfferBId')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"title\": \"P2 Demo Offer B\", \"companyName\": \"InternHub Demo\", \"requirements\": \"C#, .NET\", \"deadline\": \"{{p2DemoOfferBDeadline}}\", \"maximumAvailableSlots\": 1 }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
+          }
+        },
+        {
+          "name": "Apply - Shortlist candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Status is Submitted (0)', () => pm.expect(body.status).to.eql(0));",
+                  "pm.collectionVariables.set('p2DemoShortlistedCandidacyId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"studentId\": \"{{p2DemoStudentBId}}\", \"offerId\": \"{{p2DemoOfferBId}}\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+          }
+        },
+        {
+          "name": "Shortlist candidacy (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is Shortlisted (1)', () => pm.expect(pm.response.json().status).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"action\": \"Shortlist\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}/decision"
+          }
+        },
+        {
+          "name": "Withdraw Shortlisted candidacy (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}/withdraw"
+          }
+        },
+        {
+          "name": "Get Withdrawn Shortlisted candidacy details (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Details status is Withdrawn (5)', () => pm.expect(pm.response.json().status).to.eql(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoShortlistedCandidacyId}}"
+          }
+        },
+        {
+          "name": "Withdraw missing candidacy (404)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('p2DemoMissingCandidacyId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{p2DemoMissingCandidacyId}}/withdraw"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sprint 5 - Identity and AI Demo",
+      "description": "Run in order. The API must be started in Development and configured with the recruiter seed variables. Baseline AI is the default and does not require Ollama.",
+      "item": [
+        {
+          "name": "1. Register demo student",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = 'sprint5.' + pm.variables.replaceIn('{{$guid}}') + '@mail.com';",
+                  "pm.collectionVariables.set('sprintStudentEmail', email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Student role assigned', () => pm.expect(body.role).to.eql('Student'));",
+                  "pm.collectionVariables.set('sprintStudentId', body.studentId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Student\",\n  \"email\": \"{{sprintStudentEmail}}\",\n  \"password\": \"{{sprintStudentPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/auth/register-student"
+          }
+        },
+        {
+          "name": "2. Login demo student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Bearer token returned', () => pm.expect(body.accessToken).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('sprintStudentToken', body.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{sprintStudentEmail}}\",\n  \"password\": \"{{sprintStudentPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/auth/login"
+          }
+        },
+        {
+          "name": "3. Get authenticated student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Authenticated role is Student', () => pm.expect(pm.response.json().role).to.eql('Student'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintStudentToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/auth/me"
+          }
+        },
+        {
+          "name": "4. Login seeded recruiter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('sprintRecruiterToken', body.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{sprintRecruiterEmail}}\",\n  \"password\": \"{{sprintRecruiterPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/auth/login"
+          }
+        },
+        {
+          "name": "5. Create demo offer as recruiter",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sprintOfferDeadline', new Date(Date.now() + 30 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('sprintOfferId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintRecruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 .NET Intern\",\n  \"companyName\": \"InternHub Demo\",\n  \"requirements\": \"C#, .NET, ASP.NET Core, SQL, EF Core, Git\",\n  \"deadline\": \"{{sprintOfferDeadline}}\",\n  \"maximumAvailableSlots\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers"
+          }
+        },
+        {
+          "name": "6. Apply as student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('sprintCandidacyId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintStudentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{sprintStudentId}}\",\n  \"offerId\": \"{{sprintOfferId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies"
+          }
+        },
+        {
+          "name": "7. Student CV feedback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('AI provider header exists', () => pm.response.to.have.header('X-InternHub-AI-Provider'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Structured feedback returned', () => {",
+                  "  pm.expect(body).to.have.property('matchedSkills');",
+                  "  pm.expect(body).to.have.property('missingSkills');",
+                  "  pm.expect(body).to.have.property('suggestions');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintStudentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cvText\": \"I have experience with C#, .NET, SQL, EF Core, ASP.NET Core, REST APIs and Git.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/offers/{{sprintOfferId}}/cv-feedback"
+          }
+        },
+        {
+          "name": "8. Recruiter AI review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('AI provider header exists', () => pm.response.to.have.header('X-InternHub-AI-Provider'));",
+                  "const body = pm.response.json();",
+                  "pm.test('Read-only reviewer DTO returned', () => {",
+                  "  pm.expect(body).to.have.property('matchedSkills');",
+                  "  pm.expect(body).to.have.property('missingOrUnclearSkills');",
+                  "  pm.expect(body).to.have.property('evidence');",
+                  "  pm.expect(body).to.have.property('summary');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintRecruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cvText\": \"C#, .NET, ASP.NET Core, SQL, EF Core and Git. One internship project using REST APIs.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{sprintCandidacyId}}/ai-review"
+          }
+        },
+        {
+          "name": "9. Verify AI did not change candidacy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Status remains Submitted', () => pm.expect(pm.response.json().status).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintRecruiterToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{sprintCandidacyId}}"
+          }
+        },
+        {
+          "name": "10. Shortlist candidacy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintRecruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"action\": \"Shortlist\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{sprintCandidacyId}}/decision"
+          }
+        },
+        {
+          "name": "11. Accept candidacy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Final status is Accepted or Waitlisted', () => pm.expect([2, 4]).to.include(body.status));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintRecruiterToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"action\": \"Accept\" }"
+            },
+            "url": "{{baseUrl}}/api/{{apiVersion}}/candidacies/{{sprintCandidacyId}}/decision"
+          }
+        },
+        {
+          "name": "12. Recruiter notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK or 403 before ownership integration', () => pm.expect([200, 403]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sprintRecruiterToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/{{apiVersion}}/recruiters/me/notifications"
+          }
+        }
+      ]
+    }
+  ]
+}
